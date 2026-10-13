@@ -277,18 +277,24 @@ function stageOf(w){return Math.min(5,Math.max(0,w|0))}
 function randName(){const a=['Sunny','Wiggly','Sparkle','Giggle','Moon','Rainbow','Fizzy','Snuggle','Zippy','Twirly','Bouncy','Starry'];const b=['Sprout','Bloom','Petalpop','Leafling','Blossom','Fernie','Twinkleweed','Daisydoo','Spinflower','Budbud'];return a[Math.random()*a.length|0]+' '+b[Math.random()*b.length|0]}
 function uid(){let id=store('dg-uid');if(!id){id='l'+Math.random().toString(36).slice(2,12);store('dg-uid',id)}return id}
 
+// A stroke that loops back on itself (a petal, leaf, ball) becomes a filled, puffy solid instead of a tube.
+function isClosed(s){const p=s.p;if(!p||p.length<10)return false;let L=0,A=0;const X=i=>p[i]*0.00075,Y=i=>p[i+1]*0.001;
+  for(let i=2;i<p.length;i+=2)L+=Math.hypot(X(i)-X(i-2),Y(i)-Y(i-2));
+  for(let i=0;i<p.length;i+=2){const j=(i+2)%p.length;A+=X(i)*Y(j)-X(j)*Y(i)}A=Math.abs(A)/2;
+  const gap=Math.hypot(X(0)-X(p.length-2),Y(0)-Y(p.length-2)),r=s.w*0.00075/2;
+  return L>0.06&&gap<Math.max(0.18*L,3*r)&&A>Math.max(0.0006,8*r*r)}
 function drawStrokes(ctx,strokes,w,h,opt){
   opt=opt||{};ctx.lineCap='round';ctx.lineJoin='round';
   for(const s of strokes){const p=s.p;if(!p||p.length<2)continue;ctx.strokeStyle=s.c;ctx.fillStyle=s.c;const lw=Math.max(1,s.w/1000*w);ctx.lineWidth=lw;
     if(p.length===2){ctx.beginPath();ctx.arc(p[0]/1000*w,p[1]/1000*h,lw/2,0,7);ctx.fill();continue}
     ctx.beginPath();ctx.moveTo(p[0]/1000*w,p[1]/1000*h);
     for(let i=2;i<p.length-2;i+=2){const x=p[i]/1000*w,y=p[i+1]/1000*h,nx=p[i+2]/1000*w,ny=p[i+3]/1000*h;ctx.quadraticCurveTo(x,y,(x+nx)/2,(y+ny)/2)}
-    ctx.lineTo(p[p.length-2]/1000*w,p[p.length-1]/1000*h);ctx.stroke()}
+    ctx.lineTo(p[p.length-2]/1000*w,p[p.length-1]/1000*h);if(opt.fill&&isClosed(s)){ctx.closePath();ctx.fill()}ctx.stroke()}
 }
 function thumb(canvas,strokes,stage){
   const ctx=canvas.getContext('2d');const w=canvas.width,h=canvas.height;ctx.clearRect(0,0,w,h);
   if(stage===0){ctx.fillStyle='#7a4e2d';ctx.beginPath();ctx.ellipse(w/2,h*0.8,w*0.16,h*0.09,0,0,7);ctx.fill();ctx.strokeStyle='#3fb04a';ctx.lineWidth=w*0.05;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(w/2,h*0.74);ctx.quadraticCurveTo(w*0.52,h*0.62,w*0.62,h*0.58);ctx.stroke();return}
-  drawStrokes(ctx,strokes,w,h);
+  drawStrokes(ctx,strokes,w,h,{fill:true});
 }
 // Ramer–Douglas–Peucker on a flat [x,y,...] list
 function simplify(p,eps){if(p.length<=4)return p;const n=p.length/2,keep=new Uint8Array(n);keep[0]=keep[n-1]=1;const st=[[0,n-1]];
@@ -304,7 +310,7 @@ function sampleStrokes(){
   S.push({c:'#3fb04a',w:26,p:P(t=>{const a=t*Math.PI*2;return[0.37-0.18*(1-Math.cos(a))/2,0.6-0.07*(1-Math.cos(a))/2-0.045*Math.sin(a)]},28)});
   const cx=0.375,cy=0.3;
   for(let k=0;k<10;k++){const th=k/10*Math.PI*2;S.push({c:k%2?'#ffd23c':'#ff9b2f',w:22,p:P(t=>{const a=t*Math.PI*2,r=0.09+0.07*(1-Math.cos(a))/2,s=0.035*Math.sin(a);return[cx+Math.cos(th)*r-Math.sin(th)*s,cy+Math.sin(th)*r+Math.cos(th)*s]},20)})}
-  S.push({c:'#7a4e2d',w:30,p:P(t=>{const a=t*Math.PI*6,r=0.075*t;return[cx+Math.cos(a)*r,cy+Math.sin(a)*r]},40)});
+  S.push({c:'#7a4e2d',w:24,p:P(t=>{const a=t*Math.PI*2,r=0.065;return[cx+Math.cos(a)*r,cy+Math.sin(a)*r]},32)});
   return S}
 
 function cleanPlant(id,d){
@@ -378,6 +384,14 @@ const Viewer={ok:false,
       if(v.length>1&&v[0].y>v[v.length-1].y)v.reverse();
       const rad=Math.max(0.014,s.w/1000*W*0.5);const mat=new THREE.MeshStandardMaterial({color:new THREE.Color(s.c).convertSRGBToLinear(),roughness:0.5,metalness:0.02});
       let mesh,segs=1,unit=0,cap=null;
+      if(v.length>=5&&isClosed(s)){
+        const pts=v.slice();if(pts[0].distanceTo(pts[pts.length-1])<rad)pts.pop();
+        let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;for(const P of pts){x0=Math.min(x0,P.x);x1=Math.max(x1,P.x);y0=Math.min(y0,P.y);y1=Math.max(y1,P.y)}
+        const md=Math.min(x1-x0,y1-y0)+2*rad,depth=clamp(md*0.14,0.02,0.12),bt=clamp(md*0.24,0.04,0.2),zoff=(i/Math.max(1,strokes.length-1))*0.14-0.07;
+        const g=new THREE.ExtrudeGeometry(new THREE.Shape(pts.map(P=>new THREE.Vector2(P.x,P.y))),{depth,steps:1,curveSegments:2,bevelEnabled:true,bevelThickness:bt,bevelSize:rad*0.9,bevelSegments:6});
+        const pos=g.attributes.position;for(let n=0;n<pos.count;n++){const x=pos.getX(n);pos.setZ(n,pos.getZ(n)-depth/2+D*Math.cos(x/W*Math.PI)-D+zoff)}
+        g.computeBoundingBox();const c=new THREE.Vector3();g.boundingBox.getCenter(c);g.translate(-c.x,-c.y,-c.z);
+        mesh=new THREE.Mesh(g,mat);mesh.position.copy(c);this.plant.add(mesh);this.parts.push({mesh,segs:1,unit:0,solid:true,rad,k,n:order.length});return}
       if(v.length<2){mesh=new THREE.Mesh(new THREE.SphereGeometry(rad,14,10),mat);mesh.position.copy(v[0]||new THREE.Vector3())}
       else{const curve=new THREE.CatmullRomCurve3(v);segs=clamp(v.length*3,6,260);const g=new THREE.TubeGeometry(curve,segs,rad,7,false);unit=7*6;mesh=new THREE.Mesh(g,mat);
         cap=new THREE.Mesh(new THREE.SphereGeometry(rad,10,8),mat);cap.position.copy(v[0]);this.plant.add(cap);mesh.userData.curve=curve;
@@ -387,12 +401,14 @@ const Viewer={ok:false,
   apply(){const p=this.progress,N=this.parts.length||1;
     this.parts.forEach((q,idx)=>{const span=0.45,start=N>1?idx/(N-1)*(1-span):0;const l=clamp((p-start)/span,0,1);
       if(q.unit){const n=Math.floor(l*q.segs);q.mesh.geometry.setDrawRange(0,n*q.unit);q.mesh.visible=n>0;if(q.cap)q.cap.visible=l>0;const end=q.mesh.userData.end;if(end){end.visible=l>0;end.position.copy(q.mesh.userData.curve.getPointAt(clamp(n/q.segs,0,1)))}}
+      else if(q.solid){const e=l<=0?0:1+2.2*Math.pow(l-1,3)+1.2*Math.pow(l-1,2);q.mesh.visible=l>0;q.mesh.scale.setScalar(Math.max(0.001,e))}
       else q.mesh.visible=l>0.5});
     this.seed.visible=p<0.12},
   // Builds a standalone copy of the plant at growth p (about 50 cm tall) and returns it as a .glb Blob for AR.
   exportGLB(p){return new Promise((res,rej)=>{
     const root=new THREE.Group(),N=this.parts.length||1;
     this.parts.forEach((q,idx)=>{const span=0.45,start=N>1?idx/(N-1)*(1-span):0;const l=clamp((p-start)/span,0,1);if(l<=0)return;const mat=q.mesh.material;
+      if(q.solid){const m=new THREE.Mesh(q.mesh.geometry,mat);m.position.copy(q.mesh.position);m.scale.setScalar(l);root.add(m);return}
       if(!q.unit){if(l>0.5){const m=new THREE.Mesh(q.mesh.geometry,mat);m.position.copy(q.mesh.position);root.add(m)}return}
       const curve=q.mesh.userData.curve,n=Math.max(1,Math.floor(l*q.segs)),pts=[];for(let i=0;i<=n;i++)pts.push(curve.getPointAt(i/q.segs));
       root.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),n,q.rad,7,false),mat));
