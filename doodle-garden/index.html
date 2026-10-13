@@ -355,6 +355,31 @@ const Data={mode:'local',me:uid(),plants:new Map(),shared:new Map(),mine:new Map
     if(this.mode==='shared'){try{await this.db.doc(this.path(p)).update({waters:p.waters,lastWatered:p.lastWatered})}catch(e){toast('That watering did not reach the shared garden.')}}else this.saveLocal()}
 };
 
+/* Inflates a closed outline into a soft pillow: the outline is widened by the brush, filled with triangles,
+   refined, and each point is puffed up by a rounded profile of its distance from the edge (front and back). */
+function pillowGeometry(raw,rad){
+  // resample the outline evenly
+  let L=0;for(let i=0;i<raw.length;i++)L+=raw[i].distanceTo(raw[(i+1)%raw.length]);
+  const n=clamp(Math.round(L/0.035),16,90),step=L/n,ring=[];let acc=0,i=0,cur=raw[0].clone();ring.push(cur.clone());
+  while(ring.length<n){const nx=raw[(i+1)%raw.length],seg=cur.distanceTo(nx);if(acc+seg>=step){cur.lerp(nx,(step-acc)/seg);ring.push(cur.clone());acc=0}else{acc+=seg;cur=nx.clone();i++;if(i>raw.length*2)break}}
+  // grow outward by the brush radius
+  let A=0;for(let k=0;k<ring.length;k++){const a=ring[k],b=ring[(k+1)%ring.length];A+=a.x*b.y-b.x*a.y}const sgn=A>0?1:-1;
+  const pts=ring.map((p,k)=>{const a=ring[(k-1+ring.length)%ring.length],b=ring[(k+1)%ring.length];const t=new THREE.Vector2(b.x-a.x,b.y-a.y).normalize();return new THREE.Vector2(p.x+t.y*sgn*rad*0.8,p.y-t.x*sgn*rad*0.8)});
+  // rings shrink towards the middle; more rings near the edge so the rim is round
+  let cx=0,cy=0;for(const p of pts){cx+=p.x;cy+=p.y}cx/=pts.length;cy/=pts.length;
+  let rmin=1e9;for(const p of pts)rmin=Math.min(rmin,Math.hypot(p.x-cx,p.y-cy));
+  const thick=clamp(Math.max(rmin,rad*2)*0.95,0.04,0.38),K=12,N=pts.length,pos=[],idx=[];
+  const S=k=>Math.cos(k/K*Math.PI/2),Hh=sc=>thick*Math.sqrt(Math.max(0,1-Math.pow(sc,3)));
+  for(let k=0;k<K;k++){const sc=S(k),h=Hh(sc);for(const p of pts)pos.push(cx+(p.x-cx)*sc,cy+(p.y-cy)*sc,h)}
+  for(let k=1;k<K;k++){const sc=S(k),h=Hh(sc);for(const p of pts)pos.push(cx+(p.x-cx)*sc,cy+(p.y-cy)*sc,-h)}
+  const top=pos.length/3;pos.push(cx,cy,thick);const bot=top+1;pos.push(cx,cy,-thick);
+  const F=(k,j)=>k*N+(j%N),B=(k,j)=>k===0?(j%N):K*N+(k-1)*N+(j%N);
+  for(let k=0;k<K-1;k++)for(let j=0;j<N;j++){idx.push(F(k,j),F(k,j+1),F(k+1,j+1),F(k,j),F(k+1,j+1),F(k+1,j));idx.push(B(k,j),B(k+1,j+1),B(k,j+1),B(k,j),B(k+1,j),B(k+1,j+1))}
+  for(let j=0;j<N;j++){idx.push(F(K-1,j),F(K-1,j+1),top);idx.push(B(K-1,j),bot,B(K-1,j+1))}
+  if(sgn<0)for(let k=0;k<idx.length;k+=3){const t=idx[k+1];idx[k+1]=idx[k+2];idx[k+2]=t}
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);
+  return g}
+
 /* ---------- 3D viewer (one WebGL context, moved between screens) ---------- */
 const Viewer={ok:false,
   init(){
@@ -393,9 +418,9 @@ const Viewer={ok:false,
       if(v.length>=5&&isClosed(s)){
         const pts=v.slice();if(pts[0].distanceTo(pts[pts.length-1])<rad)pts.pop();
         let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;for(const P of pts){x0=Math.min(x0,P.x);x1=Math.max(x1,P.x);y0=Math.min(y0,P.y);y1=Math.max(y1,P.y)}
-        const md=Math.min(x1-x0,y1-y0)+2*rad,depth=clamp(md*0.14,0.02,0.12),bt=clamp(md*0.24,0.04,0.2),zoff=(i/Math.max(1,strokes.length-1))*0.14-0.07;
-        const g=new THREE.ExtrudeGeometry(new THREE.Shape(pts.map(P=>new THREE.Vector2(P.x,P.y))),{depth,steps:1,curveSegments:2,bevelEnabled:true,bevelThickness:bt,bevelSize:rad*0.9,bevelSegments:6});
-        const pos=g.attributes.position;for(let n=0;n<pos.count;n++){const x=pos.getX(n);pos.setZ(n,pos.getZ(n)-depth/2+D*Math.cos(x/W*Math.PI)-D+zoff)}
+        const zoff=(i/Math.max(1,strokes.length-1))*0.14-0.07;
+        const g=pillowGeometry(pts.map(P=>new THREE.Vector2(P.x,P.y)),rad);
+        const pos=g.attributes.position;for(let n=0;n<pos.count;n++){const x=pos.getX(n);pos.setZ(n,pos.getZ(n)+D*Math.cos(x/W*Math.PI)-D+zoff)}g.computeVertexNormals();
         g.computeBoundingBox();const c=new THREE.Vector3();g.boundingBox.getCenter(c);g.translate(-c.x,-c.y,-c.z);
         mesh=new THREE.Mesh(g,mat);mesh.position.copy(c);this.plant.add(mesh);this.parts.push({mesh,segs:1,unit:0,solid:true,rad,k,n:order.length});return}
       if(v.length<2){mesh=new THREE.Mesh(new THREE.SphereGeometry(rad,14,10),mat);mesh.position.copy(v[0]||new THREE.Vector3())}
