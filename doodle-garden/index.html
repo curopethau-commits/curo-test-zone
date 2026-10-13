@@ -143,6 +143,26 @@ h1,h2,h3{font-family:var(--display);margin:0;line-height:1.05;text-wrap:balance}
   #home p{font-size:15px}
   .card h2{font-size:26px}
 }
+/* Tablets and iPads (the main target): bigger touch targets and type. */
+@media (min-width:900px) and (min-height:700px){
+  body{font-size:17px} button{font-size:17px}
+  .screen{padding:24px max(24px,env(safe-area-inset-right,0px)) 24px max(24px,env(safe-area-inset-left,0px));gap:24px}
+  .btn{padding:15px 26px} .btn.big{font-size:22px;padding:18px 32px}
+  #home p{font-size:20px} .steps span{font-size:15px;padding:6px 14px}
+  .swatches{grid-template-columns:repeat(2,52px);gap:12px} .sw{width:52px;height:52px}
+  .sz{width:116px;height:46px} .mini{width:116px;padding:12px 0;font-size:16px}
+  .soil{height:60px;font-size:16px} .paper{height:calc(100% - 60px)}
+  #draw .side{flex-basis:280px} #draw .side h2{font-size:40px} #draw .side p{font-size:18px}
+  #grow .info{flex-basis:380px} #grow h2{font-size:44px}
+  #map .panel{flex-basis:360px} #map .panel h2{font-size:36px}
+  .item{padding:12px;gap:14px} .item canvas{width:48px;height:64px} .item .n{font-size:18px} .item .m{font-size:14px}
+  .places button{font-size:16px;padding:8px 16px}
+  .seed,.seedghost{width:84px;height:84px;font-size:30px} .seedghost{margin:-42px 0 0 -42px}
+  .zoom button,.close{width:52px;height:52px;font-size:24px}
+  .locchip{font-size:15px;padding:8px 14px}
+  .card{width:min(1180px,100%);height:min(640px,100%);padding:20px;gap:24px}
+  .card h2{font-size:44px} .stats{font-size:17px}
+}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
@@ -481,7 +501,7 @@ function drawMap(){if(!MW)return;const c=mctx;c.setTransform(dpr,0,0,dpr,0,0);co
   $('#scaleLbl').textContent='Rings every '+ring+' m';
   // plants
   const list=nearby().sort((a,b)=>b.y-a.y);
-  for(const{p,x,y}of list){const sx=cx+x*k,sy=cy-y*k;if(sx<-60||sx>MW+60||sy<-80||sy>MH+60)continue;const st=stageOf(p.waters);const h=30+st*7,w=h*0.75;
+  for(const{p,x,y}of list){const sx=cx+x*k,sy=cy-y*k;if(sx<-60||sx>MW+60||sy<-80||sy>MH+60)continue;const st=stageOf(p.waters),ms=clamp(Math.min(MW,MH)/420,1,2);const h=(30+st*7)*ms,w=h*0.75;
     c.fillStyle='rgba(0,0,0,.18)';c.beginPath();c.ellipse(sx,sy,w*0.38,5,0,0,7);c.fill();
     if(p.owner===Data.me){c.strokeStyle='#ffc93c';c.lineWidth=3;c.beginPath();c.ellipse(sx,sy,w*0.45,7,0,0,7);c.stroke()}
     c.drawImage(plantThumb(p),sx-w/2,sy-h+4,w,h)}
@@ -493,8 +513,8 @@ function drawMap(){if(!MW)return;const c=mctx;c.setTransform(dpr,0,0,dpr,0,0);co
 (function mapLoop(){requestAnimationFrame(mapLoop);if(current==='map'&&!document.hidden)drawMap()})();
 addEventListener('resize',()=>{if(current==='map')sizeMap();if(current==='draw')sizePaper()});
 $('#zin').onclick=()=>{R=Math.max(30,R/2);drawMap()};$('#zout').onclick=()=>{R=Math.min(480,R*2);drawMap()};
-mc.addEventListener('click',e=>{const r=mc.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top,k=scalePx();let best=null,bd=36;
-  for(const{p,x,y}of nearby()){const sx=MW/2+x*k,sy=MH/2-y*k-18;const d=Math.hypot(mx-sx,my-sy);if(d<bd){bd=d;best=p}}if(best)openPlant(best.id)});
+mc.addEventListener('click',e=>{const r=mc.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top,k=scalePx();let best=null,bd=36*clamp(Math.min(MW,MH)/420,1,2);
+  for(const{p,x,y}of nearby()){const sx=MW/2+x*k,sy=MH/2-y*k-18*clamp(Math.min(MW,MH)/420,1,2);const d=Math.hypot(mx-sx,my-sy);if(d<bd){bd=d;best=p}}if(best)openPlant(best.id)});
 
 function renderPanel(){const pn=$('#panel');pn.textContent='';
   if(planting&&pending){
