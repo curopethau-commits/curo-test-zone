@@ -35,6 +35,23 @@ h1,h2,h3{font-family:var(--display);margin:0;line-height:1.05;text-wrap:balance}
 
 /* Home */
 #home{align-items:stretch}
+#camVideo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;background:#000}
+#home.live{color:#fff}
+#home.live::before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(90deg,rgba(10,30,20,.62),rgba(10,30,20,.15) 55%,rgba(10,30,20,0));pointer-events:none}
+#home>.left,#home>.stage3d{position:relative;z-index:2}
+#home.live h1,#home.live h1 span{color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.35)}
+#home.live p{text-shadow:0 1px 6px rgba(0,0,0,.4)}
+#home.live .stage3d .cap{display:none}
+#home.live .steps span{color:var(--ink)}
+#camPlants{position:absolute;inset:0;z-index:3;pointer-events:none;overflow:hidden}
+.camplant{position:absolute;top:30%;transform:translate(-50%,-50%);pointer-events:auto;background:rgba(255,255,255,.9);border-radius:18px;padding:6px 8px 4px;display:flex;flex-direction:column;align-items:center;gap:2px;box-shadow:0 6px 16px rgba(0,0,0,.25);transition:left .25s linear}
+.camplant canvas{display:block}
+.camplant b{font-size:12px;color:var(--ink);white-space:nowrap}
+.camplant i{font-style:normal;font-size:11px;font-weight:800;color:var(--ink2)}
+.camrow{position:absolute;left:0;right:0;bottom:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:0 16px}
+.camrow .camplant{position:static;transform:none}
+.camnote{font-size:13px;font-weight:800;opacity:.9}
+.pinmark{width:34px;height:46px;pointer-events:none}
 #home .left{flex:1 1 46%;display:flex;flex-direction:column;justify-content:center;gap:18px;min-width:0;padding-left:12px}
 #home h1{font-size:clamp(40px,8vh,76px);font-weight:800;color:var(--leaf-d)}
 #home h1 span{color:var(--soil)}
@@ -178,14 +195,18 @@ h1,h2,h3{font-family:var(--display);margin:0;line-height:1.05;text-wrap:balance}
   <div class="wip">WIP PROTOTYPE</div>
 
   <section class="screen" id="home">
+    <video id="camVideo" playsinline muted autoplay hidden></video>
+    <div id="camPlants"></div>
     <div class="left">
       <h1>Doodle <span>Garden</span></h1>
-      <p>Draw the plant you wish could grow. We turn it into 3D and give you its seed. Plant the seed somewhere you love, come back to water it, and see what everyone else has planted nearby.</p>
-      <div class="steps"><span>1 · Draw</span><span>2 · Get your seed</span><span>3 · Plant it</span><span>4 · Water it</span></div>
+      <p id="homeText">Look around for magic plants. Then pick a spot you love, draw the plant you wish could grow there, and come back to water it.</p>
+      <div class="steps"><span>1 · Pick a spot</span><span>2 · Draw your plant</span><span>3 · Plant it</span><span>4 · Water it</span></div>
       <div class="row">
-        <button class="btn big" id="goDraw">Draw a plant</button>
+        <button class="btn big" id="goDraw">Plant something here</button>
         <button class="btn ghost big" id="goMap">Visit the garden</button>
       </div>
+      <button class="btn ghost" id="camBtn" hidden>📷 Turn on the camera</button>
+      <div class="camnote" id="camNote" hidden></div>
     </div>
     <div class="stage3d" id="homeStage"><div class="cap">Example: Sunny Spinflower 🌟 glows in the dark</div></div>
   </section>
@@ -477,7 +498,7 @@ const Viewer={ok:false,
       const sc=this.scene=new THREE.Scene();
       this.cam=new THREE.PerspectiveCamera(34,1,0.1,100);this.cam.position.set(0,2.4,8.2);this.cam.lookAt(0,1.45,0);
       sc.add(new THREE.HemisphereLight(0xffffff,0x6b8f4e,0.95));const dl=new THREE.DirectionalLight(0xffffff,0.8);dl.position.set(3,6,5);sc.add(dl);
-      const ground=new THREE.Mesh(new THREE.CylinderGeometry(1.9,2.05,0.22,48),new THREE.MeshStandardMaterial({color:new THREE.Color(0x7bc85a).convertSRGBToLinear(),roughness:1}));ground.position.y=-0.11;sc.add(ground);
+      const ground=new THREE.Mesh(new THREE.CylinderGeometry(1.9,2.05,0.22,48),new THREE.MeshStandardMaterial({color:new THREE.Color(0x7bc85a).convertSRGBToLinear(),roughness:1}));ground.position.y=-0.11;sc.add(ground);this.ground=ground;
       const mound=new THREE.Mesh(new THREE.SphereGeometry(0.62,32,16,0,Math.PI*2,0,Math.PI/2),new THREE.MeshStandardMaterial({color:new THREE.Color(0x7a4e2d).convertSRGBToLinear(),roughness:1}));mound.scale.y=0.32;sc.add(mound);this.mound=mound;
       this.spin=new THREE.Group();sc.add(this.spin);this.plant=new THREE.Group();this.spin.add(this.plant);
       this.seed=new THREE.Mesh(new THREE.SphereGeometry(0.16,20,14),new THREE.MeshStandardMaterial({color:new THREE.Color(0x8a5a35).convertSRGBToLinear(),roughness:.6}));this.seed.scale.set(1,0.75,0.8);this.seed.position.y=0.2;this.spin.add(this.seed);
@@ -579,7 +600,10 @@ let current='home';
 function show(id){for(const s of document.querySelectorAll('.screen'))s.hidden=s.id!==id;current=id;
   if(id==='home'){Viewer.mount($('#homeStage'));Viewer.setPlant(SAMPLE,1,false,'glow');Viewer.growTo(1,0.45)}
   if(id==='draw')requestAnimationFrame(sizePaper);
-  if(id==='map'){requestAnimationFrame(()=>{sizeMap();renderPanel();initRealMap();if(RM)RM.map.resize()})}}
+  if(id==='map'){requestAnimationFrame(()=>{sizeMap();renderPanel();initRealMap();if(RM)RM.map.resize();syncPin()})}
+  if(id!=='map'&&pinMarker&&!choosing)syncPin();
+  if(Viewer.ground){const live=id==='home'&&camLive;Viewer.ground.visible=!live;Viewer.mound.visible=true}
+  camPause(id!=='home')}
 let triedLock=false;
 function tryLandscape(){if(triedLock)return;triedLock=true;try{const de=document.documentElement;if(de.requestFullscreen&&matchMedia('(pointer:coarse)').matches){de.requestFullscreen({navigationUI:'hide'}).then(()=>screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape')).catch(()=>{})}}catch(e){}}
 
@@ -620,6 +644,7 @@ async function startGrow(){
   pending={strokes:data,name:verdict.name||randName(),desc,power:verdict.power||''};
   const gp=$('#growPower');gp.hidden=!pending.power;if(pending.power)gp.textContent=POWERS[pending.power].e+' '+POWERS[pending.power].label;
   $('#plantName').value=pending.name;updatePacket();
+  $('#toPlant').textContent=chosen?'Plant it here':'Take my seed';
   show('grow');Viewer.mount($('#growStage'));Viewer.setPlant(pending.strokes,1,false,pending.power);Viewer.growTo(1,0.5);
 }
 // Asks Claude (when this page is allowed to) whether a drawing is OK for a kids' garden and for a fun name. Fails open.
@@ -635,7 +660,9 @@ async function checkDrawing(data,desc){
 function updatePacket(){const n=($('#plantName').value||'').trim()||'My plant';$('#packetName').textContent=n;thumb($('#packetThumb'),pending?pending.strokes:[],1)}
 $('#plantName').addEventListener('input',updatePacket);
 $('#redraw').onclick=()=>show('draw');
-$('#toPlant').onclick=()=>{pending.name=($('#plantName').value||'').trim().slice(0,28)||'My plant';planting=true;placeType='Park';show('map')};
+$('#toPlant').onclick=()=>{pending.name=($('#plantName').value||'').trim().slice(0,28)||'My plant';
+  if(chosen){placeType=chosen.place;const j=fromXY((Math.random()-.5)*2,(Math.random()-.5)*2);const pos={lat:chosen.lat+(j.lat-here.lat),lng:chosen.lng+(j.lng-here.lng)};plantAtPos({lat:pos.lat,lng:pos.lng})}
+  else{planting=true;placeType='Park';show('map')}};
 
 /* ---------- location ---------- */
 let here=Object.assign({},DEMO),located='pending';
@@ -660,7 +687,8 @@ function initRealMap(){if(RM||rmLoading||framed())return;rmLoading=true;
     const map=new maplibregl.Map({container:el,style:'https://tiles.openfreemap.org/styles/liberty',center:[here.lng,here.lat],zoom:17,maxZoom:19,attributionControl:{compact:true},dragRotate:false,pitchWithRotate:false});
     map.touchZoomRotate.disableRotation();
     map.once('load',()=>{RM={map,markers:new Map()};const y=document.createElement('div');y.className='youdot';RM.you=new maplibregl.Marker({element:y}).setLngLat([here.lng,here.lat]).addTo(map);
-      mc.hidden=true;$('#scaleLbl').hidden=true;R=300;syncMarkers();if(current==='map'&&!planting)renderPanel()});
+      mc.hidden=true;$('#scaleLbl').hidden=true;R=300;syncMarkers();syncPin();if(current==='map'&&!planting)renderPanel()});
+    map.on('click',e=>{if(!choosing)return;spot={lat:e.lngLat.lat,lng:e.lngLat.lng};syncPin();renderPanel()});
     setTimeout(()=>{if(!RM){el.remove()}},15000); // no tiles (offline): keep the drawn park map
   }).catch(()=>{rmLoading=false})}
 function syncMarkers(){if(!RM)return;const seen=new Set();
@@ -673,6 +701,13 @@ function syncMarkers(){if(!RM)return;const seen=new Set();
   for(const[id,m]of RM.markers)if(!seen.has(id)){m.marker.remove();RM.markers.delete(id)}}
 function centerReal(move){if(!RM)return;RM.you.setLngLat([here.lng,here.lat]);if(move)RM.map.easeTo({center:[here.lng,here.lat],zoom:Math.max(RM.map.getZoom(),16)})}
 Data.on(syncMarkers);
+
+/* ---------- choosing a spot (before drawing) ---------- */
+let choosing=false,spot=null,chosen=null,pinMarker=null;
+function drawPin(c,x,y){c.save();c.translate(x,y);c.fillStyle='rgba(0,0,0,.2)';c.beginPath();c.ellipse(0,0,10,4,0,0,7);c.fill();c.fillStyle='#ef4646';c.beginPath();c.moveTo(0,0);c.bezierCurveTo(-16,-22,-14,-40,0,-40);c.bezierCurveTo(14,-40,16,-22,0,0);c.fill();c.fillStyle='#fff';c.beginPath();c.arc(0,-28,6,0,7);c.fill();c.restore()}
+function pinEl(){const c=document.createElement('canvas');c.width=68;c.height=92;c.className='pinmark';const x=c.getContext('2d');x.scale(2,2);drawPin(x,17,44);return c}
+function startChoosing(){choosing=true;planting=false;spot={lat:here.lat,lng:here.lng};placeType=placeType||'Park';show('map');syncPin()}
+function syncPin(){if(!RM)return;if(choosing){if(!pinMarker){pinMarker=new maplibregl.Marker({element:pinEl(),anchor:'bottom',draggable:true}).setLngLat([spot.lng,spot.lat]).addTo(RM.map);pinMarker.on('dragend',()=>{const ll=pinMarker.getLngLat();spot={lat:ll.lat,lng:ll.lng};renderPanel()})}else pinMarker.setLngLat([spot.lng,spot.lat])}else if(pinMarker){pinMarker.remove();pinMarker=null}}
 
 /* ---------- map ---------- */
 const mc=$('#mapCanvas'),mctx=mc.getContext('2d');let R=120,MW=0,MH=0,dpr=1,planting=false,placeType='Park',ghostAt=null;
@@ -703,15 +738,28 @@ function drawMap(){if(!MW)return;const c=mctx;c.setTransform(dpr,0,0,dpr,0,0);co
   // you
   const t=performance.now()/1000,pr=10+((t*20)%22);c.fillStyle='rgba(42,134,214,'+(0.35*(1-(pr-10)/22))+')';c.beginPath();c.arc(cx,cy,pr,0,7);c.fill();
   c.fillStyle='#fff';c.beginPath();c.arc(cx,cy,9,0,7);c.fill();c.fillStyle='#2a86d6';c.beginPath();c.arc(cx,cy,6.5,0,7);c.fill();
+  if(choosing&&!RM){const[px,py]=toXY(spot.lat,spot.lng);drawPin(c,cx+px*k,cy-py*k)}
   if(ghostAt){c.strokeStyle='#7a4e2d';c.setLineDash([3,4]);c.lineWidth=2;c.beginPath();c.arc(ghostAt[0],ghostAt[1],20,0,7);c.stroke();c.setLineDash([])}
 }
 (function mapLoop(){requestAnimationFrame(mapLoop);if(current==='map'&&!document.hidden&&!RM)drawMap()})();
 addEventListener('resize',()=>{if(current==='map')sizeMap();if(current==='draw')sizePaper()});
 $('#zin').onclick=()=>{if(RM)RM.map.zoomIn();else{R=Math.max(30,R/2);drawMap()}};$('#zout').onclick=()=>{if(RM)RM.map.zoomOut();else{R=Math.min(480,R*2);drawMap()}};
-mc.addEventListener('click',e=>{const r=mc.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top,k=scalePx();let best=null,bd=36*clamp(Math.min(MW,MH)/420,1,2);
+mc.addEventListener('click',e=>{const r=mc.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top,k=scalePx();
+  if(choosing){const x=(mx-MW/2)/k,y=-(my-MH/2)/k;spot=fromXY(x,y);renderPanel();return}let best=null,bd=36*clamp(Math.min(MW,MH)/420,1,2);
   for(const{p,x,y}of nearby()){const sx=MW/2+x*k,sy=MH/2-y*k-18*clamp(Math.min(MW,MH)/420,1,2);const d=Math.hypot(mx-sx,my-sy);if(d<bd){bd=d;best=p}}if(best)openPlant(best.id)});
 
 function renderPanel(){const pn=$('#panel');pn.textContent='';
+  if(choosing){
+    pn.insertAdjacentHTML('beforeend','<h2>Where will it grow?</h2><div class="muted" style="line-height:1.4">Your pin is where the plant will grow. Tap the map to move it.</div>');
+    const lbl=document.createElement('div');lbl.style.cssText='font-weight:800;font-size:13px';lbl.textContent='What kind of place is it?';
+    const pl=document.createElement('div');pl.className='places';PLACES.forEach(n=>{const b=document.createElement('button');b.textContent=n;b.className=n===placeType?'on':'';b.onclick=()=>{placeType=n;renderPanel()};pl.appendChild(b)});
+    pn.append(lbl,pl);
+    const[dx,dy]=toXY(spot.lat,spot.lng);const d=Math.round(Math.hypot(dx,dy));const info=document.createElement('div');info.className='muted';info.style.fontWeight='800';info.textContent=d<3?'Right where you are':'Pin is '+d+' m from you';pn.appendChild(info);
+    if(PRIVATE_PLACES.includes(placeType)){const n=document.createElement('div');n.className='muted';n.style.fontSize='12px';n.textContent='Home plants stay private. Only you will see this one.';pn.appendChild(n)}
+    if(located==='demo'){const n=document.createElement('div');n.className='muted';n.style.fontSize='12px';n.textContent=framed()?'Location is off on this page, so plants go into Demo Park.':'Turn on Location to plant at your real spot. For now you are in Demo Park.';pn.appendChild(n)}
+    const row=document.createElement('div');row.className='row';const go=document.createElement('button');go.className='btn big';go.textContent='Draw my plant here';
+    go.onclick=()=>{chosen={lat:spot.lat,lng:spot.lng,place:placeType};choosing=false;show('draw')};
+    const back=document.createElement('button');back.className='btn ghost';back.textContent='Back';back.onclick=()=>{choosing=false;show('home')};row.append(go,back);pn.appendChild(row);return}
   if(planting&&pending){
     pn.insertAdjacentHTML('beforeend','<h2>Plant your seed</h2><div class="muted" style="line-height:1.4">Drag the seed onto the map to plant it there. Or flick it up to plant it right where you are.</div>');
     const pl=document.createElement('div');pl.className='places';PLACES.forEach(n=>{const b=document.createElement('button');b.textContent=n;b.className=n===placeType?'on':'';b.onclick=()=>{placeType=n;renderPanel()};pl.appendChild(b)});
@@ -731,7 +779,7 @@ function renderPanel(){const pn=$('#panel');pn.textContent='';
     const tag=document.createElement('span');const mine=p.owner===Data.me;tag.className='tag'+(mine?' mine':'');tag.textContent=p.private?'Private':mine?'Yours':(thirsty(p)?'Thirsty':'Friend');
     b.append(cv,tx,tag);b.onclick=()=>openPlant(p.id);list.appendChild(b)}
   pn.appendChild(list);
-  const row=document.createElement('div');row.className='row';const nb=document.createElement('button');nb.className='btn';nb.textContent='Draw a new plant';nb.onclick=()=>show('draw');const hb=document.createElement('button');hb.className='btn ghost';hb.textContent='Home';hb.onclick=()=>show('home');row.append(nb,hb);pn.appendChild(row)}
+  const row=document.createElement('div');row.className='row';const nb=document.createElement('button');nb.className='btn';nb.textContent='Plant something new';nb.onclick=()=>startChoosing();const hb=document.createElement('button');hb.className='btn ghost';hb.textContent='Home';hb.onclick=()=>show('home');row.append(nb,hb);pn.appendChild(row)}
 Data.on(()=>{if(current==='map'&&!planting)renderPanel();if(openId)fillSheet()});
 
 function bindSeed(seed){let st=null,ghost=null,trail=[];
@@ -745,8 +793,9 @@ function bindSeed(seed){let st=null,ghost=null,trail=[];
   seed.addEventListener('pointerup',end);seed.addEventListener('pointercancel',end)}
 function flyTo(el,x,y,done){el.style.transition='left .45s cubic-bezier(.3,.6,.4,1),top .45s cubic-bezier(.4,-0.4,.6,1),transform .45s';el.style.left=x+'px';el.style.top=y+'px';el.style.transform='scale(.5)';setTimeout(()=>{el.remove();done()},460)}
 async function plantAt(x,y,jitter){if(!pending)return;if(jitter){const a=Math.random()*6.28,d=1+Math.random()*3;x+=Math.cos(a)*d;y+=Math.sin(a)*d}
-  const pos=fromXY(x,y);const id=await Data.add({name:pending.name,desc:pending.desc||'',power:pending.power||'',strokes:pending.strokes,lat:+pos.lat.toFixed(6),lng:+pos.lng.toFixed(6),place:placeType});
-  planting=false;pending=null;strokes=[];renderPanel();toast('Planted! Give it its first drink of water.');openPlant(id)}
+  return plantAtPos(fromXY(x,y))}
+async function plantAtPos(pos){if(!pending)return;const id=await Data.add({name:pending.name,desc:pending.desc||'',power:pending.power||'',strokes:pending.strokes,lat:+(+pos.lat).toFixed(6),lng:+(+pos.lng).toFixed(6),place:placeType});
+  planting=false;pending=null;chosen=null;strokes=[];if(current!=='map')show('map');else renderPanel();toast('Planted! Give it its first drink of water.');openPlant(id)}
 
 /* ---------- plant sheet ---------- */
 let openId=null;
@@ -791,9 +840,40 @@ function closeSheet(){openId=null;$('#sheet').hidden=true;if(current==='home'){V
 $('#closeSheet').onclick=closeSheet;$('#sheet').addEventListener('click',e=>{if(e.target.id==='sheet')closeSheet()});
 
 /* ---------- boot ---------- */
-$('#goDraw').onclick=()=>{tryLandscape();show('draw')};
-$('#goMap').onclick=()=>{tryLandscape();planting=false;show('map')};
-buildTools();Viewer.init();show('home');locate();Data.init();
+$('#goDraw').onclick=()=>{tryLandscape();askOrientation();startChoosing()};
+$('#goMap').onclick=()=>{tryLandscape();askOrientation();planting=false;choosing=false;show('map')};
+
+/* ---------- live camera intro, with nearby plants floating where they are ---------- */
+let camLive=false,camStream=null,heading=null,camTimer=null;
+async function startCamera(fromTap){
+  if(framed()||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){return}
+  try{camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false});
+    const v=$('#camVideo');v.srcObject=camStream;v.hidden=false;await v.play().catch(()=>{});camLive=true;$('#home').classList.add('live');$('#camBtn').hidden=true;
+    $('#homeText').textContent='Look around! Magic plants that other kids planted near you float where they grow. Pick a spot and plant your own.';
+    if(Viewer.ground&&current==='home')Viewer.ground.visible=false;startCamPlants()}
+  catch(e){$('#camBtn').hidden=false;if(fromTap)toast('The camera is off. You can turn it on in your browser settings.')}}
+function camPause(off){if(!camStream)return;for(const t of camStream.getVideoTracks())t.enabled=!off;if(!off)startCamPlants();else{clearInterval(camTimer);camTimer=null}}
+$('#camBtn').onclick=()=>{askOrientation();startCamera(true)};
+let askedOrient=false;
+function askOrientation(){if(askedOrient)return;askedOrient=true;
+  const on=()=>{const h=e=>{let hd=null;if(typeof e.webkitCompassHeading==='number')hd=e.webkitCompassHeading;else if(e.absolute&&typeof e.alpha==='number')hd=(360-e.alpha)%360;if(hd!==null){const o=(screen.orientation&&screen.orientation.angle)||window.orientation||0;heading=(hd+o+360)%360}};
+    addEventListener('deviceorientationabsolute',h);addEventListener('deviceorientation',h)};
+  try{if(window.DeviceOrientationEvent&&typeof DeviceOrientationEvent.requestPermission==='function')DeviceOrientationEvent.requestPermission().then(s=>{if(s==='granted')on()}).catch(()=>{});else on()}catch(e){}}
+function bearingTo(lat,lng){const f1=here.lat*Math.PI/180,f2=lat*Math.PI/180,dl=(lng-here.lng)*Math.PI/180;const y=Math.sin(dl)*Math.cos(f2),x=Math.cos(f1)*Math.sin(f2)-Math.sin(f1)*Math.cos(f2)*Math.cos(dl);return(Math.atan2(y,x)*180/Math.PI+360)%360}
+const camEls=new Map();
+function startCamPlants(){if(camTimer||!camLive)return;camTimer=setInterval(renderCamPlants,120);renderCamPlants()}
+function renderCamPlants(){if(current!=='home'||!camLive)return;const box=$('#camPlants'),W=box.clientWidth,FOV=60,seen=new Set();
+  const near=[...Data.plants.values()].map(p=>{const[x,y]=toXY(p.lat,p.lng);return{p,d:Math.hypot(x,y)}}).filter(o=>o.d<=150).sort((a,b)=>a.d-b.d).slice(0,12);
+  let row=box.querySelector('.camrow');if(heading===null){if(!row){row=document.createElement('div');row.className='camrow';box.appendChild(row)}}else if(row){row.remove();row=null}
+  for(const{p,d}of near){seen.add(p.id);let el=camEls.get(p.id);
+    if(!el){el=document.createElement('button');el.className='camplant';const c=document.createElement('canvas');c.width=72;c.height=96;thumb(c,p.strokes,stageOf(p.waters));c.style.width='42px';c.style.height='56px';const b=document.createElement('b');b.textContent=p.name;const i=document.createElement('i');el.append(c,b,i);el.onclick=()=>openPlant(p.id);camEls.set(p.id,el)}
+    el.querySelector('i').textContent=Math.round(d)+' m'+(POWERS[p.power]?' '+POWERS[p.power].e:'');
+    if(heading===null){if(el.parentNode!==row)row.appendChild(el);el.style.left='';el.hidden=false}
+    else{if(el.parentNode!==box)box.appendChild(el);let rel=((bearingTo(p.lat,p.lng)-heading+540)%360)-180;el.hidden=Math.abs(rel)>FOV/2+8;el.style.left=(W/2+rel/(FOV/2)*W/2)+'px';const sc=clamp(1.3-d/150,0.6,1.3);el.style.transform='translate(-50%,-50%) scale('+sc.toFixed(2)+')';el.style.top=(30+Math.min(30,d/5))+'%'}}
+  for(const[id,el]of camEls)if(!seen.has(id)){el.remove();camEls.delete(id)}
+  const note=$('#camNote');note.hidden=!camLive;note.textContent=near.length?(heading===null?near.length+(near.length===1?' plant':' plants')+' near you':'Turn around to find '+near.length+(near.length===1?' plant':' plants')+' near you'):'No plants near you yet. Be the first!'}
+buildTools();Viewer.init();show('home');locate();Data.init();startCamera(false);
+if(!framed()&&navigator.mediaDevices)setTimeout(()=>{if(!camLive)$('#camBtn').hidden=false},2500);
 window.__dg={SAMPLE,Viewer,Data,show,get strokes(){return strokes},set strokes(v){strokes=v},startGrow};
 })();
 </script>
