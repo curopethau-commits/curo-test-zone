@@ -75,6 +75,8 @@ h1,h2,h3{font-family:var(--display);margin:0;line-height:1.05;text-wrap:balance}
 .packet .t{font:800 22px/1.05 var(--display)}
 .packet .s{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--soil)}
 .namefield{display:flex;flex-direction:column;gap:4px;font-weight:800;font-size:13px}
+.namefield textarea{font:700 16px/1.3 var(--body);padding:8px 12px;border-radius:12px;border:2px solid var(--line);color:var(--ink);background:#fff;resize:none;user-select:text;-webkit-user-select:text}
+.power{display:inline-flex;align-items:center;gap:8px;background:#fff;border:2px solid var(--line);border-radius:999px;padding:6px 14px;font-weight:800;align-self:flex-start}
 .namefield input{font:800 18px var(--display);padding:8px 12px;border-radius:12px;border:2px solid var(--line);color:var(--ink);background:#fff;user-select:text;-webkit-user-select:text}
 
 /* Map */
@@ -185,7 +187,7 @@ h1,h2,h3{font-family:var(--display);margin:0;line-height:1.05;text-wrap:balance}
         <button class="btn ghost big" id="goMap">Visit the garden</button>
       </div>
     </div>
-    <div class="stage3d" id="homeStage"><div class="cap">Example: Sunny Spinflower</div></div>
+    <div class="stage3d" id="homeStage"><div class="cap">Example: Sunny Spinflower 🌟 glows in the dark</div></div>
   </section>
 
   <section class="screen" id="draw" hidden>
@@ -203,7 +205,8 @@ h1,h2,h3{font-family:var(--display);margin:0;line-height:1.05;text-wrap:balance}
     </div>
     <div class="side">
       <h2>Draw your plant</h2>
-      <p class="muted">Stems, leaves, petals, spikes, anything. Every line you draw becomes part of the 3D plant.</p>
+      <p class="muted">Close up a shape (like a petal) and it puffs up like a pillow.</p>
+      <label class="namefield">What is it? What can it do?<textarea id="plantDesc" maxlength="80" rows="2" placeholder="A flame lily that breathes fire"></textarea></label>
       <button class="btn big" id="growBtn">Grow it in 3D</button>
     </div>
   </section>
@@ -212,6 +215,7 @@ h1,h2,h3{font-family:var(--display);margin:0;line-height:1.05;text-wrap:balance}
     <div class="stage3d" id="growStage"><div class="cap">Drag to spin it</div></div>
     <div class="info">
       <h2 id="growTitle">Here it is in 3D!</h2>
+      <div class="power" id="growPower" hidden></div>
       <label class="namefield">Name your plant<input id="plantName" maxlength="28" autocomplete="off"></label>
       <div class="packet"><canvas id="packetThumb" width="132" height="176"></canvas><div><div class="s">Seed packet</div><div class="t" id="packetName">Plant</div><div class="s" style="text-transform:none;letter-spacing:0">Plant anywhere: park, home, shop…</div></div></div>
       <div class="row"><button class="btn big" id="toPlant">Take my seed</button><button class="btn ghost" id="redraw">Redraw</button></div>
@@ -238,6 +242,7 @@ h1,h2,h3{font-family:var(--display);margin:0;line-height:1.05;text-wrap:balance}
         <div class="growbar"><i id="dBar"></i></div>
         <dl class="stats">
           <dt>Stage</dt><dd id="dStage"></dd>
+          <dt>Power</dt><dd id="dPower"></dd>
           <dt>Planted</dt><dd id="dPlanted"></dd>
           <dt>Waterings</dt><dd id="dWaters"></dd>
           <dt>Last drink</dt><dd id="dLast"></dd>
@@ -270,6 +275,16 @@ const COLORS=['#1f7a36','#3fb04a','#9ad84a','#ffd23c','#ff9b2f','#ef4646','#ff7f
 const SIZES=[14,26,44];
 const PLACES=['Park','School','Shop','Library','Home','Other'];
 const PRIVATE_PLACES=['Home']; // home plants are only visible to the child who planted them
+// Powers a plant can have, picked from what the child writes about it. Shown once it reaches "Growing".
+const POWERS={fire:{e:'🔥',c:'#ff7a1a',label:'Breathes fire'},ice:{e:'❄️',c:'#bfe8ff',label:'Makes snow'},bubbles:{e:'🫧',c:'#9fdcff',label:'Blows bubbles'},
+  sparkle:{e:'✨',c:'#ffe066',label:'Sparkles with magic'},lightning:{e:'⚡',c:'#ffd23c',label:'Crackles with lightning'},hearts:{e:'💖',c:'#ff7fbf',label:'Spreads love'},
+  music:{e:'🎵',c:'#9a5be0',label:'Sings songs'},butterflies:{e:'🦋',c:'#3d8fe0',label:'Calls butterflies'},rain:{e:'💧',c:'#4aa8f0',label:'Makes its own rain'},
+  glow:{e:'🌟',c:'#fff3a0',label:'Glows in the dark'},candy:{e:'🍬',c:'#ff9bd2',label:'Grows sweets'}};
+const POWER_WORDS=[['fire','fire flame flaming burn hot lava volcano dragon blaze spicy chilli chili'],['ice','ice icy snow frost frozen freeze cold winter penguin'],
+  ['lightning','lightning thunder electric zap storm spark shock'],['bubbles','bubble bubbles soap sea ocean underwater fish mermaid'],['rain','rain raining cloud drizzle splash water'],
+  ['hearts','love heart hearts kind hug friend friendship cuddle'],['music','music sing sings song dance dancing note notes'],['butterflies','butterfly butterflies bee bees bug bugs flutter'],
+  ['candy','candy sweet sweets sugar chocolate lolly lollipop cake'],['glow','glow glowing light moon night shine shining sun sunny star stars'],['sparkle','magic magical sparkle sparkly glitter fairy wish unicorn rainbow']];
+function guessPower(desc){const w=' '+String(desc||'').toLowerCase().replace(/[^a-z ]/g,' ')+' ';for(const[k,list]of POWER_WORDS)for(const word of list.split(' '))if(w.includes(' '+word+' '))return k;return desc&&desc.trim()?'sparkle':''}
 const STAGES=['Seed','Sprout','Seedling','Growing','Budding','Blooming'];
 const PROG=[0.05,0.22,0.42,0.62,0.82,1];
 const WATER_COOLDOWN=15000; // prototype: short so it is playable
@@ -323,7 +338,7 @@ function cleanPlant(id,d){
   if(!d||typeof d!=='object'||!Array.isArray(d.strokes))return null;
   const strokes=d.strokes.slice(0,250).map(s=>({c:/^#[0-9a-f]{6}$/i.test(s&&s.c)?s.c:'#3fb04a',w:clamp(+(s&&s.w)||20,4,120),p:Array.isArray(s&&s.p)?s.p.slice(0,4000).map(n=>clamp(Math.round(+n||0),0,1000)):[]})).filter(s=>s.p.length>=2&&s.p.length%2===0);
   const lat=+d.lat,lng=+d.lng;if(!strokes.length||!isFinite(lat)||!isFinite(lng))return null;
-  return{id,strokes,lat,lng,name:String(d.name||'Mystery plant').slice(0,28),place:PLACES.includes(d.place)?d.place:'Other',owner:String(d.owner||''),plantedAt:+d.plantedAt||0,waters:Math.max(0,+d.waters|0),lastWatered:+d.lastWatered||0,private:!!d.private}}
+  return{id,strokes,lat,lng,name:String(d.name||'Mystery plant').slice(0,28),place:PLACES.includes(d.place)?d.place:'Other',owner:String(d.owner||''),plantedAt:+d.plantedAt||0,waters:Math.max(0,+d.waters|0),lastWatered:+d.lastWatered||0,private:!!d.private,power:POWERS[d.power]?d.power:'',desc:String(d.desc||'').slice(0,80)}}
 
 /* ---------- data: shared db when available, this browser otherwise ---------- */
 const Data={mode:'local',me:uid(),plants:new Map(),shared:new Map(),mine:new Map(),subs:[],db:null,
@@ -403,7 +418,7 @@ const Viewer={ok:false,
   },
   mount(host){this.host=host;if(this.ok){host.insertBefore(this.r.domElement,host.firstChild)}else if(!host.querySelector('.fallback')){const c=document.createElement('canvas');c.className='fallback';c.width=300;c.height=400;c.style.cssText='height:100%;width:auto;display:block;margin:auto';host.insertBefore(c,host.firstChild)}},
   fit(){const w=this.host.clientWidth,h=this.host.clientHeight;if(!w||!h)return;if(w!==this.w||h!==this.h){this.w=w;this.h=h;this.r.setSize(w,h,false);this.cam.aspect=w/h;const fitH=w/h<0.8?11:8.2;this.cam.position.set(0,2.4,fitH);this.cam.lookAt(0,1.45,0);this.cam.updateProjectionMatrix()}},
-  setPlant(strokes,progress,instant){
+  setPlant(strokes,progress,instant,power){this.setPower(power||'');this.head=new THREE.Vector3(0,2.6,0);let headY=-1,headSolid=false;
     if(!this.ok){const c=this.host&&this.host.querySelector('.fallback');if(c)thumb(c,strokes,progress<0.1?0:1);return}
     for(const p of this.parts){p.mesh.geometry.dispose();p.mesh.material.dispose();if(p.cap){p.cap.geometry.dispose()}}
     this.plant.clear();this.parts=[];
@@ -413,6 +428,7 @@ const Viewer={ok:false,
     order.forEach(({s,i},k)=>{
       let v=[];for(let j=0;j<s.p.length;j+=2){const x=s.p[j]/1000,y=s.p[j+1]/1000+shift;const P=new THREE.Vector3((x-0.5)*W,(1-y)*H+0.12,D*Math.cos((x-0.5)*Math.PI)-D+((i%5)-2)*0.035);if(!v.length||v[v.length-1].distanceTo(P)>0.004)v.push(P)}
       if(v.length>1&&v[0].y>v[v.length-1].y)v.reverse();
+      if(!headSolid&&v.length&&v[v.length-1].y>headY){headY=v[v.length-1].y;this.head.copy(v[v.length-1])}
       const rad=Math.max(0.014,s.w/1000*W*0.5);const mat=new THREE.MeshStandardMaterial({color:new THREE.Color(s.c).convertSRGBToLinear(),roughness:0.5,metalness:0.02});
       let mesh,segs=1,unit=0,cap=null;
       if(v.length>=5&&isClosed(s)){
@@ -422,7 +438,7 @@ const Viewer={ok:false,
         const g=pillowGeometry(pts.map(P=>new THREE.Vector2(P.x,P.y)),rad);
         const pos=g.attributes.position;for(let n=0;n<pos.count;n++){const x=pos.getX(n);pos.setZ(n,pos.getZ(n)+D*Math.cos(x/W*Math.PI)-D+zoff)}g.computeVertexNormals();
         g.computeBoundingBox();const c=new THREE.Vector3();g.boundingBox.getCenter(c);g.translate(-c.x,-c.y,-c.z);
-        mesh=new THREE.Mesh(g,mat);mesh.position.copy(c);this.plant.add(mesh);this.parts.push({mesh,segs:1,unit:0,solid:true,rad,k,n:order.length});return}
+        mesh=new THREE.Mesh(g,mat);mesh.position.copy(c);this.plant.add(mesh);if(!headSolid||c.y>headY){headSolid=true;headY=c.y;this.head.copy(c)}this.parts.push({mesh,segs:1,unit:0,solid:true,rad,k,n:order.length});return}
       if(v.length<2){mesh=new THREE.Mesh(new THREE.SphereGeometry(rad,14,10),mat);mesh.position.copy(v[0]||new THREE.Vector3())}
       else{const curve=new THREE.CatmullRomCurve3(v);segs=clamp(v.length*3,6,260);const g=new THREE.TubeGeometry(curve,segs,rad,7,false);unit=7*6;mesh=new THREE.Mesh(g,mat);
         cap=new THREE.Mesh(new THREE.SphereGeometry(rad,10,8),mat);cap.position.copy(v[0]);this.plant.add(cap);mesh.userData.curve=curve;
@@ -447,18 +463,39 @@ const Viewer={ok:false,
     root.add(this.mound.clone());if(p<0.12){const sd=this.seed.clone();sd.position.y=0.2;root.add(sd)}
     root.scale.setScalar(0.16);const scene=new THREE.Scene();scene.add(root);
     try{new THREE.GLTFExporter().parse(scene,glb=>res(new Blob([glb],{type:'model/gltf-binary'})),{binary:true})}catch(e){rej(e)}})},
+  sprite(power){this.mats=this.mats||{};if(this.mats[power])return this.mats[power];const P=POWERS[power],c=document.createElement('canvas');c.width=c.height=96;const x=c.getContext('2d');
+    const g=x.createRadialGradient(48,48,4,48,48,46);g.addColorStop(0,P.c);g.addColorStop(1,'rgba(255,255,255,0)');x.globalAlpha=power==='fire'?0.95:0.55;x.fillStyle=g;x.fillRect(0,0,96,96);x.globalAlpha=1;
+    x.font='56px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(P.e,48,52);
+    const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;return this.mats[power]=new THREE.SpriteMaterial({map:t,transparent:true,depthWrite:false})},
+  setPower(power){if(!this.ok)return;this.power=POWERS[power]?power:'';for(const f of this.fx||[]){this.spin.remove(f.s);f.s.material.dispose()}this.fx=[];this.fxT=0;this.burst=0;
+    if(!this.fxLight){this.fxLight=new THREE.PointLight(0xff8a2a,0,5);this.spin.add(this.fxLight)}this.fxLight.intensity=0},
+  emit(o){if(this.fx.length>90)return;const s=new THREE.Sprite(this.sprite(this.power).clone());s.position.copy(o.p);this.spin.add(s);this.fx.push(Object.assign({s,age:0},o))},
+  tickFx(dt,t){const pw=this.power;const on=pw&&this.progress>=0.6;const h=this.head,R=Math.random;
+    if(on){this.fxT+=dt;
+      if(pw==='fire'){this.burst-=dt;if(this.burst<-1.6)this.burst=0.9;if(this.burst>0){for(let n=0;n<3;n++)this.emit({p:h.clone().add(new THREE.Vector3(0,0,0.25)),v:new THREE.Vector3((R()-.5)*0.6,0.35+(R()-.5)*0.5,1.5+R()*0.5),life:0.85,s0:0.22,s1:0.6,grav:-0.6});this.fxLight.color.set(0xff7a1a);this.fxLight.intensity=1.6+R()*0.8}else this.fxLight.intensity*=0.9;this.fxLight.position.copy(h).add(new THREE.Vector3(0,0,0.6))}
+      else if(pw==='lightning'){this.burst-=dt;if(this.burst<-2){this.burst=0.25;for(let n=0;n<4;n++)this.emit({p:h.clone().add(new THREE.Vector3((R()-.5)*1.4,(R()-.2)*1,(R()-.5)*1.4)),v:new THREE.Vector3(),life:0.45,s0:0.5,s1:0.6});this.fxLight.color.set(0xfff2a0)}this.fxLight.intensity=this.burst>0?3:this.fxLight.intensity*0.85;this.fxLight.position.copy(h)}
+      else{const rate={ice:9,rain:14,bubbles:4,sparkle:6,glow:3,hearts:2.5,music:2.5,butterflies:1.5,candy:2}[pw]||3;
+        if(R()<rate*dt){
+          if(pw==='ice'||pw==='rain'){const a=R()*6.28,r=R()*1.5;this.emit({p:new THREE.Vector3(Math.cos(a)*r,h.y+1.2+R(),Math.sin(a)*r),v:new THREE.Vector3(0,pw==='rain'?-2.6:-0.6,0),life:pw==='rain'?1.4:3.5,s0:pw==='rain'?0.16:0.2,s1:pw==='rain'?0.16:0.2,wob:pw==='ice'?0.5:0})}
+          else if(pw==='sparkle'||pw==='glow'){this.emit({p:h.clone().add(new THREE.Vector3((R()-.5)*1.2,(R()-.5)*1.2,(R()-.5)*1.2)),v:new THREE.Vector3(0,0.1,0),life:1.4,s0:0.05,s1:pw==='glow'?0.55:0.3,tw:1})}
+          else this.emit({p:h.clone(),v:new THREE.Vector3((R()-.5)*0.6,0.5+R()*0.3,(R()-.5)*0.6),life:pw==='bubbles'?3:2.6,s0:0.12,s1:pw==='bubbles'?0.35:0.32,wob:0.6})}
+        if(pw==='glow'){this.fxLight.color.set(0xfff3a0);this.fxLight.intensity=1+Math.sin(t*2)*0.4;this.fxLight.position.copy(h)}else this.fxLight.intensity=0}
+    }else if(this.fxLight)this.fxLight.intensity=0;
+    for(let i=this.fx.length-1;i>=0;i--){const f=this.fx[i];f.age+=dt;const k=f.age/f.life;if(k>=1){this.spin.remove(f.s);f.s.material.dispose();this.fx.splice(i,1);continue}
+      if(f.grav)f.v.y-=f.grav*dt;f.s.position.addScaledVector(f.v,dt);if(f.wob)f.s.position.x+=Math.sin((t+i)*3)*f.wob*dt;
+      const sz=f.s0+(f.s1-f.s0)*Math.min(1,k*1.6);f.s.scale.setScalar(f.tw?sz*(0.6+0.4*Math.sin(k*Math.PI)):sz);f.s.material.opacity=k<0.15?k/0.15:1-Math.max(0,(k-0.6)/0.4)}},
   growTo(p,rate){this.target=p;this.rate=rate||0.5},
   rain(){if(!this.ok)return;for(let i=0;i<26;i++){const d=new THREE.Mesh(new THREE.SphereGeometry(0.05,8,6),new THREE.MeshStandardMaterial({color:0x4aa8f0,transparent:true,opacity:.9}));d.scale.y=1.6;const a=Math.random()*6.28,r=Math.random()*1.1;d.position.set(Math.cos(a)*r,3.6+Math.random()*1.8,Math.sin(a)*r);d.userData.v=2+Math.random()*1.5;this.scene.add(d);this.drops.push(d)}},
   tick(dt,t){if(!this.drag){this.spin.rotation.y+=this.rotV*dt;this.rotV+=(0.35-this.rotV)*Math.min(1,dt*1.5)}
     if(this.progress<this.target){this.progress=Math.min(this.target,this.progress+dt*this.rate);this.apply()}else if(this.progress>this.target){this.progress=this.target;this.apply()}
-    this.seed.position.y=0.2+Math.sin(t*3)*0.03;
+    this.seed.position.y=0.2+Math.sin(t*3)*0.03;if(this.fx)this.tickFx(dt,t);
     for(let i=this.drops.length-1;i>=0;i--){const d=this.drops[i];d.userData.v+=dt*6;d.position.y-=d.userData.v*dt;if(d.position.y<0.05){this.scene.remove(d);d.geometry.dispose();d.material.dispose();this.drops.splice(i,1)}}}
 };
 
 /* ---------- screens ---------- */
 let current='home';
 function show(id){for(const s of document.querySelectorAll('.screen'))s.hidden=s.id!==id;current=id;
-  if(id==='home'){Viewer.mount($('#homeStage'));Viewer.setPlant(SAMPLE,1);Viewer.growTo(1,0.45)}
+  if(id==='home'){Viewer.mount($('#homeStage'));Viewer.setPlant(SAMPLE,1,false,'glow');Viewer.growTo(1,0.45)}
   if(id==='draw')requestAnimationFrame(sizePaper);
   if(id==='map'){requestAnimationFrame(()=>{sizeMap();renderPanel();initRealMap();if(RM)RM.map.resize()})}}
 let triedLock=false;
@@ -495,22 +532,24 @@ async function startGrow(){
   const ink=strokes.reduce((a,s)=>a+s.p.length,0);if(!strokes.length||ink<8){toast('Draw your plant first!');return}
   const data=JSON.parse(JSON.stringify(strokes));
   const busy=document.createElement('div');busy.className='busy';busy.innerHTML='<div class="sprout">🌱</div><div>Growing your plant…</div>';$('#app').appendChild(busy);
-  const verdict=await checkDrawing(data);busy.remove();
+  const desc=($('#plantDesc').value||'').trim().slice(0,80);
+  const verdict=await checkDrawing(data,desc);busy.remove();
   if(verdict.ok===false){toast("Hmm, that one can't go in the garden. Try drawing a plant!",3600);return}
-  pending={strokes:data,name:verdict.name||randName()};
+  pending={strokes:data,name:verdict.name||randName(),desc,power:verdict.power||''};
+  const gp=$('#growPower');gp.hidden=!pending.power;if(pending.power)gp.textContent=POWERS[pending.power].e+' '+POWERS[pending.power].label;
   $('#plantName').value=pending.name;updatePacket();
-  show('grow');Viewer.mount($('#growStage'));Viewer.setPlant(pending.strokes,1);Viewer.growTo(1,0.5);
+  show('grow');Viewer.mount($('#growStage'));Viewer.setPlant(pending.strokes,1,false,pending.power);Viewer.growTo(1,0.5);
 }
 // Asks Claude (when this page is allowed to) whether a drawing is OK for a kids' garden and for a fun name. Fails open.
-async function checkDrawing(data){
+async function checkDrawing(data,desc){
   let sample=null;try{if(window.claude&&window.claude.use)sample=await Promise.race([window.claude.use('sample'),new Promise(r=>setTimeout(()=>r(null),1500))])}catch(e){}
-  if(!sample)return{ok:true};
+  if(!sample)return{ok:true,power:guessPower(desc)};
   try{const c=document.createElement('canvas');c.width=300;c.height=400;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,300,400);drawStrokes(x,data,300,400);
     const blob=await new Promise(r=>c.toBlob(r,'image/png'));
-    const job=sample.json('A child drew this picture in a kids\' game where drawings become plants that other children will see. Reply with JSON only: {"ok": boolean, "name": string}. Set ok to false ONLY if the drawing is clearly rude or unsuitable for young children (for example private parts, rude gestures, swear words, hateful symbols, gore). Anything else, including scribbles or things that are not plants, is ok:true. "name" is a cheerful 2-3 word plant name inspired by the drawing, suitable for kids.',{images:[blob],modelTier:'quick',cache:false});
+    const job=sample.json('A child drew this picture in a kids\' game where drawings become plants that other children will see. They described it as: '+JSON.stringify(String(desc||'').slice(0,80))+'. Reply with JSON only: {"ok": boolean, "name": string, "power": string}. Set ok to false ONLY if the drawing or the description is clearly rude or unsuitable for young children (for example private parts, rude gestures, swear words, hateful symbols, gore). Anything else, including scribbles or things that are not plants, is ok:true. "name" is a cheerful 2-3 word plant name inspired by the drawing and description, suitable for kids. "power" is the one magic power from this list that best fits the description: '+Object.keys(POWERS).join(', ')+'; use "" if there is no description.',{images:[blob],modelTier:'quick',cache:false});
     const r=await Promise.race([job,new Promise(res=>setTimeout(()=>res(null),15000))]);
-    if(!r||typeof r!=='object')return{ok:true};return{ok:r.ok!==false,name:typeof r.name==='string'?r.name.slice(0,28):''}
-  }catch(e){return{ok:true}}}
+    if(!r||typeof r!=='object')return{ok:true,power:guessPower(desc)};return{ok:r.ok!==false,name:typeof r.name==='string'?r.name.slice(0,28):'',power:POWERS[r.power]?r.power:guessPower(desc)}
+  }catch(e){return{ok:true,power:guessPower(desc)}}}
 function updatePacket(){const n=($('#plantName').value||'').trim()||'My plant';$('#packetName').textContent=n;thumb($('#packetThumb'),pending?pending.strokes:[],1)}
 $('#plantName').addEventListener('input',updatePacket);
 $('#redraw').onclick=()=>show('draw');
@@ -624,18 +663,18 @@ function bindSeed(seed){let st=null,ghost=null,trail=[];
   seed.addEventListener('pointerup',end);seed.addEventListener('pointercancel',end)}
 function flyTo(el,x,y,done){el.style.transition='left .45s cubic-bezier(.3,.6,.4,1),top .45s cubic-bezier(.4,-0.4,.6,1),transform .45s';el.style.left=x+'px';el.style.top=y+'px';el.style.transform='scale(.5)';setTimeout(()=>{el.remove();done()},460)}
 async function plantAt(x,y,jitter){if(!pending)return;if(jitter){const a=Math.random()*6.28,d=1+Math.random()*3;x+=Math.cos(a)*d;y+=Math.sin(a)*d}
-  const pos=fromXY(x,y);const id=await Data.add({name:pending.name,strokes:pending.strokes,lat:+pos.lat.toFixed(6),lng:+pos.lng.toFixed(6),place:placeType});
+  const pos=fromXY(x,y);const id=await Data.add({name:pending.name,desc:pending.desc||'',power:pending.power||'',strokes:pending.strokes,lat:+pos.lat.toFixed(6),lng:+pos.lng.toFixed(6),place:placeType});
   planting=false;pending=null;strokes=[];renderPanel();toast('Planted! Give it its first drink of water.');openPlant(id)}
 
 /* ---------- plant sheet ---------- */
 let openId=null;
 function thirsty(p){return Date.now()-(p.lastWatered||p.plantedAt)>24*3600e3}
 function myLast(id){return(store('dg-watered')||{})[id]||0}
-function openPlant(id){const p=Data.plants.get(id);if(!p)return;openId=id;$('#sheet').hidden=false;Viewer.mount($('#detailStage'));Viewer.setPlant(p.strokes,PROG[stageOf(p.waters)],true);fillSheet()}
+function openPlant(id){const p=Data.plants.get(id);if(!p)return;openId=id;$('#sheet').hidden=false;Viewer.mount($('#detailStage'));Viewer.setPlant(p.strokes,PROG[stageOf(p.waters)],true,p.power);fillSheet()}
 function fillSheet(){const p=Data.plants.get(openId);if(!p){closeSheet();return}const st=stageOf(p.waters);
   $('#dName').textContent=p.name;$('#dWho').textContent=(p.owner===Data.me?'Your plant':'A friend\'s plant')+' · planted at '+p.place+(p.private?' (only you can see it)':'');
   $('#dBar').style.width=(PROG[st]*100)+'%';$('#dStage').textContent=STAGES[st]+(st<5?' ('+(5-st)+' more '+(5-st===1?'drink':'drinks')+' to bloom)':' 🌼');
-  $('#dPlanted').textContent=ago(p.plantedAt);$('#dWaters').textContent=String(p.waters);
+  const pw=POWERS[p.power];$('#dPower').textContent=pw?(pw.e+' '+pw.label+(st<3?' (wakes up at Growing)':'')):'None yet';$('#dPlanted').textContent=ago(p.plantedAt);$('#dWaters').textContent=String(p.waters);
   const dl=$('#dLast');dl.textContent=p.lastWatered?ago(p.lastWatered):'not yet';dl.className=thirsty(p)?'thirsty':'';
   const wait=WATER_COOLDOWN-(Date.now()-myLast(p.id));const wb=$('#waterBtn');wb.disabled=wait>0;wb.textContent=wait>0?'💧 Water again in '+Math.ceil(wait/1000)+'s':'💧 Water it';
   $('#dNote').textContent=p.private?'Home plants are private. Only you can see and water this one.':Data.mode==='shared'?'Anyone who opens this garden can see and water this plant.':'Saved on this device only.'}
@@ -666,7 +705,7 @@ $('#arBtn').onclick=openAR;
 $('#arGo').onclick=()=>{const mv=$('#arHost model-viewer');if(mv&&mv.activateAR)mv.activateAR()};
 function closeAR(){$('#arSheet').hidden=true;$('#arHost').textContent='';if(arUrl){URL.revokeObjectURL(arUrl);arUrl=null}}
 $('#closeAr').onclick=closeAR;
-function closeSheet(){openId=null;$('#sheet').hidden=true;if(current==='home'){Viewer.mount($('#homeStage'));Viewer.setPlant(SAMPLE,1,true)}else if(current==='grow'&&pending){Viewer.mount($('#growStage'));Viewer.setPlant(pending.strokes,1,true)}}
+function closeSheet(){openId=null;$('#sheet').hidden=true;if(current==='home'){Viewer.mount($('#homeStage'));Viewer.setPlant(SAMPLE,1,true,'glow')}else if(current==='grow'&&pending){Viewer.mount($('#growStage'));Viewer.setPlant(pending.strokes,1,true,pending.power)}}
 $('#closeSheet').onclick=closeSheet;$('#sheet').addEventListener('click',e=>{if(e.target.id==='sheet')closeSheet()});
 
 /* ---------- boot ---------- */
