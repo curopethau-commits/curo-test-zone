@@ -84,6 +84,12 @@ h1,h2,h3{font-family:var(--display);margin:0;line-height:1.05;text-wrap:balance}
 .zoom button{width:40px;height:40px;border-radius:12px;background:#fff;font-size:20px}
 .locchip{position:absolute;left:12px;top:12px;background:#fff;border-radius:999px;padding:6px 12px;font-weight:800;font-size:13px;display:flex;gap:6px;align-items:center}
 .locchip i{width:10px;height:10px;border-radius:50%;background:var(--water);display:block}
+.zoom,.locchip,.scale{z-index:2}
+#realMap{position:absolute;inset:0}
+.youdot{width:20px;height:20px;border-radius:50%;background:var(--water);border:3px solid #fff;box-shadow:0 0 0 8px rgba(42,134,214,.22)}
+.pmark{background:none;padding:0;display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 2px 2px rgba(0,0,0,.35))}
+.pmark canvas{display:block}
+.pmark.mine::after{content:"";display:block;width:34px;height:10px;margin-top:-6px;border:3px solid var(--sun);border-radius:50%}
 .scale{position:absolute;left:12px;bottom:12px;background:rgba(255,255,255,.85);border-radius:8px;padding:3px 8px;font-size:12px;font-weight:800;font-variant-numeric:tabular-nums}
 #map .panel{flex:0 0 290px;display:flex;flex-direction:column;gap:12px;min-height:0}
 #map .panel h2{font-size:28px}
@@ -429,7 +435,7 @@ let current='home';
 function show(id){for(const s of document.querySelectorAll('.screen'))s.hidden=s.id!==id;current=id;
   if(id==='home'){Viewer.mount($('#homeStage'));Viewer.setPlant(SAMPLE,1);Viewer.growTo(1,0.45)}
   if(id==='draw')requestAnimationFrame(sizePaper);
-  if(id==='map'){requestAnimationFrame(()=>{sizeMap();renderPanel()})}}
+  if(id==='map'){requestAnimationFrame(()=>{sizeMap();renderPanel();initRealMap();if(RM)RM.map.resize()})}}
 let triedLock=false;
 function tryLandscape(){if(triedLock)return;triedLock=true;try{const de=document.documentElement;if(de.requestFullscreen&&matchMedia('(pointer:coarse)').matches){de.requestFullscreen({navigationUI:'hide'}).then(()=>screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape')).catch(()=>{})}}catch(e){}}
 
@@ -489,11 +495,38 @@ $('#toPlant').onclick=()=>{pending.name=($('#plantName').value||'').trim().slice
 let here=Object.assign({},DEMO),located='pending';
 function locate(){located='pending';$('#locText').textContent='Finding you…';
   if(!navigator.geolocation){setDemo();return}
-  try{navigator.geolocation.getCurrentPosition(p=>{here={lat:p.coords.latitude,lng:p.coords.longitude};located='gps';$('#locText').textContent='Around you';drawMap();renderPanel()},()=>setDemo(),{enableHighAccuracy:true,timeout:7000,maximumAge:30000})}catch(e){setDemo()}}
-function setDemo(){here=Object.assign({},DEMO);located='demo';$('#locText').textContent='Demo Park (location is off here)';drawMap();renderPanel()}
-$('#locchip').onclick=()=>{if(located!=='gps')locate()};
+  try{navigator.geolocation.getCurrentPosition(p=>{here={lat:p.coords.latitude,lng:p.coords.longitude};located='gps';$('#locText').textContent='Around you';centerReal(true);drawMap();renderPanel();watchMe()},()=>setDemo(),{enableHighAccuracy:true,timeout:10000,maximumAge:30000})}catch(e){setDemo()}}
+let watching=false;
+function watchMe(){if(watching||!navigator.geolocation.watchPosition)return;watching=true;
+  navigator.geolocation.watchPosition(p=>{const n={lat:p.coords.latitude,lng:p.coords.longitude};const[dx,dy]=toXY(n.lat,n.lng);if(Math.hypot(dx,dy)<3)return;here=n;centerReal(false);if(current==='map'&&!planting)renderPanel()},()=>{},{enableHighAccuracy:true,maximumAge:10000})}
+function setDemo(){here=Object.assign({},DEMO);located='demo';$('#locText').textContent=framed()?'Demo Park (location is off here)':'Demo Park (turn on Location to use your real spot)';centerReal(true);drawMap();renderPanel()}
+$('#locchip').onclick=()=>{if(located!=='gps')locate();else centerReal(true)};
 function toXY(lat,lng){return[(lng-here.lng)*Math.cos(here.lat*Math.PI/180)*111320,(lat-here.lat)*110540]}
 function fromXY(x,y){return{lat:here.lat+y/110540,lng:here.lng+x/(Math.cos(here.lat*Math.PI/180)*111320)}}
+
+/* ---------- real street map (only on the game's own website; artifact pages can't load map tiles) ---------- */
+let RM=null,rmLoading=false;
+function framed(){try{return window.self!==window.top}catch(e){return true}}
+function initRealMap(){if(RM||rmLoading||framed())return;rmLoading=true;
+  const css=document.createElement('link');css.rel='stylesheet';css.href='https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css';document.head.appendChild(css);
+  loadScript('https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js').then(()=>{
+    const el=document.createElement('div');el.id='realMap';$('#mapwrap').insertBefore(el,mc.nextSibling);
+    const map=new maplibregl.Map({container:el,style:'https://tiles.openfreemap.org/styles/liberty',center:[here.lng,here.lat],zoom:17,maxZoom:19,attributionControl:{compact:true},dragRotate:false,pitchWithRotate:false});
+    map.touchZoomRotate.disableRotation();
+    map.once('load',()=>{RM={map,markers:new Map()};const y=document.createElement('div');y.className='youdot';RM.you=new maplibregl.Marker({element:y}).setLngLat([here.lng,here.lat]).addTo(map);
+      mc.hidden=true;$('#scaleLbl').hidden=true;R=300;syncMarkers();if(current==='map'&&!planting)renderPanel()});
+    setTimeout(()=>{if(!RM){el.remove()}},15000); // no tiles (offline): keep the drawn park map
+  }).catch(()=>{rmLoading=false})}
+function syncMarkers(){if(!RM)return;const seen=new Set();
+  for(const p of Data.plants.values()){const[x,y]=toXY(p.lat,p.lng);if(Math.hypot(x,y)>20000)continue;const st=stageOf(p.waters),mine=p.owner===Data.me,key=st+':'+mine;seen.add(p.id);
+    const old=RM.markers.get(p.id);if(old&&old.key===key)continue;if(old)old.marker.remove();
+    const el=document.createElement('button');el.className='pmark'+(mine?' mine':'');el.setAttribute('aria-label',p.name);
+    const c=document.createElement('canvas');c.width=72;c.height=96;thumb(c,p.strokes,st);const sc=0.75+st*0.12;c.style.width=Math.round(42*sc)+'px';c.style.height=Math.round(56*sc)+'px';el.appendChild(c);
+    el.addEventListener('click',e=>{e.stopPropagation();openPlant(p.id)});
+    RM.markers.set(p.id,{key,marker:new maplibregl.Marker({element:el,anchor:'bottom'}).setLngLat([p.lng,p.lat]).addTo(RM.map)})}
+  for(const[id,m]of RM.markers)if(!seen.has(id)){m.marker.remove();RM.markers.delete(id)}}
+function centerReal(move){if(!RM)return;RM.you.setLngLat([here.lng,here.lat]);if(move)RM.map.easeTo({center:[here.lng,here.lat],zoom:Math.max(RM.map.getZoom(),16)})}
+Data.on(syncMarkers);
 
 /* ---------- map ---------- */
 const mc=$('#mapCanvas'),mctx=mc.getContext('2d');let R=120,MW=0,MH=0,dpr=1,planting=false,placeType='Park',ghostAt=null;
@@ -526,9 +559,9 @@ function drawMap(){if(!MW)return;const c=mctx;c.setTransform(dpr,0,0,dpr,0,0);co
   c.fillStyle='#fff';c.beginPath();c.arc(cx,cy,9,0,7);c.fill();c.fillStyle='#2a86d6';c.beginPath();c.arc(cx,cy,6.5,0,7);c.fill();
   if(ghostAt){c.strokeStyle='#7a4e2d';c.setLineDash([3,4]);c.lineWidth=2;c.beginPath();c.arc(ghostAt[0],ghostAt[1],20,0,7);c.stroke();c.setLineDash([])}
 }
-(function mapLoop(){requestAnimationFrame(mapLoop);if(current==='map'&&!document.hidden)drawMap()})();
+(function mapLoop(){requestAnimationFrame(mapLoop);if(current==='map'&&!document.hidden&&!RM)drawMap()})();
 addEventListener('resize',()=>{if(current==='map')sizeMap();if(current==='draw')sizePaper()});
-$('#zin').onclick=()=>{R=Math.max(30,R/2);drawMap()};$('#zout').onclick=()=>{R=Math.min(480,R*2);drawMap()};
+$('#zin').onclick=()=>{if(RM)RM.map.zoomIn();else{R=Math.max(30,R/2);drawMap()}};$('#zout').onclick=()=>{if(RM)RM.map.zoomOut();else{R=Math.min(480,R*2);drawMap()}};
 mc.addEventListener('click',e=>{const r=mc.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top,k=scalePx();let best=null,bd=36*clamp(Math.min(MW,MH)/420,1,2);
   for(const{p,x,y}of nearby()){const sx=MW/2+x*k,sy=MH/2-y*k-18*clamp(Math.min(MW,MH)/420,1,2);const d=Math.hypot(mx-sx,my-sy);if(d<bd){bd=d;best=p}}if(best)openPlant(best.id)});
 
@@ -557,9 +590,10 @@ Data.on(()=>{if(current==='map'&&!planting)renderPanel();if(openId)fillSheet()})
 
 function bindSeed(seed){let st=null,ghost=null,trail=[];
   seed.addEventListener('pointerdown',e=>{e.preventDefault();seed.setPointerCapture(e.pointerId);st={x:e.clientX,y:e.clientY};trail=[{y:e.clientY,t:performance.now()}];ghost=document.createElement('div');ghost.className='seedghost';ghost.style.left=e.clientX+'px';ghost.style.top=e.clientY+'px';document.body.appendChild(ghost);seed.style.visibility='hidden'});
-  seed.addEventListener('pointermove',e=>{if(!st)return;ghost.style.left=e.clientX+'px';ghost.style.top=e.clientY+'px';trail.push({y:e.clientY,t:performance.now()});if(trail.length>8)trail.shift();const r=mc.getBoundingClientRect();ghostAt=(e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom)?[e.clientX-r.left,e.clientY-r.top]:null});
-  const end=e=>{if(!st)return;const r=mc.getBoundingClientRect();const a=trail[0],b=trail[trail.length-1];const v=(b.y-a.y)/Math.max(1,b.t-a.t);const over=e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom;const moved=Math.hypot(e.clientX-st.x,e.clientY-st.y);st=null;ghostAt=null;
-    if(v<-0.6&&moved>40&&!over){flyTo(ghost,r.left+r.width/2,r.top+r.height/2,()=>plantAt(0,0,true))}
+  seed.addEventListener('pointermove',e=>{if(!st)return;ghost.style.left=e.clientX+'px';ghost.style.top=e.clientY+'px';trail.push({y:e.clientY,t:performance.now()});if(trail.length>8)trail.shift();const r=$('#mapwrap').getBoundingClientRect();ghostAt=(e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom)?[e.clientX-r.left,e.clientY-r.top]:null});
+  const end=e=>{if(!st)return;const r=$('#mapwrap').getBoundingClientRect();const a=trail[0],b=trail[trail.length-1];const v=(b.y-a.y)/Math.max(1,b.t-a.t);const over=e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom;const moved=Math.hypot(e.clientX-st.x,e.clientY-st.y);st=null;ghostAt=null;
+    if(v<-0.6&&moved>40&&!over){let tx=r.left+r.width/2,ty=r.top+r.height/2;if(RM){const q=RM.map.project([here.lng,here.lat]);tx=r.left+q.x;ty=r.top+q.y}flyTo(ghost,tx,ty,()=>plantAt(0,0,true))}
+    else if(over&&moved>20&&RM){const ll=RM.map.unproject([e.clientX-r.left,e.clientY-r.top]);const[x,y]=toXY(ll.lat,ll.lng);ghost.remove();plantAt(x,y,false)}
     else if(over&&moved>20){const k=scalePx();const x=(e.clientX-r.left-MW/2)/k,y=-(e.clientY-r.top-MH/2)/k;ghost.remove();plantAt(x,y,false)}
     else{ghost.remove();seed.style.visibility='';if(moved<8)toast('Drag me onto the map, or flick me up!')}};
   seed.addEventListener('pointerup',end);seed.addEventListener('pointercancel',end)}
