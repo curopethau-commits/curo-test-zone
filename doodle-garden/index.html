@@ -395,6 +395,80 @@ function pillowGeometry(raw,rad){
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);
   return g}
 
+/* ---------- powers in AR: real 3D shapes with keyframed loops ---------- */
+const AR_SCALE=0.16,AR_LOOP=2,AR_FPS=24;
+function arMat(color,glow,opacity){const m=new THREE.MeshStandardMaterial({color:new THREE.Color(color).convertSRGBToLinear(),roughness:0.45,metalness:0});if(glow)m.emissive=new THREE.Color(color).convertSRGBToLinear().multiplyScalar(glow);if(opacity<1){m.transparent=true;m.opacity=opacity}return m}
+function outline(f,n){const a=[];for(let i=0;i<n;i++)a.push(f(i/n*Math.PI*2));return a}
+const AR_SHAPES={
+  ball:()=>new THREE.SphereGeometry(1,14,10),
+  flake:()=>new THREE.OctahedronGeometry(1,0),
+  drop:()=>new THREE.SphereGeometry(1,10,8).scale(0.6,1.4,0.6),
+  heart:()=>pillowGeometry(outline(t=>new THREE.Vector2(Math.pow(Math.sin(t),3),(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t))/16),48),0.02),
+  star:()=>pillowGeometry(outline(t=>{const k=Math.round(t/(Math.PI/5));const r=k%2?0.45:1,a=k*Math.PI/5+Math.PI/2;return new THREE.Vector2(Math.cos(a)*r,Math.sin(a)*r)},10),0.02),
+  bolt:()=>pillowGeometry([[0.1,1],[-0.45,0.05],[0,0.1],[-0.15,-1],[0.45,0.05],[0,0]].map(([x,y])=>new THREE.Vector2(x,y)),0.02)};
+function arNode(name,meshes){const g=new THREE.Group();g.name=name;for(const m of meshes)g.add(m);g.updateMatrixWorld(true);return g}
+function arParticles(power,head){
+  const rnd=rng(power.length*977+13),out=[],frames=AR_LOOP*AR_FPS,times=[];for(let f=0;f<=frames;f++)times.push(f/AR_FPS);
+  const fade=u=>Math.min(1,u*7,(1-u)*7),H=head.clone();let N=8,make,move;
+  const rise=(c,shape,size,o)=>{make=i=>[new THREE.Mesh(AR_SHAPES[shape](),arMat(Array.isArray(c)?c[i%c.length]:c,0.25,o||1))];
+    move=(i,u,ph)=>({p:new THREE.Vector3(H.x+0.35*Math.sin(Math.PI*2*(u+ph)),H.y-0.1+u*1.8,H.z+0.35*Math.cos(Math.PI*2*(u+ph))),s:size*fade(u)})};
+  if(power==='fire'){N=14;const dirs=[];for(let i=0;i<N;i++)dirs.push(new THREE.Vector3((rnd()-.5)*0.5,0.15+(rnd()-.5)*0.3,1).normalize());
+    make=i=>[new THREE.Mesh(AR_SHAPES.ball(),arMat(['#ff7a1a','#ffd23c','#ff4a1a'][i%3],0.9))];
+    move=(i,u)=>({p:H.clone().add(new THREE.Vector3(0,0.4*u*u,0.25)).addScaledVector(dirs[i],u*2),s:0.32*(0.5+u)*Math.sin(Math.PI*u)})}
+  else if(power==='ice'||power==='rain'){const ice=power==='ice';N=ice?18:22;const xz=[];for(let i=0;i<N;i++){const a=rnd()*6.28,r=0.2+rnd()*1.3;xz.push([Math.cos(a)*r,Math.sin(a)*r])}const top=H.y+1.4;
+    make=()=>[new THREE.Mesh(AR_SHAPES[ice?'flake':'drop'](),arMat(ice?'#eef8ff':'#4aa8f0',ice?0.35:0.15))];
+    move=(i,u,ph)=>({p:new THREE.Vector3(xz[i][0]+(ice?0.12*Math.sin(Math.PI*2*(2*u+ph)):0),top-(top-0.15)*u,xz[i][1]),s:(ice?0.09:0.06)*fade(u)})}
+  else if(power==='bubbles')rise('#9fdcff','ball',0.18,0.55);
+  else if(power==='hearts')rise(['#ff5fa8','#ff8cc4'],'heart',0.22);
+  else if(power==='candy')rise(['#ff9bd2','#fff2f8','#9be7ff'],'ball',0.13);
+  else if(power==='music'){N=7;rise('#000','ball',0.3);make=i=>{const c=i%2?'#9a5be0':'#3d8fe0',h=new THREE.Mesh(AR_SHAPES.ball(),arMat(c,0.2));h.scale.set(0.45,0.35,0.35);const st=new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.07,1.1,8),arMat(c,0.2));st.position.set(0.38,0.55,0);return[h,st]}}
+  else if(power==='butterflies'){N=6;make=i=>{const c=['#3d8fe0','#ff9b2f','#9a5be0'][i%3];const w=()=>new THREE.Mesh(AR_SHAPES.heart(),arMat(c,0.15));const a=w(),b=w();a.rotation.set(0,0.5,-1.2);a.position.x=-0.45;b.rotation.set(0,-0.5,1.2);b.position.x=0.45;const body=new THREE.Mesh(AR_SHAPES.drop(),arMat('#333333',0));body.scale.set(0.12,0.4,0.12);return[a,b,body]};
+    move=(i,u,ph)=>{const a=Math.PI*2*(u+ph),r=0.9+0.15*Math.sin(Math.PI*4*u);return{p:new THREE.Vector3(Math.cos(a)*r,H.y-0.3+0.35*Math.sin(Math.PI*2*(2*u+ph)),Math.sin(a)*r),s:0.2}}}
+  else if(power==='sparkle'||power==='glow'||power==='lightning'){const g=power==='glow',l=power==='lightning';N=l?4:g?8:10;const off=[];for(let i=0;i<N;i++)off.push(new THREE.Vector3((rnd()-.5)*1.8,(rnd()-.3)*1.4,(rnd()-.5)*1.8));
+    make=()=>[new THREE.Mesh(AR_SHAPES[l?'bolt':g?'ball':'star'](),arMat(g?'#fff3a0':'#ffd23c',g?1:0.8))];
+    move=(i,u)=>({p:H.clone().add(off[i]),s:l?(u<0.12?0.4:0):(g?0.12:0.16)*Math.pow(Math.sin(Math.PI*u),2)})}
+  else rise('#ffe066','star',0.18);
+  for(let i=0;i<N;i++){const ph=i/N,node=arNode('fx'+i,make(i)),pos=[],sc=[];
+    for(const t of times){const u=((t/AR_LOOP)+ph)%1,m=move(i,u,ph),k=Math.max(0.0001,m.s)*AR_SCALE;pos.push(m.p.x*AR_SCALE,m.p.y*AR_SCALE,m.p.z*AR_SCALE);sc.push(k,k,k)}
+    out.push({node,times,pos,sc})}
+  return out}
+
+/* USDZ writer: plain-text USD with time-sampled transforms, stored (uncompressed, 64-byte aligned) in a zip. */
+function usdzBlob(root,parts){
+  const n=v=>{const t=(Math.abs(v)<1e-7?0:v).toFixed(5);return t.indexOf('.')>=0?t.replace(/0+$/,'').replace(/\.$/,''):t};
+  const mats=[],matKey=new Map();
+  const matOf=m=>{const c=m.color,e=m.emissive||new THREE.Color(0,0,0),o=m.transparent?m.opacity:1;const k=[c.r,c.g,c.b,e.r,e.g,e.b,o].map(n).join(',');if(!matKey.has(k)){matKey.set(k,'Mat'+mats.length);mats.push({name:'Mat'+mats.length,c,e,o,r:m.roughness??0.5})}return matKey.get(k)};
+  const meshText=(name,mesh,matrix,ind)=>{const g=mesh.geometry,P=g.attributes.position;let N=g.attributes.normal;if(!N){g.computeVertexNormals();N=g.attributes.normal}
+    const nm=new THREE.Matrix3().getNormalMatrix(matrix),v=new THREE.Vector3(),pts=[],nrm=[];
+    for(let i=0;i<P.count;i++){v.fromBufferAttribute(P,i).applyMatrix4(matrix);pts.push('('+n(v.x)+', '+n(v.y)+', '+n(v.z)+')');v.fromBufferAttribute(N,i).applyMatrix3(nm).normalize();nrm.push('('+n(v.x)+', '+n(v.y)+', '+n(v.z)+')')}
+    let idx=g.index?Array.from(g.index.array):[...Array(P.count).keys()];if(matrix.determinant()<0)for(let i=0;i<idx.length;i+=3){const t=idx[i+1];idx[i+1]=idx[i+2];idx[i+2]=t}
+    return ind+'def Mesh "'+name+'" (\n'+ind+'    prepend apiSchemas = ["MaterialBindingAPI"]\n'+ind+')\n'+ind+'{\n'+
+      ind+'    int[] faceVertexCounts = ['+Array(idx.length/3).fill(3).join(', ')+']\n'+ind+'    int[] faceVertexIndices = ['+idx.join(', ')+']\n'+
+      ind+'    rel material:binding = </Root/Materials/'+matOf(mesh.material)+'>\n'+
+      ind+'    normal3f[] normals = ['+nrm.join(', ')+'] (\n'+ind+'        interpolation = "vertex"\n'+ind+'    )\n'+
+      ind+'    point3f[] points = ['+pts.join(', ')+']\n'+ind+'    uniform token subdivisionScheme = "none"\n'+ind+'}\n'};
+  let body='',k=0;root.updateMatrixWorld(true);
+  root.traverse(o=>{if(o.isMesh&&o.visible!==false)body+=meshText('Part'+(k++),o,o.matrixWorld,'    ')});
+  const frames=AR_LOOP*AR_FPS;
+  parts.forEach((q,pi)=>{const ts=(arr)=>q.times.map((t,f)=>Math.round(t*AR_FPS)+': ('+n(arr[f*3])+', '+n(arr[f*3+1])+', '+n(arr[f*3+2])+')').join(', ');
+    body+='    def Xform "Fx'+pi+'"\n    {\n        float3 xformOp:scale.timeSamples = {'+ts(q.sc)+'}\n        float3 xformOp:translate.timeSamples = {'+ts(q.pos)+'}\n        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:scale"]\n';
+    let j=0;q.node.traverse(o=>{if(o.isMesh)body+=meshText('G'+(j++),o,o.matrixWorld,'        ')});body+='    }\n'});
+  let mt='    def Scope "Materials"\n    {\n';
+  for(const m of mats){const c=m.c,e=m.e;mt+='        def Material "'+m.name+'"\n        {\n            token outputs:surface.connect = </Root/Materials/'+m.name+'/Surface.outputs:surface>\n\n            def Shader "Surface"\n            {\n                uniform token info:id = "UsdPreviewSurface"\n'+
+    '                color3f inputs:diffuseColor = ('+n(c.r)+', '+n(c.g)+', '+n(c.b)+')\n                color3f inputs:emissiveColor = ('+n(e.r)+', '+n(e.g)+', '+n(e.b)+')\n                float inputs:metallic = 0\n                float inputs:opacity = '+n(m.o)+'\n                float inputs:roughness = '+n(m.r)+'\n                token outputs:surface\n            }\n        }\n'}
+  mt+='    }\n';
+  const usda='#usda 1.0\n(\n    defaultPrim = "Root"\n    metersPerUnit = 1\n    upAxis = "Y"\n'+(parts.length?'    startTimeCode = 0\n    endTimeCode = '+frames+'\n    timeCodesPerSecond = '+AR_FPS+'\n':'')+')\n\ndef Xform "Root" (\n    kind = "component"\n)\n{\n'+mt+body+'}\n';
+  return new Blob([zipStore([{name:'plant.usda',data:new TextEncoder().encode(usda)}])],{type:'model/vnd.usdz+zip'})}
+let CRC_T=null;
+function crc32(d){if(!CRC_T){CRC_T=new Uint32Array(256);for(let i=0;i<256;i++){let c=i;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;CRC_T[i]=c>>>0}}let c=0xFFFFFFFF;for(let i=0;i<d.length;i++)c=CRC_T[(c^d[i])&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0}
+function zipStore(files){const chunks=[],cd=[];let off=0;
+  for(const f of files){const nm=new TextEncoder().encode(f.name),crc=crc32(f.data),size=f.data.length;const pad=(64-((off+30+nm.length+4)%64))%64,ex=new Uint8Array(4+pad),exv=new DataView(ex.buffer);exv.setUint16(0,0x1986,true);exv.setUint16(2,pad,true);
+    const h=new DataView(new ArrayBuffer(30));h.setUint32(0,0x04034b50,true);h.setUint16(4,20,true);h.setUint16(12,0x21,true);h.setUint32(14,crc,true);h.setUint32(18,size,true);h.setUint32(22,size,true);h.setUint16(26,nm.length,true);h.setUint16(28,ex.length,true);
+    chunks.push(new Uint8Array(h.buffer),nm,ex,f.data);cd.push({nm,crc,size,off});off+=30+nm.length+ex.length+size}
+  let cdSize=0;for(const e of cd){const c=new DataView(new ArrayBuffer(46));c.setUint32(0,0x02014b50,true);c.setUint16(4,20,true);c.setUint16(6,20,true);c.setUint16(14,0x21,true);c.setUint32(16,e.crc,true);c.setUint32(20,e.size,true);c.setUint32(24,e.size,true);c.setUint16(28,e.nm.length,true);c.setUint32(42,e.off,true);chunks.push(new Uint8Array(c.buffer),e.nm);cdSize+=46+e.nm.length}
+  const end=new DataView(new ArrayBuffer(22));end.setUint32(0,0x06054b50,true);end.setUint16(8,cd.length,true);end.setUint16(10,cd.length,true);end.setUint32(12,cdSize,true);end.setUint32(16,off,true);chunks.push(new Uint8Array(end.buffer));
+  const all=new Uint8Array(chunks.reduce((a,c)=>a+c.length,0));let o=0;for(const c of chunks){all.set(c,o);o+=c.length}return all}
+
 /* ---------- 3D viewer (one WebGL context, moved between screens) ---------- */
 const Viewer={ok:false,
   init(){
@@ -452,7 +526,8 @@ const Viewer={ok:false,
       else q.mesh.visible=l>0.5});
     this.seed.visible=p<0.12},
   // Builds a standalone copy of the plant at growth p (about 50 cm tall) and returns it as a .glb Blob for AR.
-  exportGLB(p){return new Promise((res,rej)=>{
+  // The plant at growth p, in metres, plus its power as animated particles (for AR files).
+  buildAR(p,power){
     const root=new THREE.Group(),N=this.parts.length||1;
     this.parts.forEach((q,idx)=>{const span=0.45,start=N>1?idx/(N-1)*(1-span):0;const l=clamp((p-start)/span,0,1);if(l<=0)return;const mat=q.mesh.material;
       if(q.solid){const m=new THREE.Mesh(q.mesh.geometry,mat);m.position.copy(q.mesh.position);m.scale.setScalar(l);root.add(m);return}
@@ -461,8 +536,15 @@ const Viewer={ok:false,
       root.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),n,q.rad,7,false),mat));
       for(const P of[pts[0],pts[pts.length-1]]){const b=new THREE.Mesh(new THREE.SphereGeometry(q.rad,10,8),mat);b.position.copy(P);root.add(b)}});
     root.add(this.mound.clone());if(p<0.12){const sd=this.seed.clone();sd.position.y=0.2;root.add(sd)}
-    root.scale.setScalar(0.16);const scene=new THREE.Scene();scene.add(root);
-    try{new THREE.GLTFExporter().parse(scene,glb=>res(new Blob([glb],{type:'model/gltf-binary'})),{binary:true})}catch(e){rej(e)}})},
+    root.scale.setScalar(AR_SCALE);root.updateMatrixWorld(true);
+    return{root,parts:POWERS[power]&&p>=0.6?arParticles(power,this.head):[]}},
+  // Android / WebXR: glTF with a looping animation clip.
+  exportGLB(p,power){return new Promise((res,rej)=>{const{root,parts}=this.buildAR(p,power);const scene=new THREE.Scene();scene.add(root);const tracks=[];
+    for(const q of parts){scene.add(q.node);tracks.push(new THREE.VectorKeyframeTrack(q.node.name+'.position',q.times,q.pos),new THREE.VectorKeyframeTrack(q.node.name+'.scale',q.times,q.sc))}
+    const opts={binary:true};if(tracks.length)opts.animations=[new THREE.AnimationClip('power',AR_LOOP,tracks)];
+    try{new THREE.GLTFExporter().parse(scene,glb=>res(new Blob([glb],{type:'model/gltf-binary'})),opts)}catch(e){rej(e)}})},
+  // iPhone / iPad Quick Look: our own USDZ so the power keeps its animation (the automatic conversion drops it).
+  exportUSDZ(p,power){const{root,parts}=this.buildAR(p,power);return usdzBlob(root,parts)},
   sprite(power){this.mats=this.mats||{};if(this.mats[power])return this.mats[power];const P=POWERS[power],c=document.createElement('canvas');c.width=c.height=96;const x=c.getContext('2d');
     const g=x.createRadialGradient(48,48,4,48,48,46);g.addColorStop(0,P.c);g.addColorStop(1,'rgba(255,255,255,0)');x.globalAlpha=power==='fire'?0.95:0.55;x.fillStyle=g;x.fillRect(0,0,96,96);x.globalAlpha=1;
     x.font='56px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(P.e,48,52);
@@ -683,7 +765,7 @@ $('#waterBtn').onclick=async()=>{const p=Data.plants.get(openId);if(!p||Date.now
   Viewer.rain();const before=stageOf(p.waters);await Data.water(p.id);const q=Data.plants.get(openId);setTimeout(()=>{Viewer.growTo(PROG[stageOf(q.waters)],0.35)},500);fillSheet();
   if(stageOf(q.waters)===5&&before<5)toast('It\'s blooming! 🌼');else if(stageOf(q.waters)>before)toast('It grew into a '+STAGES[stageOf(q.waters)].toLowerCase()+'!');else toast('Slurp! Thanks for the water.')};
 /* ---------- AR (model-viewer: WebXR on Android, Quick Look on iPhone) ---------- */
-let arUrl=null;
+let arUrl=null,arIos=null;
 function loadScript(src,mod){return new Promise((res,rej)=>{const s=document.createElement('script');if(mod)s.type='module';s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s)})}
 let arLibs=null;
 function loadAR(){if(!arLibs)arLibs=Promise.all([THREE.GLTFExporter?0:loadScript('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/GLTFExporter.js'),
@@ -691,10 +773,10 @@ function loadAR(){if(!arLibs)arLibs=Promise.all([THREE.GLTFExporter?0:loadScript
 function arMsg(t){$('#arMsg').textContent=t}
 async function openAR(){const p=Data.plants.get(openId);if(!p||!Viewer.ok)return;const host=$('#arHost'),go=$('#arGo');$('#arSheet').hidden=false;go.hidden=true;arMsg('Getting your plant ready…');host.textContent='';
   try{await Promise.race([loadAR(),new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),20000))]);
-    const blob=await Viewer.exportGLB(PROG[stageOf(p.waters)]);if($('#arSheet').hidden)return;
-    if(arUrl)URL.revokeObjectURL(arUrl);arUrl=URL.createObjectURL(blob);
+    const prog=PROG[stageOf(p.waters)],blob=await Viewer.exportGLB(prog,p.power);if($('#arSheet').hidden)return;
+    if(arUrl)URL.revokeObjectURL(arUrl);arUrl=URL.createObjectURL(blob);if(arIos)URL.revokeObjectURL(arIos);arIos=URL.createObjectURL(Viewer.exportUSDZ(prog,p.power));
     const mv=document.createElement('model-viewer');
-    [['ar',''],['ar-modes','webxr scene-viewer quick-look'],['ar-placement','floor'],['ar-scale','auto'],['camera-controls',''],['auto-rotate',''],['shadow-intensity','1'],['alt',p.name]].forEach(([k,v])=>mv.setAttribute(k,v));
+    [['ar',''],['autoplay',''],['ios-src',arIos],['ar-modes','webxr scene-viewer quick-look'],['ar-placement','floor'],['ar-scale','auto'],['camera-controls',''],['auto-rotate',''],['shadow-intensity','1'],['alt',p.name]].forEach(([k,v])=>mv.setAttribute(k,v));
     mv.style.cssText='width:100%;height:100%;background:transparent';const hide=document.createElement('span');hide.slot='ar-button';hide.style.display='none';mv.appendChild(hide);
     mv.addEventListener('load',()=>{if(mv.canActivateAR){go.hidden=false;arMsg('Point your phone at the floor or a table, then tap the button. Your '+p.name+' appears right in front of you. Walk around it!')}else{let framed=true;try{framed=window.self!==window.top}catch(e){}arMsg(framed?'AR can\'t start inside this preview. Open the Doodle Garden website on a phone to see '+p.name+' in your room. You can still spin it here.':'AR opens on phones and tablets. Open this game on an iPhone or Android phone to see '+p.name+' in your room. You can still spin it here.')}},{once:true});
     mv.addEventListener('error',()=>arMsg('Your plant could not be shown in AR. Try again.'));
@@ -703,7 +785,7 @@ async function openAR(){const p=Data.plants.get(openId);if(!p||!Viewer.ok)return
   }catch(e){arMsg('AR could not load here. Open the game on a phone to try it.')}}
 $('#arBtn').onclick=openAR;
 $('#arGo').onclick=()=>{const mv=$('#arHost model-viewer');if(mv&&mv.activateAR)mv.activateAR()};
-function closeAR(){$('#arSheet').hidden=true;$('#arHost').textContent='';if(arUrl){URL.revokeObjectURL(arUrl);arUrl=null}}
+function closeAR(){$('#arSheet').hidden=true;$('#arHost').textContent='';if(arUrl){URL.revokeObjectURL(arUrl);arUrl=null}if(arIos){URL.revokeObjectURL(arIos);arIos=null}}
 $('#closeAr').onclick=closeAR;
 function closeSheet(){openId=null;$('#sheet').hidden=true;if(current==='home'){Viewer.mount($('#homeStage'));Viewer.setPlant(SAMPLE,1,true,'glow')}else if(current==='grow'&&pending){Viewer.mount($('#growStage'));Viewer.setPlant(pending.strokes,1,true,pending.power)}}
 $('#closeSheet').onclick=closeSheet;$('#sheet').addEventListener('click',e=>{if(e.target.id==='sheet')closeSheet()});
@@ -712,7 +794,7 @@ $('#closeSheet').onclick=closeSheet;$('#sheet').addEventListener('click',e=>{if(
 $('#goDraw').onclick=()=>{tryLandscape();show('draw')};
 $('#goMap').onclick=()=>{tryLandscape();planting=false;show('map')};
 buildTools();Viewer.init();show('home');locate();Data.init();
-window.__dg={Data,show,get strokes(){return strokes},set strokes(v){strokes=v},startGrow};
+window.__dg={SAMPLE,Viewer,Data,show,get strokes(){return strokes},set strokes(v){strokes=v},startGrow};
 })();
 </script>
 
