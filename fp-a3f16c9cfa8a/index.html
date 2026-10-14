@@ -474,8 +474,7 @@ function renderGhost() {
   let el = (performance.now() - cycleStart) / 1000 - lead; // seconds since song reached the line
   const end = style === "any" ? dur + nowX / speed + 0.3 : dur + GAP; // in Anywhere, notes float right off the left edge
   if (el > end) {
-    if (style === "any") { $("score").textContent = `Caught ${caught.size} of ${b.notes.length} notes`; $("score").hidden = false; }
-    else if (inNote > 10) { lastScore = Math.round(100 * hits / inNote); $("score").textContent = `Match ${lastScore}%`; $("score").hidden = false; }
+    best = Math.max(best, coverage(b));
     cycleStart = performance.now(); inNote = 0; hits = 0; caught = new Set(); painted = new Set(); el = -lead;
   }
   gctx.clearRect(0, 0, w, h);
@@ -533,9 +532,7 @@ function renderAnywhere(b, X, h) {
   }
   gctx.lineCap = "round"; gctx.lineJoin = "round"; gctx.lineWidth = 16 * DPR;
   b.notes.forEach((n, i) => {
-    const got = caught.has(i);
-    gctx.strokeStyle = got ? "rgba(94,230,200,0.75)" : "rgba(230,238,232,0.3)";
-    gctx.shadowColor = got ? "#5ee6c8" : "rgba(230,238,232,0.8)"; gctx.shadowBlur = (got ? 20 : 14) * DPR;
+    gctx.strokeStyle = "rgba(230,238,232,0.3)"; gctx.shadowColor = "rgba(230,238,232,0.8)"; gctx.shadowBlur = 14 * DPR;
     gctx.beginPath(); n.forEach(([t, k], j) => j ? gctx.lineTo(X(t), fToY(k * 1000, h)) : gctx.moveTo(X(t), fToY(k * 1000, h))); gctx.stroke();
   });
   gctx.shadowBlur = 0;
@@ -543,8 +540,16 @@ function renderAnywhere(b, X, h) {
 }
 // Colour in the parts of the ghost you have sung on the right note.
 const PAINT = 0.02; // seconds of song per painted piece
-let painted = new Set();
+let painted = new Set(), best = 0;
+// Live score: how much of the whole song you have coloured in so far this pass.
+const pieces = b => b.notes.reduce((m, n) => m + Math.max(1, Math.round((n[n.length - 1][0] - n[0][0]) / PAINT)), 0);
+const coverage = b => Math.min(100, Math.round(100 * painted.size / pieces(b)));
+function showScore(b) {
+  $("score").textContent = `Match ${coverage(b)}%` + (best ? ` · best ${best}%` : "");
+  $("score").hidden = false;
+}
 function paint(b, X, h) {
+  showScore(b);
   gctx.lineCap = "round"; gctx.lineWidth = 12 * DPR; gctx.strokeStyle = "#5ee6c8"; gctx.shadowColor = "#5ee6c8"; gctx.shadowBlur = 12 * DPR;
   gctx.beginPath();
   for (const key of painted) {
@@ -574,7 +579,7 @@ $("tune").onclick = () => {
   autotune = !autotune; $("tune").setAttribute("aria-pressed", autotune);
   $("tune").textContent = autotune ? "Auto-tune on" : "Auto-tune off";
 };
-const resetGhost = () => { cycleStart = performance.now(); inNote = 0; hits = 0; caught = new Set(); painted = new Set(); $("score").hidden = true; };
+const resetGhost = () => { cycleStart = performance.now(); inNote = 0; hits = 0; caught = new Set(); painted = new Set(); best = 0; $("score").hidden = true; };
 sel.addEventListener("change", resetGhost);
 
 // ---------- controls ----------
