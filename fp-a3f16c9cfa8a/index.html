@@ -116,6 +116,8 @@ button.rec.on { background: #c8414b; border-color: #c8414b; color: #fff; animati
 .intro .card { max-width: 34rem; display: grid; gap: 12px; text-align: left; }
 .intro h2 { font-family: var(--display); font-weight: 750; font-size: clamp(1.6rem, 4vw, 2.6rem); line-height: 1.05; margin: 0; text-wrap: balance; }
 .intro p { margin: 0; color: var(--muted); line-height: 1.5; }
+.intro .flock { position: absolute; top: max(14px, env(safe-area-inset-top, 0px)); left: max(16px, env(safe-area-inset-left, 0px)); width: clamp(64px, 14vmin, 110px); height: auto; aspect-ratio: 1; }
+.intro .copy { font-size: 0.75rem; color: var(--muted); opacity: 0.8; margin-top: 4px; }
 .intro .ask { color: var(--ink); font-weight: 600; }
 .intro .choices { display: flex; gap: 10px; flex-wrap: wrap; }
 .intro button.alt { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 2px var(--v0); }
@@ -192,6 +194,7 @@ button.rec.on { background: #c8414b; border-color: #c8414b; color: #fff; animati
       </div>
     </div>
     <div class="intro" id="intro">
+      <canvas class="flock" id="flock" width="220" height="220" aria-hidden="true"></canvas>
       <div class="card">
         <h2>Every bird has a song that is theirs alone.</h2>
         <p>Draw lines in the dark and they become birdsong. Height sets the pitch, speed sets the volume, and the way you move picks the voice: smooth lines whistle, wobbles trill, flicks chirp and scribbles buzz.</p>
@@ -201,6 +204,7 @@ button.rec.on { background: #c8414b; border-color: #c8414b; color: #fff; animati
           <button id="startFree">Freestyle</button>
           <button id="startCopy" class="alt">Mimic a bird</button>
         </div>
+        <p class="copy">&copy; RobotPens 2026</p>
       </div>
     </div>
   </div>
@@ -1003,6 +1007,15 @@ const begin = m => {
 $("startFree").onclick = () => begin("free");
 $("startCopy").onclick = () => begin("copy");
 
+// Title screen: flick through a flock of bird emojis, dull to flashy, until someone starts.
+let flockN = 0;
+const flockTimer = setInterval(() => {
+  if ($("intro").hidden) { clearInterval(flockTimer); return; }
+  const r = RND(++flockN * 7919 + 13);
+  drawBirdEmoji($("flock"), { seed: flockN * 104729, hue: Math.floor(r() * 360), flash: r(),
+    pattern: ["plain", "spots", "speckles", "stripes", "waves", "chevrons"][Math.floor(r() * 6)],
+    crest: ["plain", "crest", "spikes", "tuft"][Math.floor(r() * 4)] });
+}, 220);
 function loop() { cameraStep(); renderStage(); renderGhost(); renderSpec(); recFrame(); requestAnimationFrame(loop); }
 resize(); loop();
 </script>
