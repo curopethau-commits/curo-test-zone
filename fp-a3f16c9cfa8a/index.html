@@ -6,7 +6,7 @@
 <meta name="robots" content="noindex, nofollow">
 </head>
 <body>
-<title>Fingerprints (WIP)</title>
+<title>Dawn Chorus (WIP)</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,750&family=Instrument+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -47,17 +47,18 @@ header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-wid
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
 .seg button { border: 0; background: transparent; color: var(--muted); font: 600 0.82rem var(--body); padding: 6px 12px; cursor: pointer; }
 .seg button[aria-pressed="true"] { background: var(--ink); color: var(--night); }
-button.act, select { font: 600 0.82rem var(--body); color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; cursor: pointer; }
+button.act, select, #birdSearch { font: 600 0.82rem var(--body); color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; cursor: pointer; }
 button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--v1); outline-offset: 2px; }
 label.sens { font: 0.75rem var(--mono); color: var(--muted); display: flex; align-items: center; gap: 6px; }
 .stage { position: relative; min-height: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: radial-gradient(ellipse at 50% 120%, #10201f 0%, var(--night) 70%); }
 #draw { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+select#bird { max-width: 11rem; }
 #ghost { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .score { position: absolute; right: 12px; top: 10px; font: 500 0.85rem var(--mono); color: var(--ink); background: rgba(17,27,30,0.85); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; pointer-events: none; font-variant-numeric: tabular-nums; }
 #cam { position: absolute; right: 10px; bottom: 56px; width: 22%; max-width: 200px; opacity: 0.35; transform: scaleX(-1); border-radius: 6px; }
 @media (max-height: 520px) {
   .brand h1 { font-size: 1.1rem; }
-  .seg button, button.act, select { padding: 4px 9px; font-size: 0.75rem; }
+  .seg button, button.act, select, #birdSearch { padding: 4px 9px; font-size: 0.75rem; }
   header { gap: 8px; }
 }
 .legend { position: absolute; right: 12px; bottom: 10px; justify-content: flex-end; display: flex; gap: 6px; flex-wrap: wrap; z-index: 2; }
@@ -81,12 +82,13 @@ label.sens { font: 0.75rem var(--mono); color: var(--muted); display: flex; alig
 
 <div class="app">
   <header>
-    <div class="brand"><h1>Fingerprints</h1><span class="wip">WIP</span></div>
+    <div class="brand"><h1>Dawn Chorus</h1><span class="wip">WIP</span></div>
     <div class="ctrl">
       <div class="seg" role="group" aria-label="Mode">
         <button id="mFree" aria-pressed="true">Freestyle</button>
         <button id="mCopy" aria-pressed="false">Copy a bird</button>
       </div>
+      <input id="birdSearch" type="search" placeholder="Search birds" aria-label="Search birds" autocomplete="off" hidden>
       <select id="bird" aria-label="Bird to copy" hidden></select>
       <button class="act" id="hear" hidden>Hear it</button>
     </div>
@@ -111,7 +113,7 @@ label.sens { font: 0.75rem var(--mono); color: var(--muted); display: flex; alig
     <div class="msg" id="msg" hidden></div>
     <div class="intro" id="intro">
       <div class="card">
-        <h2>Every bird's song is a fingerprint.</h2>
+        <h2>Every bird has a song that is theirs alone.</h2>
         <p>Draw lines in the dark and they become birdsong. Height sets the pitch, speed sets the volume, and each of the four lights sings with a different voice, the way some birds sing several notes at once.</p>
         <p>Watch your song appear as a spectrogram at the bottom. That picture is how scientists tell one bird from another.</p>
         <button id="start">Wake the birds</button>
@@ -121,7 +123,7 @@ label.sens { font: 0.75rem var(--mono); color: var(--muted); display: flex; alig
 
   <div class="strip">
     <div class="panel" id="targetPanel" hidden><div class="cap" id="targetCap">Target</div><canvas id="target"></canvas></div>
-    <div class="panel" id="livePanel"><div class="cap">Your fingerprint · 0.4–9 kHz</div><canvas id="spec"></canvas></div>
+    <div class="panel" id="livePanel"><div class="cap">Your song · 0.4–9 kHz</div><canvas id="spec"></canvas></div>
   </div>
 </div>
 
@@ -129,14 +131,54 @@ label.sens { font: 0.75rem var(--mono); color: var(--muted); display: flex; alig
 const FMIN = 400, FMAX = 9000;
 const VOICES = ["whistle", "trill", "buzz", "chirp"];
 const COLORS = ["#ffd166", "#5ee6c8", "#ff8a65", "#b59cff"];
-// Stylised shapes based on real songs (not exact). Each note is [seconds, kHz] points.
+// Stylised shapes based on real songs: simplified, not exact recordings. Each note is a list of [seconds, kHz] points.
+const N = (t, d, ...ks) => ks.map((k, i) => [+(t + d * i / (ks.length - 1 || 1)).toFixed(3), k]);
+const TR = (t, n, gap, d, k0, k1, kEnd = null) => Array.from({ length: n }, (_, i) => {
+  const s = kEnd === null ? 0 : (kEnd - k0) * i / Math.max(1, n - 1);
+  return N(t + i * gap, d, k0 + s, k1 + s);
+});
+const REP = (n, gap, f) => Array.from({ length: n }, (_, i) => f(i * gap)).flat();
+const RND = seed => () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const WARBLE = (t, n, gap, lo, hi, seed) => { const r = RND(seed); return Array.from({ length: n }, (_, i) => { const a = lo + r() * (hi - lo), b = lo + r() * (hi - lo); return N(t + i * gap, gap * 0.75, a, b); }); };
 const BIRDS = {
-  chickadee: { name: "Black-capped Chickadee", say: "fee-bee", notes: [[[0, 4.0], [0.3, 3.9]], [[0.42, 3.4], [0.75, 3.3]]] },
-  cardinal: { name: "Northern Cardinal", say: "cheer cheer cheer", notes: [0, 1, 2, 3].map(i => [[i * 0.27, 4.2], [i * 0.27 + 0.18, 1.9]]) },
-  pewee: { name: "Eastern Wood-Pewee", say: "pee-a-wee", notes: [[[0, 3.4], [0.12, 4.4], [0.35, 3.6], [0.55, 3.0], [0.8, 4.0]]] },
-  cuckoo: { name: "Common Cuckoo", say: "cu-ckoo", notes: [[[0, 0.75], [0.25, 0.72]], [[0.4, 0.6], [0.85, 0.57]]] },
+  blackbird: { name: "Blackbird", say: "mellow flute, squeaky ending", notes: [N(0, 0.16, 2.0, 2.5), N(0.2, 0.18, 2.4, 1.8), N(0.42, 0.25, 1.9, 2.7, 2.2), N(0.72, 0.16, 2.8, 2.3), ...TR(0.95, 5, 0.06, 0.04, 6.5, 4.5)] },
+  robin: { name: "Robin", say: "thin, liquid, wistful", notes: [N(0, 0.08, 6.0, 4.5), N(0.12, 0.1, 3.2, 3.7), N(0.26, 0.07, 7.0, 5.2), N(0.38, 0.12, 4.0, 4.1), N(0.55, 0.1, 5.5, 6.6), N(0.7, 0.12, 3.0, 2.6), ...TR(0.88, 4, 0.06, 0.04, 5.2, 4.2)] },
+  tawny: { name: "Tawny Owl", say: "ke-wick … hoo, hu-hu-hoooo", notes: [N(0, 0.28, 1.4, 2.0, 1.6), N(0.6, 0.45, 0.82, 0.8), ...TR(1.3, 3, 0.12, 0.08, 0.78, 0.8), N(1.7, 0.7, 0.8, 0.77, 0.79, 0.75)] },
+  barnowl: { name: "Barn Owl", say: "long rasping shriek", notes: [N(0, 1.0, 3.2, 3.6, 3.4, 3.7, 3.3)] },
+  collared: { name: "Collared Dove", say: "coo-COOO-coo", notes: [N(0, 0.18, 0.52, 0.55), N(0.28, 0.5, 0.6, 0.62, 0.58), N(0.9, 0.3, 0.52, 0.48)] },
+  woodpigeon: { name: "Woodpigeon", say: "coo-COO-coo, coo-coo", notes: [N(0, 0.25, 0.45, 0.48), N(0.32, 0.45, 0.52, 0.55, 0.5), N(0.85, 0.2, 0.46, 0.45), N(1.15, 0.2, 0.48, 0.46), N(1.42, 0.2, 0.48, 0.45)] },
+  songthrush: { name: "Song Thrush", say: "phrases said twice or three times", notes: [...REP(3, 0.22, t => [N(t, 0.07, 3.0, 4.6), N(t + 0.09, 0.08, 4.0, 2.5)]), ...REP(3, 0.15, t => [N(0.75 + t, 0.1, 2.4, 2.6)]), ...REP(2, 0.2, t => [N(1.3 + t, 0.12, 5.0, 3.6, 4.4)])] },
+  mistle: { name: "Mistle Thrush", say: "short loud fluty phrases", notes: [N(0, 0.14, 2.5, 3.1), N(0.18, 0.12, 3.3, 2.6), N(0.36, 0.2, 2.2, 2.9, 2.4), N(0.7, 0.14, 2.8, 3.4), N(0.88, 0.16, 3.0, 2.3)] },
+  greattit: { name: "Great Tit", say: "tea-cher, tea-cher", notes: REP(4, 0.3, t => [N(t, 0.09, 6.2, 6.0), N(t + 0.13, 0.09, 3.6, 3.4)]) },
+  bluetit: { name: "Blue Tit", say: "tsee-tsee-chu-chu-chu", notes: [N(0, 0.12, 7.2, 7.0), N(0.18, 0.12, 7.2, 7.0), ...TR(0.42, 7, 0.06, 0.045, 4.4, 3.9)] },
+  coaltit: { name: "Coal Tit", say: "pee-chu pee-chu", notes: REP(4, 0.24, t => [N(t, 0.07, 6.5, 5.8), N(t + 0.1, 0.08, 4.5, 4.0)]) },
+  longtailed: { name: "Long-tailed Tit", say: "tsee-tsee-tsee", notes: TR(0, 4, 0.13, 0.07, 8.2, 7.8) },
+  chaffinch: { name: "Chaffinch", say: "rattle down, then a flourish", notes: [...TR(0, 8, 0.075, 0.05, 6.5, 5.5, 4.0), ...TR(0.65, 3, 0.09, 0.07, 3.4, 3.0), N(0.95, 0.25, 3.0, 5.2, 2.5)] },
+  wren: { name: "Wren", say: "tiny bird, huge rattling song", notes: [...WARBLE(0, 5, 0.07, 4.5, 7.5, 3), ...TR(0.38, 10, 0.04, 0.03, 6.0, 5.0), ...WARBLE(0.8, 5, 0.07, 4.5, 8.0, 7), ...TR(1.18, 12, 0.035, 0.025, 5.0, 4.2)] },
+  goldfinch: { name: "Goldfinch", say: "tinkling, liquid twitter", notes: WARBLE(0, 14, 0.09, 3.5, 7.0, 11) },
+  greenfinch: { name: "Greenfinch", say: "long wheezy dzweee", notes: [...TR(0, 5, 0.08, 0.05, 3.5, 4.2), N(0.5, 0.8, 3.0, 3.6, 4.3, 5.0)] },
+  sparrow: { name: "House Sparrow", say: "chirp, chirp, chirrup", notes: [N(0, 0.1, 3.4, 4.6, 3.2), N(0.3, 0.1, 3.6, 4.8, 3.4), N(0.5, 0.12, 3.3, 4.4, 3.0), N(0.8, 0.1, 3.5, 4.5, 3.3)] },
+  dunnock: { name: "Dunnock", say: "fast, thin, squeaky jingle", notes: WARBLE(0, 14, 0.07, 3.5, 7.0, 21) },
+  chiffchaff: { name: "Chiffchaff", say: "chiff-chaff-chiff-chaff", notes: REP(5, 0.36, t => [N(t, 0.08, 5.6, 4.6)]).concat(REP(4, 0.36, t => [N(0.18 + t, 0.08, 4.2, 3.6)])) },
+  yellowhammer: { name: "Yellowhammer", say: "a little bit of bread and no cheese", notes: [...TR(0, 8, 0.1, 0.06, 6.2, 5.6), N(0.9, 0.3, 6.6, 6.4), N(1.28, 0.45, 4.6, 4.2)] },
+  skylark: { name: "Skylark", say: "endless bubbling song from high up", notes: WARBLE(0, 22, 0.08, 2.8, 6.5, 5) },
+  starling: { name: "Starling", say: "whistles, clicks and mimicry", notes: [N(0, 0.35, 6.0, 2.2), ...TR(0.42, 5, 0.05, 0.02, 3.0, 5.0), N(0.75, 0.2, 2.5, 4.0), N(1.0, 0.3, 4.5, 4.8, 3.0)] },
+  blackcap: { name: "Blackcap", say: "scratchy warble into loud fluty notes", notes: [...WARBLE(0, 6, 0.07, 3.0, 6.0, 13), N(0.5, 0.14, 2.6, 3.4), N(0.68, 0.14, 3.4, 2.6), N(0.86, 0.2, 2.4, 3.6, 2.8)] },
+  nightingale: { name: "Nightingale", say: "piu… piu… piu, swelling, then a rattle", notes: [N(0, 0.25, 2.4, 2.5), N(0.38, 0.25, 2.4, 2.5), N(0.76, 0.25, 2.4, 2.6), ...TR(1.15, 10, 0.045, 0.03, 3.5, 2.5)] },
+  swallow: { name: "Swallow", say: "chattering twitter with a buzz", notes: [...WARBLE(0, 8, 0.08, 3.5, 6.5, 17), N(0.7, 0.3, 3.0, 3.1)] },
+  curlew: { name: "Curlew", say: "cour-lee, then a bubbling rise", notes: [N(0, 0.4, 2.0, 2.6, 3.0), N(0.55, 0.4, 2.0, 2.6, 3.0), ...TR(1.1, 10, 0.06, 0.045, 2.6, 2.9, 3.4)] },
+  crow: { name: "Carrion Crow", say: "caw, caw, caw", notes: REP(3, 0.42, t => [N(t, 0.28, 1.2, 1.4, 1.1)]) },
+  magpie: { name: "Magpie", say: "machine-gun chatter", notes: TR(0, 12, 0.07, 0.05, 1.8, 2.4) },
+  gull: { name: "Herring Gull", say: "kyow-kyow-kyow laugh", notes: [N(0, 0.35, 1.0, 1.8, 1.4), ...REP(4, 0.2, t => [N(0.5 + t, 0.13, 1.3, 1.6, 1.1)])] },
+  pheasant: { name: "Pheasant", say: "kok-KOK", notes: [N(0, 0.15, 1.2, 1.5, 1.1), N(0.22, 0.2, 1.3, 1.7, 1.2)] },
+  mallard: { name: "Mallard", say: "quack quack quack", notes: REP(4, 0.3, t => [N(t, 0.18, 0.95, 0.8)]) },
+  cuckoo: { name: "Cuckoo", say: "cu-ckoo", notes: [N(0, 0.25, 0.75, 0.72), N(0.4, 0.45, 0.6, 0.57)] },
+  chickadee: { name: "Black-capped Chickadee (N. America)", say: "fee-bee", notes: [N(0, 0.3, 4.0, 3.9), N(0.42, 0.33, 3.4, 3.3)] },
+  cardinal: { name: "Northern Cardinal (N. America)", say: "cheer cheer cheer", notes: REP(4, 0.27, t => [N(t, 0.18, 4.2, 1.9)]) },
+  pewee: { name: "Eastern Wood-Pewee (N. America)", say: "pee-a-wee", notes: [[[0, 3.4], [0.12, 4.4], [0.35, 3.6], [0.55, 3.0], [0.8, 4.0]]] },
 };
 const $ = id => document.getElementById(id);
+const songLen = b => Math.max(...b.notes.flat().map(p => p[0]));
 const fToY = (f, h) => h * (1 - Math.log(f / FMIN) / Math.log(FMAX / FMIN));
 const yToF = (y, h) => FMIN * Math.pow(FMAX / FMIN, 1 - Math.min(1, Math.max(0, y / h)));
 
@@ -354,10 +396,18 @@ function renderSpec() {
 // ---------- copy a bird ----------
 const sel = $("bird");
 for (const [k, b] of Object.entries(BIRDS)) sel.add(new Option(b.name, k));
+const search = $("birdSearch");
+search.style.width = "7.5rem";
+search.addEventListener("input", () => {
+  const q = search.value.trim().toLowerCase();
+  let first = null;
+  for (const o of sel.options) { const m = !q || o.text.toLowerCase().includes(q); o.hidden = !m; if (m && !first) first = o; }
+  if (first && sel.value !== first.value) { sel.value = first.value; sel.dispatchEvent(new Event("change")); }
+});
 function drawTarget() {
   const c = $("target"), ctx = c.getContext("2d"), w = c.width, h = c.height, b = BIRDS[sel.value];
   ctx.fillStyle = "#111b1e"; ctx.fillRect(0, 0, w, h); grid(ctx, w, h, false);
-  const T = 1.2, x = t => (0.06 + 0.88 * t / T) * w;
+  const T = songLen(b) * 1.05, x = t => (0.06 + 0.88 * t / T) * w;
   ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.strokeStyle = COLORS[0]; ctx.shadowColor = COLORS[0]; ctx.shadowBlur = 10 * DPR; ctx.lineWidth = 4 * DPR;
   for (const n of b.notes) { ctx.beginPath(); n.forEach(([t, k], i) => i ? ctx.lineTo(x(t), fToY(k * 1000, h)) : ctx.moveTo(x(t), fToY(k * 1000, h))); ctx.stroke(); }
   ctx.shadowBlur = 0;
@@ -370,7 +420,8 @@ function playTarget() {
   for (const n of b.notes) {
     const o = ac.createOscillator(), g = ac.createGain(), s = t0 + n[0][0], e = t0 + n[n.length - 1][0];
     o.frequency.setValueAtTime(n[0][1] * 1000, s); n.slice(1).forEach(([t, k]) => o.frequency.linearRampToValueAtTime(k * 1000, t0 + t));
-    g.gain.setValueAtTime(0, s); g.gain.linearRampToValueAtTime(0.35, s + 0.015); g.gain.setValueAtTime(0.35, e - 0.03); g.gain.linearRampToValueAtTime(0, e);
+    const a = Math.min(0.015, (e - s) / 3);
+    g.gain.setValueAtTime(0, s); g.gain.linearRampToValueAtTime(0.35, s + a); g.gain.setValueAtTime(0.35, e - a); g.gain.linearRampToValueAtTime(0, e);
     o.connect(g); g.connect(master); o.start(s); o.stop(e + 0.05);
   }
 }
@@ -378,10 +429,10 @@ $("hear").onclick = playTarget;
 
 // Ghost song: the target scrolls in from the right. Keep your light on it as it crosses the line.
 const ghost = $("ghost"), gctx = ghost.getContext("2d");
-const STRETCH = 2.5;            // song plays 2.5x slower so people can follow it
+// Songs are slowed down so people can follow them: short songs 2.5x, long ones less.
+const stretchFor = b => Math.min(2.5, 3.5 / songLen(b));
 const GAP = 1.2;                // seconds of rest between passes
 let cycleStart = performance.now(), inNote = 0, hits = 0, lastScore = null;
-const songLen = b => Math.max(...b.notes.flat().map(p => p[0]));
 function ghostFreq(b, s) {      // target kHz at song time s, or null between notes
   for (const n of b.notes) {
     if (s < n[0][0] || s > n[n.length - 1][0]) continue;
@@ -396,7 +447,7 @@ function renderGhost() {
   if (mode !== "copy") return;
   const w = ghost.width, h = ghost.height, b = BIRDS[sel.value];
   const nowX = w * 0.3, speed = w / 4;                // px per real second
-  const lead = (w - nowX) / speed, dur = songLen(b) * STRETCH;
+  const lead = (w - nowX) / speed, STRETCH = stretchFor(b), dur = songLen(b) * STRETCH;
   let el = (performance.now() - cycleStart) / 1000 - lead; // seconds since song reached the line
   if (el > dur + GAP) {
     if (inNote > 10) { lastScore = Math.round(100 * hits / inNote); $("score").textContent = `Match ${lastScore}%`; $("score").hidden = false; }
@@ -433,7 +484,7 @@ sel.addEventListener("change", resetGhost);
 // ---------- controls ----------
 function setMode(m) {
   mode = m; $("mFree").setAttribute("aria-pressed", m === "free"); $("mCopy").setAttribute("aria-pressed", m === "copy");
-  sel.hidden = $("hear").hidden = $("targetPanel").hidden = ghost.hidden = m !== "copy";
+  search.hidden = sel.hidden = $("hear").hidden = $("targetPanel").hidden = ghost.hidden = m !== "copy";
   if (m === "copy") resetGhost(); else $("score").hidden = true;
   requestAnimationFrame(resize);
 }
