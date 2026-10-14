@@ -111,7 +111,7 @@ button.rec.on { background: #c8414b; border-color: #c8414b; color: #fff; animati
 .result .row button.primary { background: var(--v0); color: var(--night); border-color: var(--v0); }
 .result .who { display: flex; gap: 14px; align-items: center; }
 .result .who > div { min-width: 0; }
-#birdEmoji { width: clamp(84px, 24vh, 140px); height: auto; aspect-ratio: 1; flex: none; filter: drop-shadow(0 6px 14px rgba(0,0,0,0.35)); }
+#birdEmoji, #giftEmoji { width: clamp(84px, 24vh, 140px); height: auto; aspect-ratio: 1; flex: none; filter: drop-shadow(0 6px 14px rgba(0,0,0,0.35)); }
 .result small { color: var(--muted); }
 .intro .card { max-width: 34rem; display: grid; gap: 12px; text-align: left; }
 .intro h2 { font-family: var(--display); font-weight: 750; font-size: clamp(1.6rem, 4vw, 2.6rem); line-height: 1.05; margin: 0; text-wrap: balance; }
@@ -192,6 +192,21 @@ button.rec.on { background: #c8414b; border-color: #c8414b; color: #fff; animati
           <button id="closeRec">Make a new song</button>
         </div>
         <small id="recNote"></small>
+      </div>
+    </div>
+    <div class="result" id="gift" hidden>
+      <div class="card">
+        <div class="who">
+          <canvas id="giftEmoji" aria-label="Their bird" role="img"></canvas>
+          <div>
+            <div class="eyebrow">Someone sent you a bird song</div>
+            <h2 id="giftName"></h2>
+          </div>
+        </div>
+        <div class="row">
+          <button id="giftPlay" class="primary">▶ Play it</button>
+          <button id="giftOwn">Sing your own</button>
+        </div>
       </div>
     </div>
     <div class="intro" id="intro">
@@ -275,6 +290,7 @@ let ac, master, analyser, noiseBuf, voices = [];
 let mode = "free", input = "touch";
 
 function initAudio() {
+  if (ac) return;
   ac = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: "balanced" }); // a bigger buffer stops phones crackling
   master = ac.createGain(); master.gain.value = 0.45;
   const comp = ac.createDynamicsCompressor();
@@ -829,7 +845,7 @@ const recBtn = $("rec");
 function startRec() {
   if (!ac) return;
   const proc = ac.createScriptProcessor(4096, 1, 1);
-  rec = { proc, lastTouch: 0, chunks: [], len: 0, sr: ac.sampleRate, notes: 0, frames: 0, sumLog: 0, move: 0, voiceTime: [0, 0, 0, 0], t0: performance.now() };
+  rec = { proc, track: [], lastTouch: 0, chunks: [], len: 0, sr: ac.sampleRate, notes: 0, frames: 0, sumLog: 0, move: 0, voiceTime: [0, 0, 0, 0], t0: performance.now() };
   proc.onaudioprocess = e => {
     if (!rec) return;
     const d = e.inputBuffer.getChannelData(0); rec.chunks.push(new Float32Array(d)); rec.len += d.length;
@@ -847,6 +863,7 @@ function recFrame() { // called every frame while recording: notes, pitch and mo
   if (voices.some(v => v.on)) rec.lastTouch = performance.now();
   else if (rec.notes && performance.now() - rec.lastTouch > 3000) { stopRec(); return; }
   if (!rec.notes) recBtn.textContent = "● Recording… start drawing";
+  if (rec.notes) rec.track.push({ t: performance.now() / 1000, v: voices.map(v => v.on && v.f ? [VOICES.indexOf(v.type), v.f] : null) });
   for (const v of voices) {
     if (!v.on || !v.f) continue;
     rec.frames++; rec.voiceTime[VOICES.indexOf(v.type)]++; rec.sumLog += Math.log2(v.f / 1000);
@@ -863,7 +880,8 @@ function stopRec() {
   let a = 0, z = all.length - 1; while (a < z && Math.abs(all[a]) < 0.01) a++; while (z > a && Math.abs(all[z]) < 0.01) z--;
   if (z - a < r.sr * 0.25 || !r.frames) { showMsg("Nothing to keep yet. Press Record, then draw your song."); return; }
   const pad = Math.round(r.sr * 0.1), samples = all.slice(Math.max(0, a - pad), Math.min(all.length, z + pad));
-  lastRec = { samples, sr: r.sr, stats: r, secs: samples.length / r.sr };
+  const live = r.track.map(fr => fr.v.some(Boolean)), first = live.indexOf(true), last = live.lastIndexOf(true);
+  lastRec = { samples, sr: r.sr, stats: r, secs: samples.length / r.sr, track: first < 0 ? [] : r.track.slice(first, last + 1) };
   showResult();
 }
 recBtn.onclick = () => rec ? stopRec() : startRec();
@@ -959,9 +977,65 @@ function inventBird(st, secs) {
 function showResult() {
   const b = inventBird(lastRec.stats, lastRec.secs);
   $("birdName").textContent = b.name; $("birdDesc").textContent = b.desc;
-  drawBirdEmoji($("birdEmoji"), b.emoji);
+  drawBirdEmoji($("birdEmoji"), b.emoji); lastRec.emoji = b.emoji;
   $("result").hidden = false;
 }
+
+// ---------- song links ----------
+// A shared song travels inside the link itself: the name, the emoji, and each finger's pitch and voice
+// 20 times a second, two characters per step ("..": silent). Opening the link sings it again.
+const B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_", FPS = 20;
+const PATTERNS = ["plain", "spots", "speckles", "stripes", "waves", "chevrons"], CRESTS = ["plain", "crest", "spikes", "tuft"];
+function encodeSong(name, emoji, track) {
+  const t0 = track[0].t, steps = Math.ceil((track[track.length - 1].t - t0) * FPS) + 1, lanes = [];
+  for (let i = 0; i < 4; i++) {
+    let str = "", j = 0, any = false;
+    for (let k = 0; k < steps; k++) {
+      while (j < track.length - 1 && track[j + 1].t - t0 <= k / FPS) j++;
+      const x = track[j].v[i];
+      if (!x) { str += ".."; continue; }
+      any = true; str += B64[Math.max(0, Math.min(63, Math.round(63 * Math.log(x[1] / FMIN) / Math.log(FMAX / FMIN))))] + B64[x[0]];
+    }
+    if (any) lanes.push(str.replace(/(\.\.)+$/, ""));
+  }
+  return ["1", encodeURIComponent(name), emoji.seed, emoji.hue, Math.round(emoji.flash * 99), PATTERNS.indexOf(emoji.pattern), CRESTS.indexOf(emoji.crest), lanes.join("~")].join("!");
+}
+function decodeSong(code) {
+  const p = code.split("!"); if (p[0] !== "1" || p.length < 8) return null;
+  const lanes = p[7].split("~").filter(Boolean).map(str => Array.from({ length: str.length / 2 }, (_, k) => {
+    const a = str[2 * k], b = str[2 * k + 1]; if (a === ".") return null;
+    return [B64.indexOf(b), FMIN * Math.pow(FMAX / FMIN, B64.indexOf(a) / 63)];
+  }));
+  return { name: decodeURIComponent(p[1]), emoji: { seed: +p[2], hue: +p[3], flash: +p[4] / 99, pattern: PATTERNS[+p[5]] || "plain", crest: CRESTS[+p[6]] || "plain" }, lanes };
+}
+function playLanes(lanes) { // sing a decoded song with the same voices you draw with
+  const t0 = ac.currentTime + 0.1, dt = 1 / FPS;
+  lanes.forEach((lane, i) => {
+    const v = makeVoice(10 + i); v.parts = buildParts(v);
+    let was = false;
+    lane.forEach((x, k) => {
+      const t = t0 + k * dt;
+      if (!x) { if (was) v.amp.gain.setTargetAtTime(0, t, 0.03); was = false; return; }
+      const [type, f] = x;
+      for (const p of v.parts) {
+        p.osc.frequency.setTargetAtTime(f, t, 0.012);
+        p.mix.gain.setTargetAtTime(p.type === VOICES[type] ? (p.type === "buzz" ? 0.6 : 1) : 0, t, 0.03);
+        if (p.type === "whistle") p.depth.gain.setTargetAtTime(f * 0.012, t, 0.02);
+        if (p.type === "buzz") p.depth.gain.setTargetAtTime(f * 0.06, t, 0.02);
+        if (p.type === "chirp") p.depth.gain.setTargetAtTime(-f * 0.22, t, 0.02);
+      }
+      if (!was) v.amp.gain.setTargetAtTime(0.25, t, 0.015);
+      was = true;
+    });
+    const end = t0 + lane.length * dt;
+    v.amp.gain.setTargetAtTime(0, end, 0.03);
+    v.parts.forEach(p => { p.osc.stop(end + 0.4); p.lfo.stop(end + 0.4); });
+  });
+  return lanes.reduce((m, l) => Math.max(m, l.length), 0) * dt;
+}
+// Links always point at the public page, so they also work when shared from the private preview.
+const SONG_PAGE = "https://curopethau-commits.github.io/curo-test-zone/fp-a3f16c9cfa8a/";
+const songLink = () => (location.protocol === "https:" && location.host.endsWith("github.io") ? location.href.split("#")[0] : SONG_PAGE) + "#s=" + encodeSong(songName(), lastRec.emoji, lastRec.track);
 const songName = () => ($("ownName").value.trim() || $("birdName").textContent || "My bird song");
 const songFile = () => new File([wavBlob(lastRec.samples, lastRec.sr)], `${songName().replace(/[^\w\- ]+/g, "")}.wav`, { type: "audio/wav" });
 $("playRec").onclick = () => {
@@ -969,15 +1043,12 @@ $("playRec").onclick = () => {
   const s = ac.createBufferSource(); s.buffer = ab; s.connect(ac.destination); s.start();
 };
 $("shareRec").onclick = async () => {
-  const file = songFile(), text = `Listen to my bird song: ${songName()}`;
-  const png = await new Promise(res => $("birdEmoji").toBlob(b => res(b ? new File([b], file.name.replace(/\.wav$/, ".png"), { type: "image/png" }) : null), "image/png"));
+  const url = songLink(), text = `Listen to my bird song: ${songName()} 🐦`;
   try {
-    for (const files of png ? [[file, png], [file]] : [[file]]) {
-      const data = { files, title: songName(), text };
-      if (navigator.canShare && navigator.canShare(data)) { await navigator.share(data); return; }
-    }
+    if (navigator.share) { await navigator.share({ title: songName(), text, url }); return; }
   } catch (e) { if (e.name === "AbortError") return; }
-  saveSong(file); $("recNote").textContent = "Sharing isn't available in this browser, so the song was saved instead.";
+  try { await navigator.clipboard.writeText(`${text} ${url}`); $("recNote").textContent = "Link copied. Paste it anywhere: whoever opens it hears your song."; }
+  catch (e) { $("recNote").textContent = `Copy this link to share your song: ${url}`; }
 };
 async function saveSong(file) {
   // Inside the Claude viewer, files go through its download prompt; on a normal web page, a plain download.
@@ -1016,6 +1087,16 @@ const begin = m => {
   setMode(m);
 };
 $("startFree").onclick = () => begin("free");
+// Opened from a shared link: show whose song it is, and sing it on the first tap.
+const gift = location.hash.startsWith("#s=") ? (() => { try { return decodeSong(location.hash.slice(3)); } catch (e) { return null; } })() : null;
+if (gift && gift.lanes.length) {
+  $("giftName").textContent = gift.name; drawBirdEmoji($("giftEmoji"), gift.emoji); $("gift").hidden = false;
+  $("giftPlay").onclick = () => {
+    try { initAudio(); ac.resume && ac.resume(); } catch (e) { showMsg("Sound couldn't start in this browser. Try Chrome or Safari."); return; }
+    $("intro").hidden = true; setMode("free"); playLanes(gift.lanes); $("giftPlay").textContent = "▶ Play again";
+  };
+  $("giftOwn").onclick = () => { $("gift").hidden = true; history.replaceState(null, "", location.pathname + location.search); };
+}
 $("startCopy").onclick = () => begin("copy");
 
 // Title screen: a row of bird emojis across the panel, each flicking from dull to flashy until someone starts.
