@@ -233,8 +233,8 @@ const BIRDS = {
   blackbird: { tone: "flute", name: "Blackbird", say: "mellow flute, squeaky ending", notes: [N(0, 0.16, 2.0, 2.5), N(0.2, 0.18, 2.4, 1.8), N(0.42, 0.25, 1.9, 2.7, 2.2), N(0.72, 0.16, 2.8, 2.3), ...TR(0.95, 5, 0.06, 0.04, 6.5, 4.5)] },
   robin: { name: "Robin", say: "thin, liquid, wistful", notes: [N(0, 0.08, 6.0, 4.5), N(0.12, 0.1, 3.2, 3.7), N(0.26, 0.07, 7.0, 5.2), N(0.38, 0.12, 4.0, 4.1), N(0.55, 0.1, 5.5, 6.6), N(0.7, 0.12, 3.0, 2.6), ...TR(0.88, 4, 0.06, 0.04, 5.2, 4.2)] },
   tawny: { tone: "hoot", name: "Tawny Owl", say: "ke-wick … hoo, hu-hu-hoooo", notes: [N(0, 0.28, 1.4, 2.0, 1.6), N(0.6, 0.45, 0.82, 0.8), ...TR(1.3, 3, 0.12, 0.08, 0.78, 0.8), N(1.7, 0.7, 0.8, 0.77, 0.79, 0.75)] },
-  collared: { tone: "hoot", name: "Collared Dove", say: "coo-COOO-coo", notes: [N(0, 0.18, 0.52, 0.55), N(0.28, 0.5, 0.6, 0.62, 0.58), N(0.9, 0.3, 0.52, 0.48)] },
-  woodpigeon: { tone: "hoot", name: "Woodpigeon", say: "coo-COO-coo, coo-coo", notes: [N(0, 0.25, 0.45, 0.48), N(0.32, 0.45, 0.52, 0.55, 0.5), N(0.85, 0.2, 0.46, 0.45), N(1.15, 0.2, 0.48, 0.46), N(1.42, 0.2, 0.48, 0.45)] },
+  collared: { tone: "coo", name: "Collared Dove", say: "coo-COOO-coo", notes: [N(0, 0.18, 0.52, 0.55), N(0.28, 0.5, 0.6, 0.62, 0.58), N(0.9, 0.3, 0.52, 0.48)] },
+  woodpigeon: { tone: "coo", name: "Woodpigeon", say: "husky coo-COOO-coo, coo-coo", notes: [N(0, 0.22, 0.44, 0.46), N(0.32, 0.55, 0.46, 0.52, 0.5, 0.45), N(0.98, 0.22, 0.46, 0.44), N(1.45, 0.22, 0.46, 0.44), N(1.75, 0.3, 0.45, 0.42)] },
   songthrush: { tone: "flute", name: "Song Thrush", say: "phrases said twice or three times", notes: [...REP(3, 0.22, t => [N(t, 0.07, 3.0, 4.6), N(t + 0.09, 0.08, 4.0, 2.5)]), ...REP(3, 0.15, t => [N(0.75 + t, 0.1, 2.4, 2.6)]), ...REP(2, 0.2, t => [N(1.3 + t, 0.12, 5.0, 3.6, 4.4)])] },
   mistle: { tone: "flute", name: "Mistle Thrush", say: "short loud fluty phrases", notes: [N(0, 0.14, 2.5, 3.1), N(0.18, 0.12, 3.3, 2.6), N(0.36, 0.2, 2.2, 2.9, 2.4), N(0.7, 0.14, 2.8, 3.4), N(0.88, 0.16, 3.0, 2.3)] },
   greattit: { name: "Great Tit", say: "tea-cher, tea-cher", notes: REP(4, 0.3, t => [N(t, 0.09, 6.2, 6.0), N(t + 0.13, 0.09, 3.6, 3.4)]) },
@@ -261,7 +261,7 @@ const BIRDS = {
   treecreeper: { name: "Treecreeper", say: "thin falling trill with a flourish", notes: [...TR(0, 8, 0.08, 0.05, 7.5, 7.0, 5.5), N(0.7, 0.15, 5.0, 7.0)] },
   woodwarbler: { name: "Wood Warbler", say: "a few notes, then a shivering trill", notes: [...TR(0, 3, 0.18, 0.06, 5.0, 4.6), ...TR(0.55, 14, 0.045, 0.03, 5.2, 4.6, 5.0)] },
   linnet: { name: "Linnet", say: "fast, musical twittering", notes: WARBLE(0, 12, 0.08, 2.5, 5.5, 29) },
-  cuckoo: { tone: "hoot", name: "Cuckoo", say: "cu-ckoo", notes: [N(0, 0.25, 0.75, 0.72), N(0.4, 0.45, 0.6, 0.57)] },
+  cuckoo: { tone: "hoot", name: "Cuckoo", say: "cu-coo, cu-coo", notes: [N(0, 0.17, 0.7, 0.69, 0.66), N(0.3, 0.3, 0.56, 0.55, 0.52), N(1.0, 0.17, 0.7, 0.69, 0.66), N(1.3, 0.3, 0.56, 0.55, 0.52)] },
   chickadee: { name: "Black-capped Chickadee (N. America)", say: "fee-bee", notes: [N(0, 0.3, 4.0, 3.9), N(0.42, 0.33, 3.4, 3.3)] },
   cardinal: { name: "Northern Cardinal (N. America)", say: "cheer cheer cheer", notes: REP(4, 0.27, t => [N(t, 0.18, 4.2, 1.9)]) },
   pewee: { name: "Eastern Wood-Pewee (N. America)", say: "pee-a-wee", notes: [[[0, 3.4], [0.12, 4.4], [0.35, 3.6], [0.55, 3.0], [0.8, 4.0]]] },
@@ -582,9 +582,19 @@ function timbre(tone) {
       const bp = ac.createBiquadFilter(), g = ac.createGain(); bp.type = "bandpass"; bp.Q.value = q; g.gain.value = lv;
       pre.connect(bp); bp.connect(g); g.connect(out); freqs.push([bp.frequency, m]);
     }
+  } else if (tone === "coo") { // pigeons and doves: a soft, husky, muffled coo with breath in it
+    const lp = ac.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 1100; lp.Q.value = 0.3; lp.connect(out);
+    osc("sine", 1, 0.8, lp); osc("triangle", 1, 0.25, lp); osc("sine", 2, 0.22, lp);
+    const n = ac.createBufferSource(), bp = ac.createBiquadFilter(), ng = ac.createGain();
+    n.buffer = noiseBuf; n.loop = true; bp.type = "bandpass"; bp.Q.value = 5; ng.gain.value = 0.22;
+    n.connect(bp); bp.connect(ng); ng.connect(lp); freqs.push([bp.frequency, 1.6]); nodes.push(n);
   } else if (tone === "hoot") {
     const lp = ac.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 1800; lp.connect(out);
-    osc("sine", 1, 0.9, lp); osc("sine", 2, 0.12, lp); osc("sine", 3, 0.04, lp);
+    osc("sine", 1, 0.9, lp); osc("sine", 2, 0.08, lp); osc("sine", 3, 0.03, lp);
+    // a little breath, like blowing across a bottle: that hollow wooden sound of a cuckoo or owl
+    const n = ac.createBufferSource(), bp = ac.createBiquadFilter(), ng = ac.createGain();
+    n.buffer = noiseBuf; n.loop = true; bp.type = "bandpass"; bp.Q.value = 6; ng.gain.value = 0.35;
+    n.connect(bp); bp.connect(ng); ng.connect(lp); freqs.push([bp.frequency, 1]); nodes.push(n);
   } else if (tone === "buzzy") {
     const o = osc("triangle", 1, 0.8), lfo = ac.createOscillator(), d = ac.createGain();
     lfo.frequency.value = 70; d.gain.value = 260; lfo.connect(d); d.connect(o.frequency); nodes.push(lfo);
@@ -593,14 +603,14 @@ function timbre(tone) {
     if (tone === "flute") { const lfo = ac.createOscillator(), d = ac.createGain(); lfo.frequency.value = 7; d.gain.value = 25; lfo.connect(d); d.connect(o.frequency); nodes.push(lfo); }
   }
   return {
-    out, attack: tone === "hoot" ? 0.04 : 0.012, level: tone === "harsh" ? 0.4 : 0.35,
+    out, attack: tone === "coo" ? 0.09 : tone === "hoot" ? 0.04 : 0.012, level: tone === "harsh" ? 0.4 : 0.35,
     set(k, t, tc) { for (const [p, m] of freqs) tc ? p.setTargetAtTime(k * 1000 * m, t, tc) : p.setValueAtTime(k * 1000 * m, t); },
     ramp(k, t) { for (const [p, m] of freqs) p.linearRampToValueAtTime(k * 1000 * m, t); },
     start(t) { nodes.forEach(n => n.start(t)); },
     stop(t) { nodes.forEach(n => n.stop(t)); },
   };
 }
-const SLOW = 2;
+const SLOW = 1.4;
 function playTarget() {
   if (!ac) return;
   const b = BIRDS[sel.value], t0 = ac.currentTime + 0.05;
@@ -617,7 +627,7 @@ $("hear").onclick = playTarget;
 
 // Ghost song: the target scrolls in from the right. Keep your light on it as it crosses the line.
 const ghost = $("ghost"), gctx = ghost.getContext("2d");
-// Real birdsong is too fast to follow, so every song (Hear it, the demo and your try) plays at half speed.
+// Real birdsong is too fast to follow, so every song (Hear it, the demo and your try) plays a little slower.
 const stretchFor = () => SLOW;
 const SPEED = 0.4;              // screen widths per second
 const GAP = 1.2;                // seconds of rest between passes
