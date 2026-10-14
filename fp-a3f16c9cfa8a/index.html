@@ -64,6 +64,7 @@ select#bird { max-width: 11rem; }
 .level h3 { font: 750 clamp(1.1rem, 4.5vh, 1.8rem) var(--display); line-height: 1.05; margin: 0; text-wrap: balance; }
 .level p { margin: 0; color: var(--muted); font-size: clamp(0.8rem, 2.2vh, 0.95rem); }
 .level small { color: var(--muted); font-size: 0.65rem; opacity: 0.8; }
+.score.low { top: auto; bottom: 10px; }
 .splash { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 4; text-align: center; pointer-events: none; display: grid; gap: 2px; animation: pop 0.35s ease-out; }
 .splash b { font: 750 clamp(3rem, 22vh, 8rem) var(--display); line-height: 0.95; color: var(--v1); text-shadow: 0 0 30px rgba(94,230,200,0.45); font-variant-numeric: tabular-nums; }
 .splash span { font: 600 clamp(1rem, 4vh, 1.5rem) var(--body); color: var(--ink); }
@@ -781,6 +782,9 @@ function endDemo() {
 $("tryIt").onclick = endDemo;
 function openLevel() {
   const k = sel.value, b = BIRDS[k];
+  // keep the score clear of the song: high songs put it at the bottom
+  const top = Math.max(...b.notes.flat().map(p => p[1])), H = stageH();
+  $("score").classList.toggle("low", fToY(top * 1000, H) < H * 0.3);
   resetGhost(); demo = true; $("hint").hidden = true;
   cycleStart -= (0.7 / SPEED) * 1000; // demo starts on the first note, no run-in
   $("levelName").textContent = b.name; $("levelSay").textContent = `“${b.say}”`;
