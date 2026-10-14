@@ -27,7 +27,8 @@
   --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
   color-scheme: dark;
 }
-html, body { height: 100%; }
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; }
 body {
   background: var(--night); color: var(--ink); font-family: var(--body);
   overflow: hidden; -webkit-user-select: none; user-select: none;
@@ -64,7 +65,7 @@ label.sens { font: 0.75rem var(--mono); color: var(--muted); display: flex; alig
 .panel .cap { position: absolute; left: 8px; top: 6px; font: 0.7rem var(--mono); color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; z-index: 1; pointer-events: none; }
 #targetPanel { flex: 0 0 30%; }
 #livePanel { flex: 1 1 auto; }
-.intro { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(10,17,19,0.88); z-index: 5; padding: 16px; }
+.intro { position: fixed; inset: 0; overflow-y: auto; display: grid; place-items: center; background: rgba(10,17,19,0.88); z-index: 5; padding: 16px; }
 .intro .card { max-width: 34rem; display: grid; gap: 12px; text-align: left; }
 .intro h2 { font-family: var(--display); font-weight: 750; font-size: clamp(1.6rem, 4vw, 2.6rem); line-height: 1.05; margin: 0; text-wrap: balance; }
 .intro p { margin: 0; color: var(--muted); line-height: 1.5; }
@@ -383,7 +384,11 @@ $("mFree").onclick = () => setMode("free");
 $("mCopy").onclick = () => setMode("copy");
 $("iTouch").onclick = () => setInput("touch");
 $("iCam").onclick = () => { if (!ac) return; setInput("camera"); };
-$("start").onclick = () => { initAudio(); $("intro").hidden = true; };
+$("start").onclick = () => {
+  $("intro").hidden = true;
+  try { initAudio(); ac.resume && ac.resume(); }
+  catch (err) { showMsg("Sound couldn't start in this browser. Try Chrome or Safari."); }
+};
 
 function loop() { cameraStep(); renderStage(); renderSpec(); requestAnimationFrame(loop); }
 resize(); loop();
