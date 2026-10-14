@@ -85,10 +85,6 @@ select#bird { max-width: 11rem; }
   header .ctrl, header .brand { flex-wrap: nowrap; flex: none; }
   .brand { margin-right: 0; }
 }
-.legend { position: absolute; right: 12px; top: 10px; justify-content: flex-end; display: flex; gap: 6px; flex-wrap: wrap; z-index: 2; }
-.legend button { font: 0.78rem var(--mono); color: var(--muted); background: rgba(17,27,30,0.8); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; cursor: pointer; }
-.legend button[aria-pressed="true"] { color: var(--ink); border-color: var(--c); box-shadow: 0 0 12px -2px var(--c); }
-.legend button::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; background: var(--c); box-shadow: 0 0 8px var(--c); }
 .hint { max-width: 55% !important; position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); font-size: 0.85rem; color: var(--muted); pointer-events: none; text-align: center; width: max-content; max-width: 90%; }
 .msg { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); background: var(--panel); border: 1px solid var(--line); padding: 12px 16px; border-radius: 8px; font-size: 0.9rem; max-width: 80%; text-align: center; }
 .strip { display: flex; gap: 8px; height: clamp(84px, 24vh, 190px); min-width: 0; }
@@ -171,10 +167,7 @@ button.rec.on { background: #c8414b; border-color: #c8414b; color: #fff; animati
       </div>
     </div>
     <video id="cam" playsinline muted hidden></video>
-    <div class="legend" role="group" aria-label="Voice for your first finger or light">
-      <button data-v="0" aria-pressed="true" style="--c:var(--v0)">whistle</button><button data-v="1" aria-pressed="false" style="--c:var(--v1)">trill</button><button data-v="2" aria-pressed="false" style="--c:var(--v2)">buzz</button><button data-v="3" aria-pressed="false" style="--c:var(--v3)">chirp</button>
-    </div>
-    <div class="hint" id="hint">Pick a voice above, then draw. Higher is higher pitch, faster is louder. Up to 4 fingers at once.</div>
+    <div class="hint" id="hint">Draw to sing. Higher is higher pitch. Slow and smooth whistles, wobble to trill, flick to chirp, scribble to buzz.</div>
     <div class="msg" id="msg" hidden></div>
     <div class="result" id="result" hidden>
       <div class="card">
@@ -192,7 +185,7 @@ button.rec.on { background: #c8414b; border-color: #c8414b; color: #fff; animati
           <button id="playRec">▶ Play</button>
           <button id="shareRec" class="primary">Share</button>
           <button id="saveRec">Save to phone</button>
-          <button id="closeRec">Done</button>
+          <button id="closeRec">Make a new song</button>
         </div>
         <small id="recNote"></small>
       </div>
@@ -283,28 +276,60 @@ function initAudio() {
   master.connect(comp); comp.connect(analyser); analyser.connect(ac.destination);
   noiseBuf = ac.createBuffer(1, ac.sampleRate * 0.5, ac.sampleRate);
   const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-  voices = VOICES.map(makeVoice);
+  voices = [0, 1, 2, 3].map(makeVoice);
 }
 
-function makeVoice(type, i) {
-  const osc = ac.createOscillator(), mod = ac.createGain(), amp = ac.createGain();
-  const lfo = ac.createOscillator(), depth = ac.createGain();
-  osc.frequency.value = 2000; amp.gain.value = 0; mod.gain.value = 1;
-  osc.connect(mod); mod.connect(amp); amp.connect(master);
-  lfo.connect(depth);
-  if (type === "whistle") { lfo.frequency.value = 6; depth.connect(osc.frequency); }
-  if (type === "trill") { lfo.frequency.value = 26; mod.gain.value = 0.5; depth.gain.value = 0.5; depth.connect(mod.gain); }
-  if (type === "buzz") { osc.type = "triangle"; lfo.frequency.value = 85; depth.connect(osc.frequency); }
-  if (type === "chirp") { lfo.type = "sawtooth"; lfo.frequency.value = 11; depth.connect(osc.frequency); }
-  osc.start(); lfo.start();
-  return { type, i, osc, amp, depth, on: false, owner: null, x: 0, y: 0, last: null, trail: [] };
+// Each finger or light carries all four voices; how it moves decides which one you hear.
+function makeVoice(i) {
+  const amp = ac.createGain(); amp.gain.value = 0; amp.connect(master);
+  const parts = VOICES.map(type => {
+    const osc = ac.createOscillator(), mod = ac.createGain(), mix = ac.createGain();
+    const lfo = ac.createOscillator(), depth = ac.createGain();
+    osc.frequency.value = 2000; mod.gain.value = 1; mix.gain.value = type === "whistle" ? 1 : 0;
+    osc.connect(mod); mod.connect(mix); mix.connect(amp);
+    lfo.connect(depth);
+    if (type === "whistle") { lfo.frequency.value = 6; depth.connect(osc.frequency); }
+    if (type === "trill") { lfo.frequency.value = 26; mod.gain.value = 0.5; depth.gain.value = 0.5; depth.connect(mod.gain); }
+    if (type === "buzz") { osc.type = "triangle"; lfo.frequency.value = 85; depth.connect(osc.frequency); }
+    if (type === "chirp") { lfo.type = "sawtooth"; lfo.frequency.value = 11; depth.connect(osc.frequency); }
+    osc.start(); lfo.start();
+    return { type, osc, depth, mix };
+  });
+  return { type: "whistle", i, parts, amp, on: false, owner: null, x: 0, y: 0, last: null, trail: [], hist: [] };
 }
 
 function setDepth(v, f) {
   const t = ac.currentTime;
-  if (v.type === "whistle") v.depth.gain.setTargetAtTime(f * 0.012, t, 0.02);
-  if (v.type === "buzz") v.depth.gain.setTargetAtTime(f * 0.06, t, 0.02);
-  if (v.type === "chirp") v.depth.gain.setTargetAtTime(-f * 0.22, t, 0.02);
+  for (const p of v.parts) {
+    if (p.type === "whistle") p.depth.gain.setTargetAtTime(f * 0.012, t, 0.02);
+    if (p.type === "buzz") p.depth.gain.setTargetAtTime(f * 0.06, t, 0.02);
+    if (p.type === "chirp") p.depth.gain.setTargetAtTime(-f * 0.22, t, 0.02);
+  }
+}
+const setFreq = (v, f, tc) => { const t = ac.currentTime; for (const p of v.parts) p.osc.frequency.setTargetAtTime(f, t, tc); };
+function setStyle(v, type) {
+  if (v.type === type) return;
+  v.type = type; const t = ac.currentTime;
+  for (const p of v.parts) p.mix.gain.setTargetAtTime(p.type === type ? (type === "buzz" ? 0.6 : 1) : 0, t, 0.05);
+}
+// Read the last half second of movement: speed in screen heights per second,
+// and how often the line changes direction.
+function gesture(v) {
+  const H = stageH(), now = performance.now();
+  v.hist = v.hist.filter(p => now - p.t < 450);
+  const pts = v.hist; if (pts.length < 3) return v.type;
+  let dist = 0, rev = 0, sy = 0, sx = 0;
+  for (let k = 1; k < pts.length; k++) {
+    const dx = pts[k].x - pts[k-1].x, dy = pts[k].y - pts[k-1].y; dist += Math.hypot(dx, dy);
+    if (Math.abs(dy) > 1.5) { const d = Math.sign(dy); if (sy && d !== sy) rev++; sy = d; }
+    if (Math.abs(dx) > 1.5) { const d = Math.sign(dx); if (sx && d !== sx) rev++; sx = d; }
+  }
+  const speed = dist / H / Math.max(0.05, (now - pts[0].t) / 1000);
+  if (rev >= 3 && speed > 2.2) return "buzz";
+  if (rev >= 2) return "trill";
+  if (speed > 1.4) return "chirp";
+  if (speed < 0.8) return "whistle";
+  return v.type;
 }
 
 // A bird draws breath before it sings: a short filtered puff, then the note swoops in.
@@ -318,10 +343,10 @@ function breath(f) {
 function voiceStart(v, x, y, size) {
   const h = stageH(), f = yToF(y, h), t = ac.currentTime;
   v.on = true; v.x = x; v.y = y; v.last = { x, y, t: performance.now() }; v.trail = []; v.f = f; v.pf = 0;
+  v.hist = [v.last]; setStyle(v, "whistle");
   if (rec) rec.notes++;
   breath(f);
-  v.osc.frequency.cancelScheduledValues(t);
-  v.osc.frequency.setValueAtTime(f * 0.82, t); v.osc.frequency.linearRampToValueAtTime(f, t + 0.04);
+  for (const p of v.parts) { p.osc.frequency.cancelScheduledValues(t); p.osc.frequency.setValueAtTime(f * 0.82, t); p.osc.frequency.linearRampToValueAtTime(f, t + 0.04); }
   setDepth(v, f);
   v.amp.gain.cancelScheduledValues(t); v.amp.gain.setTargetAtTime(0.18 * size, t + 0.02, 0.02);
 }
@@ -330,8 +355,9 @@ function voiceMove(v, x, y, size) {
   const now = performance.now(), dt = Math.max(1, now - v.last.t);
   const speed = Math.hypot(x - v.last.x, y - v.last.y) / dt; // px per ms
   const f = tuned(y, x) ?? yToF(y, stageH()), t = ac.currentTime;
-  v.osc.frequency.setTargetAtTime(f, t, 0.012); setDepth(v, f);
-  const a = Math.min(0.5, 0.12 + speed * 0.35) * size * (v.type === "buzz" ? 0.6 : 1);
+  v.hist.push({ x, y, t: now }); setStyle(v, gesture(v));
+  setFreq(v, f, 0.012); setDepth(v, f);
+  const a = Math.min(0.5, 0.12 + speed * 0.35) * size;
   v.amp.gain.setTargetAtTime(a, t, 0.03);
   v.x = x; v.y = y; v.last = { x, y, t: now }; v.f = f;
 }
@@ -374,7 +400,7 @@ function renderStage() {
     v.trail.push([v.x * DPR, v.y * DPR]);
     if (v.trail.length > 2) v.trail.shift();
     if (v.trail.length < 2) continue;
-    dctx.strokeStyle = COLORS[v.i]; dctx.shadowColor = COLORS[v.i]; dctx.shadowBlur = 18 * DPR; dctx.lineWidth = 5 * DPR;
+    const col = COLORS[VOICES.indexOf(v.type)]; dctx.strokeStyle = col; dctx.shadowColor = col; dctx.shadowBlur = 18 * DPR; dctx.lineWidth = 5 * DPR;
     dctx.beginPath(); dctx.moveTo(...v.trail[0]); dctx.lineTo(...v.trail[1]); dctx.stroke();
     dctx.shadowBlur = 0; dctx.strokeStyle = "#fff"; dctx.lineWidth = 1.5 * DPR; dctx.stroke();
   }
@@ -382,13 +408,7 @@ function renderStage() {
 }
 
 // ---------- touch / mouse / pen ----------
-// The picked voice goes to the first finger or light; extra ones take the next free voices.
-let picked = 0;
-const freeVoice = () => voices[picked] && !voices[picked].on ? voices[picked] : voices.find(v => !v.on);
-document.querySelectorAll(".legend button").forEach(b => b.onclick = () => {
-  picked = +b.dataset.v;
-  document.querySelectorAll(".legend button").forEach(x => x.setAttribute("aria-pressed", x === b));
-});
+const freeVoice = () => voices.find(v => !v.on);
 draw.addEventListener("pointerdown", e => {
   if (input !== "touch" || !ac) return;
   endDemo();
@@ -569,7 +589,7 @@ function renderGhost() {
       const m = noteAt(v.x);
       if (!m || Math.abs(v.y - fToY(m.k * 1000, h) / DPR) >= tol()) continue;
       hit = true; painted.add(Math.round(m.t / PAINT));
-      if (autotune) { v.osc.frequency.setTargetAtTime(m.k * 1000, ac.currentTime, 0.02); setDepth(v, m.k * 1000); }
+      if (autotune) { setFreq(v, m.k * 1000, 0.02); setDepth(v, m.k * 1000); }
     }
   }
   // the band you sing in
@@ -693,7 +713,7 @@ function demoTone(k) {
 }
 function endDemo() {
   if (!demo) return;
-  demo = false; demoTone(null); $("level").hidden = true; document.querySelector(".legend").hidden = false; resetGhost();
+  demo = false; demoTone(null); $("level").hidden = true;  resetGhost();
 }
 $("tryIt").onclick = endDemo;
 function openLevel() {
@@ -702,7 +722,7 @@ function openLevel() {
   cycleStart -= ((ghost.width * 0.7) / (ghost.width / 4)) * 1000; // demo starts on the first note, no run-in
   $("levelName").textContent = b.name; $("levelSay").textContent = `“${b.say}”`;
   $("levelInitial").textContent = b.name[0]; $("levelImg").hidden = true; $("levelCredit").textContent = "";
-  $("levelStatus").textContent = "Watch and listen"; $("level").hidden = false; document.querySelector(".legend").hidden = true;
+  $("levelStatus").textContent = "Watch and listen"; $("level").hidden = false; 
   photoFor(k).then(p => {
     if (!p || sel.value !== k) return;
     const img = $("levelImg"); img.onload = () => { img.hidden = false; }; img.src = p.src; img.alt = b.name;
@@ -737,7 +757,7 @@ function recFrame() { // called every frame while recording: notes, pitch and mo
   if (!rec.notes) recBtn.textContent = "● Recording… start drawing";
   for (const v of voices) {
     if (!v.on || !v.f) continue;
-    rec.frames++; rec.voiceTime[v.i]++; rec.sumLog += Math.log2(v.f / 1000);
+    rec.frames++; rec.voiceTime[VOICES.indexOf(v.type)]++; rec.sumLog += Math.log2(v.f / 1000);
     if (v.pf) rec.move += Math.abs(Math.log2(v.f / v.pf));
     v.pf = v.f;
   }
@@ -876,21 +896,21 @@ async function saveSong(file) {
   setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
 $("saveRec").onclick = () => { saveSong(songFile()); $("recNote").textContent = "Saved as a WAV file. On a phone, you can set it as a message sound from your downloads."; };
-$("closeRec").onclick = () => { $("result").hidden = true; $("recNote").textContent = ""; };
+$("closeRec").onclick = () => { $("result").hidden = true; $("recNote").textContent = ""; dctx.fillStyle = "#0a1113"; dctx.fillRect(0, 0, draw.width, draw.height); };
 
 // ---------- controls ----------
 function setMode(m) {
   mode = m; $("mFree").setAttribute("aria-pressed", m === "free"); $("mCopy").setAttribute("aria-pressed", m === "copy");
   recBtn.hidden = m !== "free"; if (m !== "free") stopRec();
   $("tune").hidden = search.hidden = sel.hidden = $("hear").hidden = $("targetPanel").hidden = ghost.hidden = m !== "copy";
-  if (m === "copy") openLevel(); else { $("score").hidden = true; $("level").hidden = true; demo = false; demoTone(null); document.querySelector(".legend").hidden = false; }
+  if (m === "copy") openLevel(); else { $("score").hidden = true; $("level").hidden = true; demo = false; demoTone(null);  }
   requestAnimationFrame(resize);
 }
 function setInput(i) {
   input = i; $("iTouch").setAttribute("aria-pressed", i === "touch"); $("iCam").setAttribute("aria-pressed", i === "camera");
   $("sensWrap").hidden = i !== "camera";
   voices.forEach(voiceEnd);
-  if (i === "camera") startCamera(); else { stopCamera(); $("hint").textContent = "Pick a voice above, then draw. Higher is higher pitch, faster is louder. Up to 4 fingers at once."; }
+  if (i === "camera") startCamera(); else { stopCamera(); $("hint").textContent = "Draw to sing. Higher is higher pitch. Slow and smooth whistles, wobble to trill, flick to chirp, scribble to buzz."; }
 }
 function showMsg(t) { const m = $("msg"); m.textContent = t; m.hidden = false; setTimeout(() => m.hidden = true, 6000); }
 $("mFree").onclick = () => setMode("free");
