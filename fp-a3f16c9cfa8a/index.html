@@ -101,6 +101,9 @@ button.rec.on { background: #c8414b; border-color: #c8414b; color: #fff; animati
 .result .row { display: flex; gap: 8px; flex-wrap: wrap; }
 .result .row button, .result #reroll { font: 600 0.9rem var(--body); color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; cursor: pointer; }
 .result .row button.primary { background: var(--v0); color: var(--night); border-color: var(--v0); }
+.result .who { display: flex; gap: 14px; align-items: center; }
+.result .who > div { min-width: 0; }
+#birdEmoji { width: clamp(84px, 24vh, 140px); height: auto; aspect-ratio: 1; flex: none; filter: drop-shadow(0 6px 14px rgba(0,0,0,0.35)); }
 .result #reroll { justify-self: start; padding: 4px 12px; font-size: 0.8rem; }
 .result small { color: var(--muted); }
 .intro .card { max-width: 34rem; display: grid; gap: 12px; text-align: left; }
@@ -158,10 +161,15 @@ button.rec.on { background: #c8414b; border-color: #c8414b; color: #fff; animati
     <div class="msg" id="msg" hidden></div>
     <div class="result" id="result" hidden>
       <div class="card">
-        <div class="eyebrow">You sound like a…</div>
-        <h2 id="birdName"></h2>
+        <div class="who">
+          <canvas id="birdEmoji" aria-label="Your bird" role="img"></canvas>
+          <div>
+            <div class="eyebrow">You sound like a…</div>
+            <h2 id="birdName"></h2>
+          </div>
+        </div>
         <p id="birdDesc"></p>
-        <button id="reroll">Another name</button>
+        <button id="reroll">Another name please</button>
         <label for="ownName">Or give your bird its own name</label>
         <input id="ownName" type="text" placeholder="e.g. The Sunday Morning Warbler" maxlength="40" autocomplete="off">
         <div class="row">
@@ -724,6 +732,51 @@ function wavBlob(samples, sr) {
   return new Blob([buf], { type: "audio/wav" });
 }
 
+// A one-off bird emoji for each invented name: colours from the pitch, pattern from how it moved, crest from the voice.
+const hashStr = s => { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0) % 2147483646 + 1; };
+function drawBirdEmoji(cv, spec) {
+  const S = 240, d = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = S * d; cv.height = S * d;
+  const c = cv.getContext("2d"); c.setTransform(d, 0, 0, d, 0, 0); c.clearRect(0, 0, S, S);
+  const r = RND(spec.seed), H = spec.hue + Math.round(r() * 30 - 15);
+  const body = `hsl(${H},68%,56%)`, dark = `hsl(${H},55%,32%)`, light = `hsl(${H + 15},85%,82%)`, acc = `hsl(${H + 150},75%,62%)`, ink = "#1b2326";
+  c.lineJoin = "round"; c.lineCap = "round"; c.lineWidth = 5; c.strokeStyle = ink;
+  // legs
+  c.beginPath(); c.moveTo(108, 190); c.lineTo(104, 220); c.moveTo(132, 190); c.lineTo(134, 220); c.moveTo(92, 222); c.lineTo(114, 222); c.moveTo(124, 222); c.lineTo(146, 222); c.strokeStyle = "#e08a2c"; c.stroke(); c.strokeStyle = ink;
+  // tail
+  c.beginPath(); c.moveTo(62, 120); c.lineTo(14, 96 + r() * 20); c.lineTo(22, 136); c.lineTo(10, 160 - r() * 14); c.lineTo(66, 160); c.closePath(); c.fillStyle = dark; c.fill(); c.stroke();
+  // body with its pattern
+  const bodyPath = () => { c.beginPath(); c.ellipse(118, 140, 70, 58, 0, 0, Math.PI * 2); };
+  bodyPath(); c.fillStyle = body; c.fill();
+  c.save(); bodyPath(); c.clip(); c.fillStyle = acc; c.strokeStyle = acc;
+  if (spec.pattern === "speckles") for (let i = 0; i < 60; i++) { c.beginPath(); c.arc(48 + r() * 140, 84 + r() * 115, 2 + r() * 3, 0, 7); c.fill(); }
+  if (spec.pattern === "spots") for (let i = 0; i < 9; i++) { c.beginPath(); c.arc(56 + r() * 125, 92 + r() * 100, 8 + r() * 9, 0, 7); c.fill(); }
+  if (spec.pattern === "stripes") { c.lineWidth = 9; for (let x = 20; x < 240; x += 26) { c.beginPath(); c.moveTo(x, 70); c.lineTo(x - 60, 210); c.stroke(); } }
+  if (spec.pattern === "waves") { c.lineWidth = 7; for (let y = 95; y < 210; y += 22) { c.beginPath(); for (let x = 40; x <= 200; x += 6) c.lineTo(x, y + Math.sin(x / 14 + y) * 6); c.stroke(); } }
+  if (spec.pattern === "chevrons") { c.lineWidth = 7; for (let y = 90; y < 220; y += 24) { c.beginPath(); c.moveTo(50, y); c.lineTo(118, y + 20); c.lineTo(190, y); c.stroke(); } }
+  c.fillStyle = light; c.beginPath(); c.ellipse(140, 168, 46, 30, -0.2, 0, Math.PI * 2); c.fill(); // belly
+  c.restore();
+  c.strokeStyle = ink; c.lineWidth = 5; bodyPath(); c.stroke();
+  // wing
+  c.beginPath(); c.ellipse(100, 138, 44, 27, -0.35, 0, Math.PI * 2); c.fillStyle = dark; c.fill(); c.stroke();
+  c.strokeStyle = light; c.lineWidth = 3; for (let i = 0; i < 3; i++) { c.beginPath(); c.moveTo(72 + i * 14, 150 - i * 4); c.lineTo(96 + i * 14, 136 - i * 6); c.stroke(); }
+  c.strokeStyle = ink; c.lineWidth = 5;
+  // crest, drawn before the head so it tucks behind
+  c.fillStyle = spec.crest === "plain" ? body : acc;
+  if (spec.crest === "crest") { c.beginPath(); c.moveTo(150, 60); c.quadraticCurveTo(140, 20, 172, 30); c.quadraticCurveTo(168, 44, 182, 52); c.closePath(); c.fill(); c.stroke(); }
+  if (spec.crest === "spikes") { c.beginPath(); c.moveTo(140, 66); for (let i = 0; i < 4; i++) { c.lineTo(146 + i * 12, 28 + (i % 2) * 8); c.lineTo(152 + i * 12, 58); } c.closePath(); c.fill(); c.stroke(); }
+  if (spec.crest === "tuft") { c.beginPath(); c.moveTo(160, 52); c.quadraticCurveTo(150, 30, 170, 22); c.moveTo(166, 52); c.quadraticCurveTo(170, 30, 186, 30); c.stroke(); }
+  // head
+  c.beginPath(); c.arc(166, 88, 42, 0, Math.PI * 2); c.fillStyle = body; c.fill(); c.stroke();
+  if (r() < 0.5) { c.save(); c.beginPath(); c.arc(166, 88, 40, 0, Math.PI * 2); c.clip(); c.fillStyle = dark; c.fillRect(120, 40, 100, 24 + r() * 10); c.restore(); c.beginPath(); c.arc(166, 88, 42, 0, Math.PI * 2); c.stroke(); } // cap
+  // cheek, eye, beak
+  c.fillStyle = "rgba(255,120,140,0.55)"; c.beginPath(); c.arc(170, 104, 9, 0, 7); c.fill();
+  c.fillStyle = "#fff"; c.beginPath(); c.arc(178, 80, 12, 0, 7); c.fill(); c.stroke();
+  c.fillStyle = ink; c.beginPath(); c.arc(181, 81, 6.5, 0, 7); c.fill();
+  c.fillStyle = "#fff"; c.beginPath(); c.arc(183, 78, 2.5, 0, 7); c.fill();
+  c.fillStyle = "#f2a33a"; c.beginPath(); c.moveTo(202, 84); c.lineTo(234, 96 + r() * 6); c.lineTo(202, 106); c.closePath(); c.fill(); c.stroke();
+}
+
 // Made-up bird names built from how the song sounded.
 const pick = a => a[Math.floor(Math.random() * a.length)];
 function inventBird(st, secs) {
@@ -736,13 +789,17 @@ function inventBird(st, secs) {
   const place = pick(["Moonlit", "Hedgerow", "Dawn", "Marsh", "Rooftop", "Woodland", "Garden", "Puddle", "Chimney"]);
   const noun = pick([["Whistler", "Lark", "Flute-thrush"], ["Warbler", "Wren", "Trill-finch"], ["Bunting", "Buzz-finch", "Bramble-hopper"], ["Sparrow", "Chirper", "Pip-finch"]][voice]);
   const name = `${place} ${Math.random() < 0.5 ? pitchWord : moveWord} ${noun}`;
+  const hues = avg < 1 ? [25, 210, 280] : avg < 2.5 ? [140, 30, 190] : avg < 5 ? [50, 340, 0] : [180, 260, 55];
+  const pattern = rate > 2.5 ? pick(["speckles", "spots"]) : sweep > 0.03 ? pick(["stripes", "waves", "chevrons"]) : pick(["plain", "spots", "speckles"]);
+  const emoji = { seed: hashStr(name), hue: pick(hues), pattern, crest: ["plain", "crest", "spikes", "tuft"][voice] };
   const where = { Moonlit: "only sings after dark", Hedgerow: "hides in hedges", Dawn: "is always first to wake", Marsh: "lives in the reeds", Rooftop: "shows off from rooftops", Woodland: "sings deep in the trees", Garden: "visits bird feeders", Puddle: "loves a bath", Chimney: "warms its toes on chimneys" }[place];
   const desc = `A ${pitchWord.toLowerCase()}, ${moveWord.toLowerCase()} singer that ${where}. Its song is about ${avg.toFixed(1)} kHz and ${secs.toFixed(1)} seconds long. No one else sings it quite like you.`;
-  return { name, desc };
+  return { name, desc, emoji };
 }
 function showResult() {
   const b = inventBird(lastRec.stats, lastRec.secs);
   $("birdName").textContent = b.name; $("birdDesc").textContent = b.desc;
+  drawBirdEmoji($("birdEmoji"), b.emoji);
   $("result").hidden = false;
 }
 const songName = () => ($("ownName").value.trim() || $("birdName").textContent || "My bird song");
@@ -753,9 +810,13 @@ $("playRec").onclick = () => {
   const s = ac.createBufferSource(); s.buffer = ab; s.connect(ac.destination); s.start();
 };
 $("shareRec").onclick = async () => {
-  const file = songFile(), data = { files: [file], title: songName(), text: `Listen to my bird song: ${songName()}` };
+  const file = songFile(), text = `Listen to my bird song: ${songName()}`;
+  const png = await new Promise(res => $("birdEmoji").toBlob(b => res(b ? new File([b], file.name.replace(/\.wav$/, ".png"), { type: "image/png" }) : null), "image/png"));
   try {
-    if (navigator.canShare && navigator.canShare(data)) { await navigator.share(data); return; }
+    for (const files of png ? [[file, png], [file]] : [[file]]) {
+      const data = { files, title: songName(), text };
+      if (navigator.canShare && navigator.canShare(data)) { await navigator.share(data); return; }
+    }
   } catch (e) { if (e.name === "AbortError") return; }
   saveSong(file); $("recNote").textContent = "Sharing isn't available in this browser, so the song was saved instead.";
 };
