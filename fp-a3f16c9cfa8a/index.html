@@ -54,6 +54,15 @@ label.sens { font: 0.75rem var(--mono); color: var(--muted); display: flex; alig
 #draw { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
 select#bird { max-width: 11rem; }
 #ghost { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.level { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; gap: 16px; align-items: center; background: rgba(17,27,30,0.94); border: 1px solid var(--line); border-radius: 14px; padding: 14px 20px 14px 14px; max-width: min(92%, 30rem); z-index: 3; pointer-events: none; }
+.thumb { position: relative; flex: none; width: clamp(72px, 18vh, 120px); aspect-ratio: 1; border-radius: 50%; overflow: hidden; background: var(--line); display: grid; place-items: center; box-shadow: 0 0 0 3px var(--v0); }
+.thumb span { font: 750 2rem var(--display); color: var(--muted); }
+.thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.levelText { min-width: 0; display: grid; gap: 2px; }
+.level .eyebrow { font: 500 0.7rem var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--v1); }
+.level h3 { font: 750 clamp(1.2rem, 4vh, 1.7rem) var(--display); margin: 0; text-wrap: balance; }
+.level p { margin: 0; color: var(--muted); font-size: 0.9rem; }
+.level small { color: var(--muted); font-size: 0.65rem; opacity: 0.8; }
 .score { position: absolute; left: 56px; top: 10px; font: 500 0.85rem var(--mono); color: var(--ink); background: rgba(17,27,30,0.85); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; pointer-events: none; font-variant-numeric: tabular-nums; }
 #cam { position: absolute; right: 10px; bottom: 56px; width: 22%; max-width: 200px; opacity: 0.35; transform: scaleX(-1); border-radius: 6px; }
 @media (max-height: 520px) {
@@ -116,6 +125,15 @@ select#bird { max-width: 11rem; }
     <canvas id="draw"></canvas>
     <canvas id="ghost" hidden></canvas>
     <div class="score" id="score" hidden></div>
+    <div class="level" id="level" hidden>
+      <div class="thumb" id="levelThumb"><span id="levelInitial"></span><img id="levelImg" alt="" hidden></div>
+      <div class="levelText">
+        <div class="eyebrow" id="levelStatus">Listen first</div>
+        <h3 id="levelName"></h3>
+        <p id="levelSay"></p>
+        <small id="levelCredit"></small>
+      </div>
+    </div>
     <video id="cam" playsinline muted hidden></video>
     <div class="legend" role="group" aria-label="Voice for your first finger or light">
       <button data-v="0" aria-pressed="true" style="--c:var(--v0)">whistle</button><button data-v="1" aria-pressed="false" style="--c:var(--v1)">trill</button><button data-v="2" aria-pressed="false" style="--c:var(--v2)">buzz</button><button data-v="3" aria-pressed="false" style="--c:var(--v3)">chirp</button>
@@ -467,7 +485,7 @@ function ghostFreq(b, s) {      // target kHz at song time s, or null between no
   return null;
 }
 function renderGhost() {
-  if (mode !== "copy") return;
+  if (mode !== "copy" || levelOpen) return;
   const w = ghost.width, h = ghost.height, b = BIRDS[sel.value];
   const nowX = w * 0.3, speed = w / 4;                // px per real second
   const lead = (w - nowX) / speed, STRETCH = stretchFor(b), dur = songLen(b) * STRETCH;
@@ -580,13 +598,61 @@ $("tune").onclick = () => {
   $("tune").textContent = autotune ? "Auto-tune on" : "Auto-tune off";
 };
 const resetGhost = () => { cycleStart = performance.now(); inNote = 0; hits = 0; caught = new Set(); painted = new Set(); best = 0; $("score").hidden = true; };
-sel.addEventListener("change", resetGhost);
+sel.addEventListener("change", () => { if (mode === "copy") openLevel(); });
+
+// Level intro: show the bird's name and photo, play its song once, then it's your turn.
+const WIKI = { blackbird: "Common_blackbird", robin: "European_robin", tawny: "Tawny_owl", barnowl: "Barn_owl", collared: "Eurasian_collared_dove",
+  woodpigeon: "Common_wood_pigeon", songthrush: "Song_thrush", mistle: "Mistle_thrush", greattit: "Great_tit", bluetit: "Eurasian_blue_tit",
+  coaltit: "Coal_tit", longtailed: "Long-tailed_tit", chaffinch: "Common_chaffinch", wren: "Eurasian_wren", goldfinch: "European_goldfinch",
+  greenfinch: "European_greenfinch", sparrow: "House_sparrow", dunnock: "Dunnock", chiffchaff: "Common_chiffchaff", yellowhammer: "Yellowhammer",
+  skylark: "Eurasian_skylark", starling: "Common_starling", blackcap: "Eurasian_blackcap", nightingale: "Common_nightingale", swallow: "Barn_swallow",
+  curlew: "Eurasian_curlew", crow: "Carrion_crow", magpie: "Eurasian_magpie", gull: "European_herring_gull", pheasant: "Common_pheasant",
+  mallard: "Mallard", cuckoo: "Common_cuckoo", chickadee: "Black-capped_chickadee", cardinal: "Northern_cardinal", pewee: "Eastern_wood_pewee" };
+const photos = {};
+// Photos come from Wikipedia at play time, with the photographer and licence from Wikimedia Commons.
+// Where the page can't reach Wikipedia, the card shows the bird's initial instead.
+async function photoFor(k) {
+  if (photos[k] !== undefined) return photos[k];
+  photos[k] = null;
+  try {
+    const j = await (await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${WIKI[k]}`)).json();
+    const src = j.thumbnail && j.thumbnail.source; if (!src) return null;
+    let credit = "Photo via Wikipedia";
+    try {
+      const file = decodeURIComponent((j.originalimage ? j.originalimage.source : src).split("/").pop()).replace(/^\d+px-/, "");
+      const m = await (await fetch(`https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&prop=imageinfo&iiprop=extmetadata&titles=File:${encodeURIComponent(file)}`)).json();
+      const md = Object.values(m.query.pages)[0].imageinfo[0].extmetadata;
+      const artist = new DOMParser().parseFromString((md.Artist && md.Artist.value) || "", "text/html").body.textContent.trim();
+      const lic = (md.LicenseShortName && md.LicenseShortName.value) || "";
+      credit = `Photo: ${artist || "unknown"}${lic ? ", " + lic : ""}, via Wikimedia Commons`;
+    } catch (e) {}
+    return (photos[k] = { src, credit });
+  } catch (e) { return null; }
+}
+let levelTimers = [], levelOpen = false;
+const clearLevelTimers = () => { levelTimers.forEach(clearTimeout); levelTimers = []; };
+function openLevel() {
+  const k = sel.value, b = BIRDS[k];
+  clearLevelTimers(); levelOpen = true; ghostTarget = null;
+  gctx.clearRect(0, 0, ghost.width, ghost.height); $("score").hidden = true;
+  $("levelName").textContent = b.name; $("levelSay").textContent = `“${b.say}”`;
+  $("levelInitial").textContent = b.name[0]; $("levelImg").hidden = true; $("levelCredit").textContent = "";
+  $("levelStatus").textContent = "Listen first"; $("level").hidden = false;
+  photoFor(k).then(p => {
+    if (!p || sel.value !== k) return;
+    const img = $("levelImg"); img.onload = () => { img.hidden = false; }; img.src = p.src; img.alt = b.name;
+    $("levelCredit").textContent = p.credit;
+  });
+  playTarget();
+  levelTimers.push(setTimeout(() => { $("levelStatus").textContent = "Your turn"; }, (songLen(b) + 0.3) * 1000));
+  levelTimers.push(setTimeout(() => { $("level").hidden = true; levelOpen = false; resetGhost(); }, (songLen(b) + 1.4) * 1000));
+}
 
 // ---------- controls ----------
 function setMode(m) {
   mode = m; $("mFree").setAttribute("aria-pressed", m === "free"); $("mCopy").setAttribute("aria-pressed", m === "copy");
   $("styleSeg").hidden = $("tune").hidden = search.hidden = sel.hidden = $("hear").hidden = $("targetPanel").hidden = ghost.hidden = m !== "copy";
-  if (m === "copy") resetGhost(); else { $("score").hidden = true; ghostTarget = null; }
+  if (m === "copy") openLevel(); else { $("score").hidden = true; ghostTarget = null; $("level").hidden = true; levelOpen = false; clearLevelTimers(); }
   requestAnimationFrame(resize);
 }
 function setInput(i) {
@@ -601,9 +667,10 @@ $("mCopy").onclick = () => setMode("copy");
 $("iTouch").onclick = () => setInput("touch");
 $("iCam").onclick = () => { if (!ac) return; setInput("camera"); };
 const begin = m => {
-  $("intro").hidden = true; setMode(m);
+  $("intro").hidden = true;
   try { initAudio(); ac.resume && ac.resume(); }
   catch (err) { showMsg("Sound couldn't start in this browser. Try Chrome or Safari."); }
+  setMode(m);
 };
 $("startFree").onclick = () => begin("free");
 $("startCopy").onclick = () => begin("copy");
