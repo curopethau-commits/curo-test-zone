@@ -228,7 +228,6 @@ const BIRDS = {
   blackbird: { tone: "flute", name: "Blackbird", say: "mellow flute, squeaky ending", notes: [N(0, 0.16, 2.0, 2.5), N(0.2, 0.18, 2.4, 1.8), N(0.42, 0.25, 1.9, 2.7, 2.2), N(0.72, 0.16, 2.8, 2.3), ...TR(0.95, 5, 0.06, 0.04, 6.5, 4.5)] },
   robin: { name: "Robin", say: "thin, liquid, wistful", notes: [N(0, 0.08, 6.0, 4.5), N(0.12, 0.1, 3.2, 3.7), N(0.26, 0.07, 7.0, 5.2), N(0.38, 0.12, 4.0, 4.1), N(0.55, 0.1, 5.5, 6.6), N(0.7, 0.12, 3.0, 2.6), ...TR(0.88, 4, 0.06, 0.04, 5.2, 4.2)] },
   tawny: { tone: "hoot", name: "Tawny Owl", say: "ke-wick … hoo, hu-hu-hoooo", notes: [N(0, 0.28, 1.4, 2.0, 1.6), N(0.6, 0.45, 0.82, 0.8), ...TR(1.3, 3, 0.12, 0.08, 0.78, 0.8), N(1.7, 0.7, 0.8, 0.77, 0.79, 0.75)] },
-  barnowl: { tone: "screech", name: "Barn Owl", say: "long rasping shriek", notes: [N(0, 1.0, 3.2, 3.6, 3.4, 3.7, 3.3)] },
   collared: { tone: "hoot", name: "Collared Dove", say: "coo-COOO-coo", notes: [N(0, 0.18, 0.52, 0.55), N(0.28, 0.5, 0.6, 0.62, 0.58), N(0.9, 0.3, 0.52, 0.48)] },
   woodpigeon: { tone: "hoot", name: "Woodpigeon", say: "coo-COO-coo, coo-coo", notes: [N(0, 0.25, 0.45, 0.48), N(0.32, 0.45, 0.52, 0.55, 0.5), N(0.85, 0.2, 0.46, 0.45), N(1.15, 0.2, 0.48, 0.46), N(1.42, 0.2, 0.48, 0.45)] },
   songthrush: { tone: "flute", name: "Song Thrush", say: "phrases said twice or three times", notes: [...REP(3, 0.22, t => [N(t, 0.07, 3.0, 4.6), N(t + 0.09, 0.08, 4.0, 2.5)]), ...REP(3, 0.15, t => [N(0.75 + t, 0.1, 2.4, 2.6)]), ...REP(2, 0.2, t => [N(1.3 + t, 0.12, 5.0, 3.6, 4.4)])] },
@@ -251,11 +250,12 @@ const BIRDS = {
   nightingale: { tone: "flute", name: "Nightingale", say: "piu… piu… piu, swelling, then a rattle", notes: [N(0, 0.25, 2.4, 2.5), N(0.38, 0.25, 2.4, 2.5), N(0.76, 0.25, 2.4, 2.6), ...TR(1.15, 10, 0.045, 0.03, 3.5, 2.5)] },
   swallow: { name: "Swallow", say: "chattering twitter with a buzz", notes: [...WARBLE(0, 8, 0.08, 3.5, 6.5, 17), N(0.7, 0.3, 3.0, 3.1)] },
   curlew: { tone: "flute", name: "Curlew", say: "cour-lee, then a bubbling rise", notes: [N(0, 0.4, 2.0, 2.6, 3.0), N(0.55, 0.4, 2.0, 2.6, 3.0), ...TR(1.1, 10, 0.06, 0.045, 2.6, 2.9, 3.4)] },
-  crow: { tone: "harsh", name: "Carrion Crow", say: "caw, caw, caw", notes: REP(3, 0.42, t => [N(t, 0.28, 1.2, 1.4, 1.1)]) },
-  magpie: { tone: "harsh", name: "Magpie", say: "machine-gun chatter", notes: TR(0, 12, 0.07, 0.05, 1.8, 2.4) },
-  gull: { tone: "harsh", name: "Herring Gull", say: "kyow-kyow-kyow laugh", notes: [N(0, 0.35, 1.0, 1.8, 1.4), ...REP(4, 0.2, t => [N(0.5 + t, 0.13, 1.3, 1.6, 1.1)])] },
-  pheasant: { tone: "harsh", name: "Pheasant", say: "kok-KOK", notes: [N(0, 0.15, 1.2, 1.5, 1.1), N(0.22, 0.2, 1.3, 1.7, 1.2)] },
-  mallard: { tone: "harsh", name: "Mallard", say: "quack quack quack", notes: REP(4, 0.3, t => [N(t, 0.18, 0.95, 0.8)]) },
+  willowwarbler: { tone: "flute", name: "Willow Warbler", say: "soft, sweet falling cascade", notes: TR(0, 12, 0.1, 0.07, 5.2, 4.6, 3.0) },
+  bullfinch: { name: "Bullfinch", say: "soft, low piping \u201cphew\u201d", notes: REP(3, 0.55, t => [N(t, 0.2, 2.5, 2.1)]) },
+  oriole: { tone: "flute", name: "Golden Oriole", say: "fluty weela-wee-oo", notes: [N(0, 0.15, 1.8, 2.4), N(0.18, 0.12, 2.1, 1.7), N(0.34, 0.3, 2.3, 1.5)] },
+  treecreeper: { name: "Treecreeper", say: "thin falling trill with a flourish", notes: [...TR(0, 8, 0.08, 0.05, 7.5, 7.0, 5.5), N(0.7, 0.15, 5.0, 7.0)] },
+  woodwarbler: { name: "Wood Warbler", say: "a few notes, then a shivering trill", notes: [...TR(0, 3, 0.18, 0.06, 5.0, 4.6), ...TR(0.55, 14, 0.045, 0.03, 5.2, 4.6, 5.0)] },
+  linnet: { name: "Linnet", say: "fast, musical twittering", notes: WARBLE(0, 12, 0.08, 2.5, 5.5, 29) },
   cuckoo: { tone: "hoot", name: "Cuckoo", say: "cu-ckoo", notes: [N(0, 0.25, 0.75, 0.72), N(0.4, 0.45, 0.6, 0.57)] },
   chickadee: { name: "Black-capped Chickadee (N. America)", say: "fee-bee", notes: [N(0, 0.3, 4.0, 3.9), N(0.42, 0.33, 3.4, 3.3)] },
   cardinal: { name: "Northern Cardinal (N. America)", say: "cheer cheer cheer", notes: REP(4, 0.27, t => [N(t, 0.18, 4.2, 1.9)]) },
@@ -735,13 +735,13 @@ const resetGhost = () => { cycleStart = performance.now(); painted = new Set(); 
 sel.addEventListener("change", () => { if (mode === "copy") openLevel(); });
 
 // Level intro: show the bird's name and photo, play its song once, then it's your turn.
-const WIKI = { blackbird: "Common_blackbird", robin: "European_robin", tawny: "Tawny_owl", barnowl: "Barn_owl", collared: "Eurasian_collared_dove",
+const WIKI = { blackbird: "Common_blackbird", robin: "European_robin", tawny: "Tawny_owl", collared: "Eurasian_collared_dove",
   woodpigeon: "Common_wood_pigeon", songthrush: "Song_thrush", mistle: "Mistle_thrush", greattit: "Great_tit", bluetit: "Eurasian_blue_tit",
   coaltit: "Coal_tit", longtailed: "Long-tailed_tit", chaffinch: "Common_chaffinch", wren: "Eurasian_wren", goldfinch: "European_goldfinch",
   greenfinch: "European_greenfinch", sparrow: "House_sparrow", dunnock: "Dunnock", chiffchaff: "Common_chiffchaff", yellowhammer: "Yellowhammer",
   skylark: "Eurasian_skylark", starling: "Common_starling", blackcap: "Eurasian_blackcap", nightingale: "Common_nightingale", swallow: "Barn_swallow",
   curlew: "Eurasian_curlew", crow: "Carrion_crow", magpie: "Eurasian_magpie", gull: "European_herring_gull", pheasant: "Common_pheasant",
-  mallard: "Mallard", cuckoo: "Common_cuckoo", chickadee: "Black-capped_chickadee", cardinal: "Northern_cardinal", pewee: "Eastern_wood_pewee" };
+  mallard: "Mallard", willowwarbler: "Willow_warbler", bullfinch: "Eurasian_bullfinch", oriole: "Eurasian_golden_oriole", treecreeper: "Eurasian_treecreeper", woodwarbler: "Wood_warbler", linnet: "Common_linnet", cuckoo: "Common_cuckoo", chickadee: "Black-capped_chickadee", cardinal: "Northern_cardinal", pewee: "Eastern_wood_pewee" };
 const photos = {};
 // Photos come from Wikipedia at play time, with the photographer and licence from Wikimedia Commons.
 // Where the page can't reach Wikipedia, the card shows the bird's initial instead.
