@@ -52,12 +52,19 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px s
 label.sens { font: 0.75rem var(--mono); color: var(--muted); display: flex; align-items: center; gap: 6px; }
 .stage { position: relative; min-height: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: radial-gradient(ellipse at 50% 120%, #10201f 0%, var(--night) 70%); }
 #draw { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
-#cam { position: absolute; right: 10px; bottom: 10px; width: 22%; max-width: 200px; opacity: 0.35; transform: scaleX(-1); border-radius: 6px; }
-.legend { position: absolute; left: 50px; top: 10px; display: flex; gap: 6px; flex-wrap: wrap; z-index: 2; }
+#ghost { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.score { position: absolute; right: 12px; top: 10px; font: 500 0.85rem var(--mono); color: var(--ink); background: rgba(17,27,30,0.85); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; pointer-events: none; font-variant-numeric: tabular-nums; }
+#cam { position: absolute; right: 10px; bottom: 56px; width: 22%; max-width: 200px; opacity: 0.35; transform: scaleX(-1); border-radius: 6px; }
+@media (max-height: 520px) {
+  .brand h1 { font-size: 1.1rem; }
+  .seg button, button.act, select { padding: 4px 9px; font-size: 0.75rem; }
+  header { gap: 8px; }
+}
+.legend { position: absolute; right: 12px; bottom: 10px; justify-content: flex-end; display: flex; gap: 6px; flex-wrap: wrap; z-index: 2; }
 .legend button { font: 0.78rem var(--mono); color: var(--muted); background: rgba(17,27,30,0.8); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; cursor: pointer; }
 .legend button[aria-pressed="true"] { color: var(--ink); border-color: var(--c); box-shadow: 0 0 12px -2px var(--c); }
 .legend button::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; background: var(--c); box-shadow: 0 0 8px var(--c); }
-.hint { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); font-size: 0.85rem; color: var(--muted); pointer-events: none; text-align: center; width: max-content; max-width: 90%; }
+.hint { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); font-size: 0.85rem; color: var(--muted); pointer-events: none; text-align: center; width: max-content; max-width: 90%; }
 .msg { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); background: var(--panel); border: 1px solid var(--line); padding: 12px 16px; border-radius: 8px; font-size: 0.9rem; max-width: 80%; text-align: center; }
 .strip { display: flex; gap: 8px; height: clamp(84px, 24vh, 190px); min-width: 0; }
 .panel { position: relative; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); overflow: hidden; min-width: 0; }
@@ -94,6 +101,8 @@ label.sens { font: 0.75rem var(--mono); color: var(--muted); display: flex; alig
 
   <div class="stage" id="stage">
     <canvas id="draw"></canvas>
+    <canvas id="ghost" hidden></canvas>
+    <div class="score" id="score" hidden></div>
     <video id="cam" playsinline muted hidden></video>
     <div class="legend" role="group" aria-label="Voice for your first finger or light">
       <button data-v="0" aria-pressed="true" style="--c:var(--v0)">whistle</button><button data-v="1" aria-pressed="false" style="--c:var(--v1)">trill</button><button data-v="2" aria-pressed="false" style="--c:var(--v2)">buzz</button><button data-v="3" aria-pressed="false" style="--c:var(--v3)">chirp</button>
@@ -205,7 +214,7 @@ let DPR = 1;
 const stageH = () => draw.clientHeight;
 function resize() {
   DPR = Math.min(2, window.devicePixelRatio || 1);
-  for (const c of [draw, $("spec"), $("target")]) { c.width = Math.max(1, c.clientWidth * DPR); c.height = Math.max(1, c.clientHeight * DPR); }
+  for (const c of [draw, $("ghost"), $("spec"), $("target")]) { c.width = Math.max(1, c.clientWidth * DPR); c.height = Math.max(1, c.clientHeight * DPR); }
   dctx.fillStyle = "#0a1113"; dctx.fillRect(0, 0, draw.width, draw.height);
   drawTarget();
 }
@@ -367,10 +376,65 @@ function playTarget() {
 }
 $("hear").onclick = playTarget;
 
+// Ghost song: the target scrolls in from the right. Keep your light on it as it crosses the line.
+const ghost = $("ghost"), gctx = ghost.getContext("2d");
+const STRETCH = 2.5;            // song plays 2.5x slower so people can follow it
+const GAP = 1.2;                // seconds of rest between passes
+let cycleStart = performance.now(), inNote = 0, hits = 0, lastScore = null;
+const songLen = b => Math.max(...b.notes.flat().map(p => p[0]));
+function ghostFreq(b, s) {      // target kHz at song time s, or null between notes
+  for (const n of b.notes) {
+    if (s < n[0][0] || s > n[n.length - 1][0]) continue;
+    for (let i = 1; i < n.length; i++) if (s <= n[i][0]) {
+      const [t0, k0] = n[i - 1], [t1, k1] = n[i];
+      return k0 + (k1 - k0) * (s - t0) / (t1 - t0 || 1);
+    }
+  }
+  return null;
+}
+function renderGhost() {
+  if (mode !== "copy") return;
+  const w = ghost.width, h = ghost.height, b = BIRDS[sel.value];
+  const nowX = w * 0.3, speed = w / 4;                // px per real second
+  const lead = (w - nowX) / speed, dur = songLen(b) * STRETCH;
+  let el = (performance.now() - cycleStart) / 1000 - lead; // seconds since song reached the line
+  if (el > dur + GAP) {
+    if (inNote > 10) { lastScore = Math.round(100 * hits / inNote); $("score").textContent = `Match ${lastScore}%`; $("score").hidden = false; }
+    cycleStart = performance.now(); inNote = 0; hits = 0; el = -lead;
+  }
+  gctx.clearRect(0, 0, w, h);
+  const X = t => nowX + (t * STRETCH - el) * speed;
+  // the line you sing on
+  const target = el >= 0 ? ghostFreq(b, el / STRETCH) : null;
+  let hit = false;
+  if (target !== null && ac) {
+    inNote++;
+    const ty = fToY(target * 1000, h) / DPR;
+    hit = voices.some(v => v.on && Math.abs(v.y - ty) < draw.clientHeight * 0.07);
+    if (hit) hits++;
+  }
+  gctx.strokeStyle = hit ? "#5ee6c8" : "rgba(230,238,232,0.35)"; gctx.lineWidth = (hit ? 3 : 1.5) * DPR;
+  gctx.shadowColor = "#5ee6c8"; gctx.shadowBlur = hit ? 16 * DPR : 0;
+  gctx.beginPath(); gctx.moveTo(nowX, 0); gctx.lineTo(nowX, h); gctx.stroke();
+  // the ghost notes
+  gctx.lineCap = "round"; gctx.lineJoin = "round"; gctx.shadowColor = "rgba(230,238,232,0.8)"; gctx.shadowBlur = 14 * DPR;
+  gctx.strokeStyle = "rgba(230,238,232,0.28)"; gctx.lineWidth = 16 * DPR;
+  for (const n of b.notes) {
+    gctx.beginPath(); n.forEach(([t, k], i) => i ? gctx.lineTo(X(t), fToY(k * 1000, h)) : gctx.moveTo(X(t), fToY(k * 1000, h))); gctx.stroke();
+  }
+  gctx.shadowBlur = 0;
+  if (target !== null) { // marker where you should be right now
+    gctx.fillStyle = hit ? "#5ee6c8" : "#e6eee8"; gctx.beginPath(); gctx.arc(nowX, fToY(target * 1000, h), 7 * DPR, 0, Math.PI * 2); gctx.fill();
+  }
+}
+const resetGhost = () => { cycleStart = performance.now(); inNote = 0; hits = 0; $("score").hidden = true; };
+sel.addEventListener("change", resetGhost);
+
 // ---------- controls ----------
 function setMode(m) {
   mode = m; $("mFree").setAttribute("aria-pressed", m === "free"); $("mCopy").setAttribute("aria-pressed", m === "copy");
-  sel.hidden = $("hear").hidden = $("targetPanel").hidden = m !== "copy";
+  sel.hidden = $("hear").hidden = $("targetPanel").hidden = ghost.hidden = m !== "copy";
+  if (m === "copy") resetGhost(); else $("score").hidden = true;
   requestAnimationFrame(resize);
 }
 function setInput(i) {
@@ -390,7 +454,7 @@ $("start").onclick = () => {
   catch (err) { showMsg("Sound couldn't start in this browser. Try Chrome or Safari."); }
 };
 
-function loop() { cameraStep(); renderStage(); renderSpec(); requestAnimationFrame(loop); }
+function loop() { cameraStep(); renderStage(); renderGhost(); renderSpec(); requestAnimationFrame(loop); }
 resize(); loop();
 </script>
 
