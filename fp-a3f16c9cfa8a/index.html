@@ -52,8 +52,10 @@ label.sens { font: 0.75rem var(--mono); color: var(--muted); display: flex; alig
 .stage { position: relative; min-height: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: radial-gradient(ellipse at 50% 120%, #10201f 0%, var(--night) 70%); }
 #draw { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
 #cam { position: absolute; right: 10px; bottom: 10px; width: 22%; max-width: 200px; opacity: 0.35; transform: scaleX(-1); border-radius: 6px; }
-.legend { position: absolute; left: 50px; top: 10px; display: flex; gap: 12px; flex-wrap: wrap; font: 0.72rem var(--mono); color: var(--muted); pointer-events: none; }
-.legend span::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; background: var(--c); box-shadow: 0 0 8px var(--c); }
+.legend { position: absolute; left: 50px; top: 10px; display: flex; gap: 6px; flex-wrap: wrap; z-index: 2; }
+.legend button { font: 0.78rem var(--mono); color: var(--muted); background: rgba(17,27,30,0.8); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; cursor: pointer; }
+.legend button[aria-pressed="true"] { color: var(--ink); border-color: var(--c); box-shadow: 0 0 12px -2px var(--c); }
+.legend button::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; background: var(--c); box-shadow: 0 0 8px var(--c); }
 .hint { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); font-size: 0.85rem; color: var(--muted); pointer-events: none; text-align: center; width: max-content; max-width: 90%; }
 .msg { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); background: var(--panel); border: 1px solid var(--line); padding: 12px 16px; border-radius: 8px; font-size: 0.9rem; max-width: 80%; text-align: center; }
 .strip { display: flex; gap: 8px; height: clamp(84px, 24vh, 190px); min-width: 0; }
@@ -92,10 +94,10 @@ label.sens { font: 0.75rem var(--mono); color: var(--muted); display: flex; alig
   <div class="stage" id="stage">
     <canvas id="draw"></canvas>
     <video id="cam" playsinline muted hidden></video>
-    <div class="legend">
-      <span style="--c:var(--v0)">whistle</span><span style="--c:var(--v1)">trill</span><span style="--c:var(--v2)">buzz</span><span style="--c:var(--v3)">chirp</span>
+    <div class="legend" role="group" aria-label="Voice for your first finger or light">
+      <button data-v="0" aria-pressed="true" style="--c:var(--v0)">whistle</button><button data-v="1" aria-pressed="false" style="--c:var(--v1)">trill</button><button data-v="2" aria-pressed="false" style="--c:var(--v2)">buzz</button><button data-v="3" aria-pressed="false" style="--c:var(--v3)">chirp</button>
     </div>
-    <div class="hint" id="hint">Draw with up to 4 fingers. Higher is higher pitch, faster is louder.</div>
+    <div class="hint" id="hint">Pick a voice above, then draw. Higher is higher pitch, faster is louder. Up to 4 fingers at once.</div>
     <div class="msg" id="msg" hidden></div>
     <div class="intro" id="intro">
       <div class="card">
@@ -237,7 +239,13 @@ function renderStage() {
 }
 
 // ---------- touch / mouse / pen ----------
-const freeVoice = () => voices.find(v => !v.on);
+// The picked voice goes to the first finger or light; extra ones take the next free voices.
+let picked = 0;
+const freeVoice = () => voices[picked] && !voices[picked].on ? voices[picked] : voices.find(v => !v.on);
+document.querySelectorAll(".legend button").forEach(b => b.onclick = () => {
+  picked = +b.dataset.v;
+  document.querySelectorAll(".legend button").forEach(x => x.setAttribute("aria-pressed", x === b));
+});
 draw.addEventListener("pointerdown", e => {
   if (input !== "touch" || !ac) return;
   const v = freeVoice(); if (!v) return;
@@ -368,7 +376,7 @@ function setInput(i) {
   input = i; $("iTouch").setAttribute("aria-pressed", i === "touch"); $("iCam").setAttribute("aria-pressed", i === "camera");
   $("sensWrap").hidden = i !== "camera";
   voices.forEach(voiceEnd);
-  if (i === "camera") startCamera(); else { stopCamera(); $("hint").textContent = "Draw with up to 4 fingers. Higher is higher pitch, faster is louder."; }
+  if (i === "camera") startCamera(); else { stopCamera(); $("hint").textContent = "Pick a voice above, then draw. Higher is higher pitch, faster is louder. Up to 4 fingers at once."; }
 }
 function showMsg(t) { const m = $("msg"); m.textContent = t; m.hidden = false; setTimeout(() => m.hidden = true, 6000); }
 $("mFree").onclick = () => setMode("free");
