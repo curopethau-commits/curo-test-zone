@@ -716,9 +716,9 @@ function recFrame() { // called every frame while recording: notes, pitch and mo
   const secs = (performance.now() - rec.t0) / 1000;
   recBtn.textContent = `■ Stop ${Math.floor(secs / 60)}:${String(Math.floor(secs % 60)).padStart(2, "0")}`;
   if (secs > 30) { stopRec(); return; }
-  // Stop by itself once you've sung and then let go for 1.5 seconds.
+  // Stop by itself once you've sung and then let go for half a second.
   if (voices.some(v => v.on)) rec.lastTouch = performance.now();
-  else if (rec.notes && performance.now() - rec.lastTouch > 1500) { stopRec(); return; }
+  else if (rec.notes && performance.now() - rec.lastTouch > 500) { stopRec(); return; }
   if (!rec.notes) recBtn.textContent = "● Recording… start drawing";
   for (const v of voices) {
     if (!v.on || !v.f) continue;
@@ -788,7 +788,10 @@ $("shareRec").onclick = async () => {
   } catch (e) { if (e.name === "AbortError") return; }
   saveSong(file); $("recNote").textContent = "Sharing isn't available in this browser, so the song was saved instead.";
 };
-function saveSong(file) {
+async function saveSong(file) {
+  // Inside the Claude viewer, files go through its download prompt; on a normal web page, a plain download.
+  const dl = window.claude && window.claude.use ? await window.claude.use("downloads").catch(() => null) : null;
+  if (dl) { try { await dl.save({ filename: file.name, data: file }); } catch (e) {} return; }
   const url = URL.createObjectURL(file), a = document.createElement("a");
   a.href = url; a.download = file.name; document.body.append(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
