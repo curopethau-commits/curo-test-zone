@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+</head>
+<body>
+<title>Fingerprints (WIP)</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,750&family=Instrument+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a dark "night room" stage you draw on with light, a live spectrogram strip below. Single dark world by choice. */
+:root {
+  --night: #0a1113;
+  --panel: #111b1e;
+  --line: #22343a;
+  --ink: #e6eee8;
+  --muted: #8ea29c;
+  --v0: #ffd166; /* whistle */
+  --v1: #5ee6c8; /* trill */
+  --v2: #ff8a65; /* buzz */
+  --v3: #b59cff; /* chirp */
+  --display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --body: "Instrument Sans", "Helvetica Neue", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  background: var(--night); color: var(--ink); font-family: var(--body);
+  overflow: hidden; -webkit-user-select: none; user-select: none;
+}
+.app {
+  height: 100%; display: grid; grid-template-rows: auto 1fr auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 8px; gap: 8px; box-sizing: border-box;
+}
+header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-width: 0; }
+.brand { display: flex; align-items: baseline; gap: 8px; margin-right: auto; }
+.brand h1 { font-family: var(--display); font-weight: 750; font-size: 1.35rem; margin: 0; letter-spacing: -0.01em; }
+.wip { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.12em; color: var(--night); background: var(--v0); padding: 2px 6px; border-radius: 3px; font-weight: 500; }
+.ctrl { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.seg button { border: 0; background: transparent; color: var(--muted); font: 600 0.82rem var(--body); padding: 6px 12px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--night); }
+button.act, select { font: 600 0.82rem var(--body); color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; cursor: pointer; }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--v1); outline-offset: 2px; }
+label.sens { font: 0.75rem var(--mono); color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.stage { position: relative; min-height: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: radial-gradient(ellipse at 50% 120%, #10201f 0%, var(--night) 70%); }
+#draw { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+#cam { position: absolute; right: 10px; bottom: 10px; width: 22%; max-width: 200px; opacity: 0.35; transform: scaleX(-1); border-radius: 6px; }
+.legend { position: absolute; left: 50px; top: 10px; display: flex; gap: 12px; flex-wrap: wrap; font: 0.72rem var(--mono); color: var(--muted); pointer-events: none; }
+.legend span::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; background: var(--c); box-shadow: 0 0 8px var(--c); }
+.hint { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); font-size: 0.85rem; color: var(--muted); pointer-events: none; text-align: center; width: max-content; max-width: 90%; }
+.msg { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); background: var(--panel); border: 1px solid var(--line); padding: 12px 16px; border-radius: 8px; font-size: 0.9rem; max-width: 80%; text-align: center; }
+.strip { display: flex; gap: 8px; height: clamp(84px, 24vh, 190px); min-width: 0; }
+.panel { position: relative; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); overflow: hidden; min-width: 0; }
+.panel canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.panel .cap { position: absolute; left: 8px; top: 6px; font: 0.7rem var(--mono); color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; z-index: 1; pointer-events: none; }
+#targetPanel { flex: 0 0 30%; }
+#livePanel { flex: 1 1 auto; }
+.intro { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(10,17,19,0.88); z-index: 5; padding: 16px; }
+.intro .card { max-width: 34rem; display: grid; gap: 12px; text-align: left; }
+.intro h2 { font-family: var(--display); font-weight: 750; font-size: clamp(1.6rem, 4vw, 2.6rem); line-height: 1.05; margin: 0; text-wrap: balance; }
+.intro p { margin: 0; color: var(--muted); line-height: 1.5; }
+.intro button { justify-self: start; font: 750 1rem var(--display); background: var(--v0); color: var(--night); border: 0; border-radius: 999px; padding: 12px 22px; cursor: pointer; }
+</style>
+
+<div class="app">
+  <header>
+    <div class="brand"><h1>Fingerprints</h1><span class="wip">WIP</span></div>
+    <div class="ctrl">
+      <div class="seg" role="group" aria-label="Mode">
+        <button id="mFree" aria-pressed="true">Freestyle</button>
+        <button id="mCopy" aria-pressed="false">Copy a bird</button>
+      </div>
+      <select id="bird" aria-label="Bird to copy" hidden></select>
+      <button class="act" id="hear" hidden>Hear it</button>
+    </div>
+    <div class="ctrl">
+      <div class="seg" role="group" aria-label="Input">
+        <button id="iTouch" aria-pressed="true">Touch</button>
+        <button id="iCam" aria-pressed="false">Camera</button>
+      </div>
+      <label class="sens" id="sensWrap" hidden>light <input id="sens" type="range" min="180" max="252" value="232"></label>
+    </div>
+  </header>
+
+  <div class="stage" id="stage">
+    <canvas id="draw"></canvas>
+    <video id="cam" playsinline muted hidden></video>
+    <div class="legend">
+      <span style="--c:var(--v0)">whistle</span><span style="--c:var(--v1)">trill</span><span style="--c:var(--v2)">buzz</span><span style="--c:var(--v3)">chirp</span>
+    </div>
+    <div class="hint" id="hint">Draw with up to 4 fingers. Higher is higher pitch, faster is louder.</div>
+    <div class="msg" id="msg" hidden></div>
+    <div class="intro" id="intro">
+      <div class="card">
+        <h2>Every bird's song is a fingerprint.</h2>
+        <p>Draw lines in the dark and they become birdsong. Height sets the pitch, speed sets the volume, and each of the four lights sings with a different voice, the way some birds sing several notes at once.</p>
+        <p>Watch your song appear as a spectrogram at the bottom. That picture is how scientists tell one bird from another.</p>
+        <button id="start">Wake the birds</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="strip">
+    <div class="panel" id="targetPanel" hidden><div class="cap" id="targetCap">Target</div><canvas id="target"></canvas></div>
+    <div class="panel" id="livePanel"><div class="cap">Your fingerprint · 0.4–9 kHz</div><canvas id="spec"></canvas></div>
+  </div>
+</div>
+
+<script>
+const FMIN = 400, FMAX = 9000;
+const VOICES = ["whistle", "trill", "buzz", "chirp"];
+const COLORS = ["#ffd166", "#5ee6c8", "#ff8a65", "#b59cff"];
+// Stylised shapes based on real songs (not exact). Each note is [seconds, kHz] points.
+const BIRDS = {
+  chickadee: { name: "Black-capped Chickadee", say: "fee-bee", notes: [[[0, 4.0], [0.3, 3.9]], [[0.42, 3.4], [0.75, 3.3]]] },
+  cardinal: { name: "Northern Cardinal", say: "cheer cheer cheer", notes: [0, 1, 2, 3].map(i => [[i * 0.27, 4.2], [i * 0.27 + 0.18, 1.9]]) },
+  pewee: { name: "Eastern Wood-Pewee", say: "pee-a-wee", notes: [[[0, 3.4], [0.12, 4.4], [0.35, 3.6], [0.55, 3.0], [0.8, 4.0]]] },
+  cuckoo: { name: "Common Cuckoo", say: "cu-ckoo", notes: [[[0, 0.75], [0.25, 0.72]], [[0.4, 0.6], [0.85, 0.57]]] },
+};
+const $ = id => document.getElementById(id);
+const fToY = (f, h) => h * (1 - Math.log(f / FMIN) / Math.log(FMAX / FMIN));
+const yToF = (y, h) => FMIN * Math.pow(FMAX / FMIN, 1 - Math.min(1, Math.max(0, y / h)));
+
+let ac, master, analyser, noiseBuf, voices = [];
+let mode = "free", input = "touch";
+
+function initAudio() {
+  ac = new (window.AudioContext || window.webkitAudioContext)();
+  master = ac.createGain(); master.gain.value = 0.7;
+  const comp = ac.createDynamicsCompressor();
+  analyser = ac.createAnalyser(); analyser.fftSize = 2048; analyser.smoothingTimeConstant = 0.15;
+  master.connect(comp); comp.connect(analyser); analyser.connect(ac.destination);
+  noiseBuf = ac.createBuffer(1, ac.sampleRate * 0.5, ac.sampleRate);
+  const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  voices = VOICES.map(makeVoice);
+}
+
+function makeVoice(type, i) {
+  const osc = ac.createOscillator(), mod = ac.createGain(), amp = ac.createGain();
+  const lfo = ac.createOscillator(), depth = ac.createGain();
+  osc.frequency.value = 2000; amp.gain.value = 0; mod.gain.value = 1;
+  osc.connect(mod); mod.connect(amp); amp.connect(master);
+  lfo.connect(depth);
+  if (type === "whistle") { lfo.frequency.value = 6; depth.connect(osc.frequency); }
+  if (type === "trill") { lfo.frequency.value = 26; mod.gain.value = 0.5; depth.gain.value = 0.5; depth.connect(mod.gain); }
+  if (type === "buzz") { osc.type = "triangle"; lfo.frequency.value = 85; depth.connect(osc.frequency); }
+  if (type === "chirp") { lfo.type = "sawtooth"; lfo.frequency.value = 11; depth.connect(osc.frequency); }
+  osc.start(); lfo.start();
+  return { type, i, osc, amp, depth, on: false, owner: null, x: 0, y: 0, last: null, trail: [] };
+}
+
+function setDepth(v, f) {
+  const t = ac.currentTime;
+  if (v.type === "whistle") v.depth.gain.setTargetAtTime(f * 0.012, t, 0.02);
+  if (v.type === "buzz") v.depth.gain.setTargetAtTime(f * 0.06, t, 0.02);
+  if (v.type === "chirp") v.depth.gain.setTargetAtTime(-f * 0.22, t, 0.02);
+}
+
+// A bird draws breath before it sings: a short filtered puff, then the note swoops in.
+function breath(f) {
+  const src = ac.createBufferSource(), bp = ac.createBiquadFilter(), g = ac.createGain(), t = ac.currentTime;
+  src.buffer = noiseBuf; bp.type = "bandpass"; bp.frequency.value = f; bp.Q.value = 3;
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.35, t + 0.025); g.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+  src.connect(bp); bp.connect(g); g.connect(master); src.start(t); src.stop(t + 0.16);
+}
+
+function voiceStart(v, x, y, size) {
+  const h = stageH(), f = yToF(y, h), t = ac.currentTime;
+  v.on = true; v.x = x; v.y = y; v.last = { x, y, t: performance.now() }; v.trail = [];
+  breath(f);
+  v.osc.frequency.cancelScheduledValues(t);
+  v.osc.frequency.setValueAtTime(f * 0.82, t); v.osc.frequency.linearRampToValueAtTime(f, t + 0.04);
+  setDepth(v, f);
+  v.amp.gain.cancelScheduledValues(t); v.amp.gain.setTargetAtTime(0.18 * size, t + 0.02, 0.02);
+}
+
+function voiceMove(v, x, y, size) {
+  const now = performance.now(), dt = Math.max(1, now - v.last.t);
+  const speed = Math.hypot(x - v.last.x, y - v.last.y) / dt; // px per ms
+  const f = yToF(y, stageH()), t = ac.currentTime;
+  v.osc.frequency.setTargetAtTime(f, t, 0.012); setDepth(v, f);
+  const a = Math.min(0.5, 0.12 + speed * 0.35) * size * (v.type === "buzz" ? 0.6 : 1);
+  v.amp.gain.setTargetAtTime(a, t, 0.03);
+  v.x = x; v.y = y; v.last = { x, y, t: now };
+}
+
+function voiceEnd(v) {
+  v.on = false; v.owner = null;
+  if (ac) v.amp.gain.setTargetAtTime(0, ac.currentTime, 0.04);
+}
+
+// ---------- drawing stage ----------
+const draw = $("draw"), dctx = draw.getContext("2d");
+let DPR = 1;
+const stageH = () => draw.clientHeight;
+function resize() {
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  for (const c of [draw, $("spec"), $("target")]) { c.width = Math.max(1, c.clientWidth * DPR); c.height = Math.max(1, c.clientHeight * DPR); }
+  dctx.fillStyle = "#0a1113"; dctx.fillRect(0, 0, draw.width, draw.height);
+  drawTarget();
+}
+addEventListener("resize", resize);
+
+function grid(ctx, w, h, labels) {
+  ctx.save(); ctx.font = `${10 * DPR}px "IBM Plex Mono", monospace`; ctx.textBaseline = "middle";
+  for (const k of [0.5, 1, 2, 4, 8]) {
+    const y = fToY(k * 1000, h);
+    ctx.strokeStyle = "rgba(142,162,156,0.14)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(labels ? 40 * DPR : 0, y); ctx.lineTo(w, y); ctx.stroke();
+    if (labels) { ctx.fillStyle = "rgba(142,162,156,0.7)"; ctx.fillText(`${k} kHz`, 6 * DPR, y); }
+  }
+  ctx.restore();
+}
+
+function renderStage() {
+  const w = draw.width, h = draw.height;
+  dctx.globalCompositeOperation = "source-over";
+  dctx.fillStyle = "rgba(10,17,19,0.075)"; dctx.fillRect(0, 0, w, h);
+  grid(dctx, w, h, true);
+  dctx.globalCompositeOperation = "lighter"; dctx.lineCap = "round"; dctx.lineJoin = "round";
+  for (const v of voices) {
+    if (!v.on) { v.trail = []; continue; }
+    v.trail.push([v.x * DPR, v.y * DPR]);
+    if (v.trail.length > 2) v.trail.shift();
+    if (v.trail.length < 2) continue;
+    dctx.strokeStyle = COLORS[v.i]; dctx.shadowColor = COLORS[v.i]; dctx.shadowBlur = 18 * DPR; dctx.lineWidth = 5 * DPR;
+    dctx.beginPath(); dctx.moveTo(...v.trail[0]); dctx.lineTo(...v.trail[1]); dctx.stroke();
+    dctx.shadowBlur = 0; dctx.strokeStyle = "#fff"; dctx.lineWidth = 1.5 * DPR; dctx.stroke();
+  }
+  dctx.shadowBlur = 0;
+}
+
+// ---------- touch / mouse / pen ----------
+const freeVoice = () => voices.find(v => !v.on);
+draw.addEventListener("pointerdown", e => {
+  if (input !== "touch" || !ac) return;
+  const v = freeVoice(); if (!v) return;
+  draw.setPointerCapture(e.pointerId); v.owner = e.pointerId;
+  voiceStart(v, e.offsetX, e.offsetY, pressure(e));
+  $("hint").hidden = true;
+});
+draw.addEventListener("pointermove", e => {
+  const v = voices.find(v => v.on && v.owner === e.pointerId);
+  if (v) voiceMove(v, e.offsetX, e.offsetY, pressure(e));
+});
+for (const ev of ["pointerup", "pointercancel"]) draw.addEventListener(ev, e => {
+  const v = voices.find(v => v.on && v.owner === e.pointerId); if (v) voiceEnd(v);
+});
+// Pens report real pressure; fingers and mice report 0.5, which we treat as normal.
+const pressure = e => (e.pointerType === "pen" && e.pressure > 0) ? 0.4 + e.pressure * 1.2 : 1;
+
+// ---------- camera: find up to 4 bright spots (torches / phone lights) ----------
+const video = $("cam"), probe = document.createElement("canvas"), pctx = probe.getContext("2d", { willReadFrequently: true });
+const PW = 80, PH = 60; probe.width = PW; probe.height = PH;
+let stream = null;
+
+async function startCamera() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: false });
+    video.srcObject = stream; await video.play(); video.hidden = false;
+    $("msg").hidden = true;
+    $("hint").textContent = "Point up to 4 torches or phone lights at the camera. Darken the room for best results."; $("hint").hidden = false;
+  } catch (err) {
+    setInput("touch");
+    showMsg("The camera isn't available on this page. Download the prototype file from the project and open it in Chrome to use torches. Touch mode still works here.");
+  }
+}
+function stopCamera() { if (stream) stream.getTracks().forEach(t => t.stop()); stream = null; video.hidden = true; }
+
+function findBlobs() {
+  pctx.drawImage(video, 0, 0, PW, PH);
+  const px = pctx.getImageData(0, 0, PW, PH).data, thr = +$("sens").value;
+  const bright = new Uint8Array(PW * PH), seen = new Uint8Array(PW * PH), blobs = [];
+  for (let i = 0; i < PW * PH; i++) bright[i] = (px[i * 4] + px[i * 4 + 1] + px[i * 4 + 2]) / 3 > thr ? 1 : 0;
+  for (let i = 0; i < PW * PH; i++) {
+    if (!bright[i] || seen[i]) continue;
+    let n = 0, sx = 0, sy = 0; const stack = [i]; seen[i] = 1;
+    while (stack.length) {
+      const j = stack.pop(), x = j % PW, y = (j / PW) | 0; n++; sx += x; sy += y;
+      for (const k of [j - 1, j + 1, j - PW, j + PW]) {
+        if (k < 0 || k >= PW * PH || seen[k] || !bright[k]) continue;
+        if (Math.abs((k % PW) - x) > 1) continue;
+        seen[k] = 1; stack.push(k);
+      }
+    }
+    if (n >= 2) blobs.push({ x: 1 - (sx / n + 0.5) / PW, y: (sy / n + 0.5) / PH, n });
+  }
+  return blobs.sort((a, b) => b.n - a.n).slice(0, 4);
+}
+
+function cameraStep() {
+  if (!stream || video.readyState < 2) return;
+  const W = draw.clientWidth, H = draw.clientHeight, blobs = findBlobs();
+  const used = new Set();
+  for (const v of voices.filter(v => v.on)) { // keep each light on its own voice
+    let best = null, bd = 0.25;
+    for (const b of blobs) { if (used.has(b)) continue; const d = Math.hypot(b.x - v.x / W, b.y - v.y / H); if (d < bd) { bd = d; best = b; } }
+    if (best) { used.add(best); v.miss = 0; voiceMove(v, best.x * W, best.y * H, size(best)); }
+    else if (++v.miss > 3) voiceEnd(v);
+  }
+  for (const b of blobs) {
+    if (used.has(b)) continue; const v = freeVoice(); if (!v) break;
+    v.miss = 0; voiceStart(v, b.x * W, b.y * H, size(b));
+  }
+}
+// Bigger spot = light closer to the camera = louder, like pressing harder.
+const size = b => Math.min(1.6, 0.6 + b.n / 25);
+
+// ---------- spectrogram ----------
+const spec = $("spec"), sctx = spec.getContext("2d");
+let fbuf;
+const LUT = Array.from({ length: 256 }, (_, i) => {
+  const t = i / 255, r = Math.round(255 * Math.max(0, t * 1.6 - 0.6)), g = Math.round(255 * Math.min(1, t * 1.25)), b = Math.round(60 + 160 * Math.min(1, t * 1.6));
+  return `rgb(${Math.min(255, r)},${Math.min(255, g)},${Math.min(255, b)})`;
+});
+function renderSpec() {
+  const w = spec.width, h = spec.height, col = Math.max(1, Math.round(w / 300));
+  sctx.drawImage(spec, -col, 0);
+  sctx.fillStyle = "#111b1e"; sctx.fillRect(w - col, 0, col, h);
+  if (analyser) {
+    fbuf = fbuf || new Uint8Array(analyser.frequencyBinCount); analyser.getByteFrequencyData(fbuf);
+    const binHz = ac.sampleRate / analyser.fftSize;
+    for (let y = 0; y < h; y += 2) {
+      const v = fbuf[Math.round(yToF(y, h) / binHz)];
+      if (v > 40) { sctx.fillStyle = LUT[v]; sctx.fillRect(w - col, y, col, 2); }
+    }
+  }
+}
+
+// ---------- copy a bird ----------
+const sel = $("bird");
+for (const [k, b] of Object.entries(BIRDS)) sel.add(new Option(b.name, k));
+function drawTarget() {
+  const c = $("target"), ctx = c.getContext("2d"), w = c.width, h = c.height, b = BIRDS[sel.value];
+  ctx.fillStyle = "#111b1e"; ctx.fillRect(0, 0, w, h); grid(ctx, w, h, false);
+  const T = 1.2, x = t => (0.06 + 0.88 * t / T) * w;
+  ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.strokeStyle = COLORS[0]; ctx.shadowColor = COLORS[0]; ctx.shadowBlur = 10 * DPR; ctx.lineWidth = 4 * DPR;
+  for (const n of b.notes) { ctx.beginPath(); n.forEach(([t, k], i) => i ? ctx.lineTo(x(t), fToY(k * 1000, h)) : ctx.moveTo(x(t), fToY(k * 1000, h))); ctx.stroke(); }
+  ctx.shadowBlur = 0;
+  $("targetCap").textContent = `${b.name} · "${b.say}"`;
+}
+sel.addEventListener("change", drawTarget);
+function playTarget() {
+  if (!ac) return;
+  const b = BIRDS[sel.value], t0 = ac.currentTime + 0.05;
+  for (const n of b.notes) {
+    const o = ac.createOscillator(), g = ac.createGain(), s = t0 + n[0][0], e = t0 + n[n.length - 1][0];
+    o.frequency.setValueAtTime(n[0][1] * 1000, s); n.slice(1).forEach(([t, k]) => o.frequency.linearRampToValueAtTime(k * 1000, t0 + t));
+    g.gain.setValueAtTime(0, s); g.gain.linearRampToValueAtTime(0.35, s + 0.015); g.gain.setValueAtTime(0.35, e - 0.03); g.gain.linearRampToValueAtTime(0, e);
+    o.connect(g); g.connect(master); o.start(s); o.stop(e + 0.05);
+  }
+}
+$("hear").onclick = playTarget;
+
+// ---------- controls ----------
+function setMode(m) {
+  mode = m; $("mFree").setAttribute("aria-pressed", m === "free"); $("mCopy").setAttribute("aria-pressed", m === "copy");
+  sel.hidden = $("hear").hidden = $("targetPanel").hidden = m !== "copy";
+  requestAnimationFrame(resize);
+}
+function setInput(i) {
+  input = i; $("iTouch").setAttribute("aria-pressed", i === "touch"); $("iCam").setAttribute("aria-pressed", i === "camera");
+  $("sensWrap").hidden = i !== "camera";
+  voices.forEach(voiceEnd);
+  if (i === "camera") startCamera(); else { stopCamera(); $("hint").textContent = "Draw with up to 4 fingers. Higher is higher pitch, faster is louder."; }
+}
+function showMsg(t) { const m = $("msg"); m.textContent = t; m.hidden = false; setTimeout(() => m.hidden = true, 6000); }
+$("mFree").onclick = () => setMode("free");
+$("mCopy").onclick = () => setMode("copy");
+$("iTouch").onclick = () => setInput("touch");
+$("iCam").onclick = () => { if (!ac) return; setInput("camera"); };
+$("start").onclick = () => { initAudio(); $("intro").hidden = true; };
+
+function loop() { cameraStep(); renderStage(); renderSpec(); requestAnimationFrame(loop); }
+resize(); loop();
+</script>
+
+</body>
+</html>
