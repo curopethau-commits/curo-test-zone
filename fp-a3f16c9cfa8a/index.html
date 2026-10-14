@@ -227,7 +227,7 @@ const BIRDS = {
   blackbird: { tone: "flute", name: "Blackbird", say: "mellow flute, squeaky ending", notes: [N(0, 0.16, 2.0, 2.5), N(0.2, 0.18, 2.4, 1.8), N(0.42, 0.25, 1.9, 2.7, 2.2), N(0.72, 0.16, 2.8, 2.3), ...TR(0.95, 5, 0.06, 0.04, 6.5, 4.5)] },
   robin: { name: "Robin", say: "thin, liquid, wistful", notes: [N(0, 0.08, 6.0, 4.5), N(0.12, 0.1, 3.2, 3.7), N(0.26, 0.07, 7.0, 5.2), N(0.38, 0.12, 4.0, 4.1), N(0.55, 0.1, 5.5, 6.6), N(0.7, 0.12, 3.0, 2.6), ...TR(0.88, 4, 0.06, 0.04, 5.2, 4.2)] },
   tawny: { tone: "hoot", name: "Tawny Owl", say: "ke-wick … hoo, hu-hu-hoooo", notes: [N(0, 0.28, 1.4, 2.0, 1.6), N(0.6, 0.45, 0.82, 0.8), ...TR(1.3, 3, 0.12, 0.08, 0.78, 0.8), N(1.7, 0.7, 0.8, 0.77, 0.79, 0.75)] },
-  barnowl: { tone: "harsh", name: "Barn Owl", say: "long rasping shriek", notes: [N(0, 1.0, 3.2, 3.6, 3.4, 3.7, 3.3)] },
+  barnowl: { tone: "screech", name: "Barn Owl", say: "long rasping shriek", notes: [N(0, 1.0, 3.2, 3.6, 3.4, 3.7, 3.3)] },
   collared: { tone: "hoot", name: "Collared Dove", say: "coo-COOO-coo", notes: [N(0, 0.18, 0.52, 0.55), N(0.28, 0.5, 0.6, 0.62, 0.58), N(0.9, 0.3, 0.52, 0.48)] },
   woodpigeon: { tone: "hoot", name: "Woodpigeon", say: "coo-COO-coo, coo-coo", notes: [N(0, 0.25, 0.45, 0.48), N(0.32, 0.45, 0.52, 0.55, 0.5), N(0.85, 0.2, 0.46, 0.45), N(1.15, 0.2, 0.48, 0.46), N(1.42, 0.2, 0.48, 0.45)] },
   songthrush: { tone: "flute", name: "Song Thrush", say: "phrases said twice or three times", notes: [...REP(3, 0.22, t => [N(t, 0.07, 3.0, 4.6), N(t + 0.09, 0.08, 4.0, 2.5)]), ...REP(3, 0.15, t => [N(0.75 + t, 0.1, 2.4, 2.6)]), ...REP(2, 0.2, t => [N(1.3 + t, 0.12, 5.0, 3.6, 4.4)])] },
@@ -552,11 +552,27 @@ function timbre(tone) {
     const o = ac.createOscillator(), g = ac.createGain(); o.type = type; g.gain.value = level;
     o.connect(g); g.connect(dest); freqs.push([o.frequency, mult]); nodes.push(o); return o;
   };
-  if (tone === "harsh") { // a raspy tone (buzzing harmonics, rough flutter) rather than hiss
-    const lp = ac.createBiquadFilter(), rough = ac.createGain(), lfo = ac.createOscillator(), d = ac.createGain();
-    lp.type = "lowpass"; lp.Q.value = 1; rough.gain.value = 0.7; lp.connect(rough); rough.connect(out); freqs.push([lp.frequency, 4]);
-    osc("sawtooth", 1, 0.4, lp); osc("square", 0.5, 0.12, lp);
-    lfo.frequency.value = 55; d.gain.value = 0.3; lfo.connect(d); d.connect(rough.gain); nodes.push(lfo);
+  // Wobbly noise: a slow random signal that roughens pitch the way a real throat does, instead of a steady buzz.
+  const jitter = (cents, hz) => {
+    const n = ac.createBufferSource(), lp = ac.createBiquadFilter(), g = ac.createGain();
+    n.buffer = noiseBuf; n.loop = true; lp.type = "lowpass"; lp.frequency.value = hz; g.gain.value = cents;
+    n.connect(lp); lp.connect(g); nodes.push(n); return g;
+  };
+  if (tone === "screech") { // barn owl: a breathy hiss pitched by two narrow bands, not a tone at all
+    const hp = ac.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 1600; hp.connect(out);
+    for (const [m, q, lv] of [[1, 9, 1], [1.9, 7, 0.5]]) {
+      const n = ac.createBufferSource(), bp = ac.createBiquadFilter(), g = ac.createGain();
+      n.buffer = noiseBuf; n.loop = true; n.loopStart = Math.random() * 0.2; bp.type = "bandpass"; bp.Q.value = q; g.gain.value = lv * 2.2;
+      n.connect(bp); bp.connect(g); g.connect(hp); freqs.push([bp.frequency, m]); nodes.push(n);
+    }
+  } else if (tone === "harsh") { // crows, gulls, ducks, pheasant: a rough voice shaped by throat resonances
+    const o = ac.createOscillator(); o.type = "sawtooth"; freqs.push([o.frequency, 1]); nodes.push(o);
+    jitter(120, 40).connect(o.detune);
+    const pre = ac.createGain(); pre.gain.value = 0.35; o.connect(pre);
+    for (const [m, q, lv] of [[1, 2, 0.6], [2.2, 4, 0.5], [3.6, 5, 0.3]]) {
+      const bp = ac.createBiquadFilter(), g = ac.createGain(); bp.type = "bandpass"; bp.Q.value = q; g.gain.value = lv;
+      pre.connect(bp); bp.connect(g); g.connect(out); freqs.push([bp.frequency, m]);
+    }
   } else if (tone === "hoot") {
     const lp = ac.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 1800; lp.connect(out);
     osc("sine", 1, 0.9, lp); osc("sine", 2, 0.12, lp); osc("sine", 3, 0.04, lp);
