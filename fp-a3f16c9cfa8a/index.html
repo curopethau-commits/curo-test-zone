@@ -54,15 +54,15 @@ label.sens { font: 0.75rem var(--mono); color: var(--muted); display: flex; alig
 #draw { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
 select#bird { max-width: 11rem; }
 #ghost { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-.level { position: absolute; left: calc(30% + 24px); top: 10px; display: flex; gap: 16px; align-items: center; background: rgba(17,27,30,0.94); border: 1px solid var(--line); border-radius: 14px; padding: 14px 20px 14px 14px; max-width: min(60%, 26rem); z-index: 3; }
-.level button { justify-self: start; margin-top: 6px; font: 750 0.95rem var(--display); background: var(--v0); color: var(--night); border: 0; border-radius: 999px; padding: 8px 18px; cursor: pointer; }
-.thumb { position: relative; flex: none; width: clamp(60px, 15vh, 104px); aspect-ratio: 1; border-radius: 50%; overflow: hidden; background: var(--line); display: grid; place-items: center; box-shadow: 0 0 0 3px var(--v0); }
-.thumb span { font: 750 2rem var(--display); color: var(--muted); }
+.level { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; gap: clamp(14px, 3vw, 28px); align-items: center; background: rgba(17,27,30,0.82); border: 1px solid var(--line); border-radius: 20px; padding: clamp(12px, 3vh, 24px) clamp(16px, 3vw, 32px) clamp(12px, 3vh, 24px) clamp(12px, 3vh, 24px); max-width: 92%; z-index: 3; }
+.level button { white-space: nowrap; justify-self: start; margin-top: 10px; font: 750 clamp(1rem, 3.5vh, 1.3rem) var(--display); background: var(--v0); color: var(--night); border: 0; border-radius: 999px; padding: 10px 24px; cursor: pointer; }
+.thumb { position: relative; flex: none; width: clamp(90px, min(40vh, 28vw), 300px); aspect-ratio: 1; border-radius: 50%; overflow: hidden; background: var(--line); display: grid; place-items: center; box-shadow: 0 0 0 3px var(--v0); }
+.thumb span { font: 750 clamp(3rem, 18vh, 7rem) var(--display); color: var(--muted); }
 .thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.levelText { min-width: 0; display: grid; gap: 2px; }
+.levelText { min-width: 0; display: grid; gap: 4px; max-width: 22rem; }
 .level .eyebrow { font: 500 0.7rem var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--v1); }
-.level h3 { font: 750 clamp(1.2rem, 4vh, 1.7rem) var(--display); margin: 0; text-wrap: balance; }
-.level p { margin: 0; color: var(--muted); font-size: 0.9rem; }
+.level h3 { font: 750 clamp(1.6rem, 8vh, 3.2rem) var(--display); line-height: 1.05; margin: 0; text-wrap: balance; }
+.level p { margin: 0; color: var(--muted); font-size: clamp(0.9rem, 3vh, 1.2rem); }
 .level small { color: var(--muted); font-size: 0.65rem; opacity: 0.8; }
 .score { position: absolute; left: 56px; top: 10px; font: 500 0.85rem var(--mono); color: var(--ink); background: rgba(17,27,30,0.85); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; pointer-events: none; font-variant-numeric: tabular-nums; }
 #cam { position: absolute; right: 10px; bottom: 56px; width: 22%; max-width: 200px; opacity: 0.35; transform: scaleX(-1); border-radius: 6px; }
@@ -78,7 +78,7 @@ select#bird { max-width: 11rem; }
 .legend button { font: 0.78rem var(--mono); color: var(--muted); background: rgba(17,27,30,0.8); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; cursor: pointer; }
 .legend button[aria-pressed="true"] { color: var(--ink); border-color: var(--c); box-shadow: 0 0 12px -2px var(--c); }
 .legend button::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; background: var(--c); box-shadow: 0 0 8px var(--c); }
-.hint { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); font-size: 0.85rem; color: var(--muted); pointer-events: none; text-align: center; width: max-content; max-width: 90%; }
+.hint { max-width: 55% !important; position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); font-size: 0.85rem; color: var(--muted); pointer-events: none; text-align: center; width: max-content; max-width: 90%; }
 .msg { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); background: var(--panel); border: 1px solid var(--line); padding: 12px 16px; border-radius: 8px; font-size: 0.9rem; max-width: 80%; text-align: center; }
 .strip { display: flex; gap: 8px; height: clamp(84px, 24vh, 190px); min-width: 0; }
 .panel { position: relative; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); overflow: hidden; min-width: 0; }
@@ -87,6 +87,7 @@ select#bird { max-width: 11rem; }
 #targetPanel { flex: 0 0 30%; }
 #livePanel { flex: 1 1 auto; }
 .intro { position: fixed; inset: 0; overflow-y: auto; display: grid; place-items: center; background: rgba(10,17,19,0.88); z-index: 5; padding: 16px; }
+button.rec { position: absolute; right: 14px; bottom: 14px; z-index: 2; font: 750 1.05rem var(--display); color: var(--ink); background: rgba(17,27,30,0.9); border: 2px solid #c8414b; border-radius: 999px; padding: 12px 22px; cursor: pointer; font-variant-numeric: tabular-nums; }
 button.rec.on { background: #c8414b; border-color: #c8414b; color: #fff; animation: pulse 1.2s ease-in-out infinite; font-variant-numeric: tabular-nums; }
 @keyframes pulse { 50% { box-shadow: 0 0 0 6px rgba(200,65,75,0.25); } }
 @media (prefers-reduced-motion: reduce) { button.rec.on { animation: none; } }
@@ -121,16 +122,12 @@ button.rec.on { background: #c8414b; border-color: #c8414b; color: #fff; animati
       </div>
       <input id="birdSearch" type="search" placeholder="Search birds" aria-label="Search birds" autocomplete="off" hidden>
       <select id="bird" aria-label="Bird to mimic" hidden></select>
-      <button class="act rec" id="rec" aria-pressed="false">● Record</button>
       <button class="act" id="hear" hidden>Hear it</button>
       <button class="act" id="tune" aria-pressed="true" hidden>Auto-tune on</button>
-      <div class="seg" role="group" aria-label="How to hit the notes" id="styleSeg" hidden>
-        <button id="sLine" aria-pressed="true">On the line</button>
-        <button id="sAny" aria-pressed="false">Anywhere</button>
-      </div>
     </div>
     <div class="ctrl">
-      <div class="seg" role="group" aria-label="Input">
+      <!-- Touch / Camera switch hidden until the torch stage -->
+      <div class="seg" role="group" aria-label="Input" hidden>
         <button id="iTouch" aria-pressed="true">Touch</button>
         <button id="iCam" aria-pressed="false">Camera</button>
       </div>
@@ -141,6 +138,7 @@ button.rec.on { background: #c8414b; border-color: #c8414b; color: #fff; animati
   <div class="stage" id="stage">
     <canvas id="draw"></canvas>
     <canvas id="ghost" hidden></canvas>
+    <button class="rec" id="rec" aria-pressed="false">● Record</button>
     <div class="score" id="score" hidden></div>
     <div class="level" id="level" hidden>
       <div class="thumb" id="levelThumb"><span id="levelInitial"></span><img id="levelImg" alt="" hidden></div>
@@ -510,7 +508,7 @@ const ghost = $("ghost"), gctx = ghost.getContext("2d");
 // Songs are slowed down so people can follow them: short songs 2.5x, long ones less.
 const stretchFor = b => Math.min(2.5, 3.5 / songLen(b));
 const GAP = 1.2;                // seconds of rest between passes
-let cycleStart = performance.now(), inNote = 0, hits = 0, lastScore = null;
+let cycleStart = performance.now();
 function ghostFreq(b, s) {      // target kHz at song time s, or null between notes
   for (const n of b.notes) {
     if (s < n[0][0] || s > n[n.length - 1][0]) continue;
@@ -525,34 +523,34 @@ function renderGhost() {
   if (mode !== "copy") return;
   const w = ghost.width, h = ghost.height, b = BIRDS[sel.value];
   const nowX = w * 0.3, speed = w / 4;                // px per real second
+  const zone = w * ZONE / 2;                          // half-width of the band you sing in
   const lead = (w - nowX) / speed, STRETCH = stretchFor(b), dur = songLen(b) * STRETCH;
-  let el = (performance.now() - cycleStart) / 1000 - lead; // seconds since song reached the line
-  const st = demo ? "line" : style; // the demo always plays on the line
-  const end = st === "any" ? dur + nowX / speed + 0.3 : dur + GAP; // in Anywhere, notes float right off the left edge
-  if (el > end) {
+  let el = (performance.now() - cycleStart) / 1000 - lead; // seconds since song reached the middle of the band
+  if (el > dur + GAP) {
     if (!demo) best = Math.max(best, coverage(b));
-    cycleStart = performance.now(); inNote = 0; hits = 0; caught = new Set(); painted = new Set(); el = -lead;
+    cycleStart = performance.now() - (demo ? lead * 1000 : 0); painted = new Set(); el = demo ? 0 : -lead;
   }
   gctx.clearRect(0, 0, w, h);
   const X = t => nowX + (t * STRETCH - el) * speed;
   ghostP = { b, nowX, speed, el, S: STRETCH };
-  if (st === "any") { renderAnywhere(b, X, h); return; }
-  // the line you sing on
   const target = el >= 0 ? ghostFreq(b, el / STRETCH) : null;
   let hit = false;
   if (demo) { hit = target !== null; if (hit) painted.add(Math.round(el / STRETCH / PAINT)); demoTone(target); }
-  else if (target !== null && ac) {
-    inNote++;
-    const ty = fToY(target * 1000, h) / DPR;
-    hit = voices.some(v => v.on && Math.abs(v.y - ty) < tol());
-    if (hit) { hits++; painted.add(Math.round(el / STRETCH / PAINT)); }
-    // auto-tune: anyone close enough sings the bird's exact note, even holding still
-    if (autotune) for (const v of voices) if (v.on && Math.abs(v.y - ty) < tol()) { v.osc.frequency.setTargetAtTime(target * 1000, ac.currentTime, 0.02); setDepth(v, target * 1000); }
+  else if (ac) {
+    // a finger or light counts when it is inside the band and close to the note passing under it
+    for (const v of voices) {
+      if (!v.on || Math.abs(v.x * DPR - nowX) > zone) continue;
+      const m = noteAt(v.x);
+      if (!m || Math.abs(v.y - fToY(m.k * 1000, h) / DPR) >= tol()) continue;
+      hit = true; painted.add(Math.round(m.t / PAINT));
+      if (autotune) { v.osc.frequency.setTargetAtTime(m.k * 1000, ac.currentTime, 0.02); setDepth(v, m.k * 1000); }
+    }
   }
-  ghostTarget = target;
-  gctx.strokeStyle = hit ? "#5ee6c8" : "rgba(230,238,232,0.35)"; gctx.lineWidth = (hit ? 3 : 1.5) * DPR;
-  gctx.shadowColor = "#5ee6c8"; gctx.shadowBlur = hit ? 16 * DPR : 0;
-  gctx.beginPath(); gctx.moveTo(nowX, 0); gctx.lineTo(nowX, h); gctx.stroke();
+  // the band you sing in
+  gctx.fillStyle = hit ? "rgba(94,230,200,0.14)" : "rgba(230,238,232,0.05)"; gctx.fillRect(nowX - zone, 0, zone * 2, h);
+  gctx.strokeStyle = hit ? "rgba(94,230,200,0.7)" : "rgba(230,238,232,0.22)"; gctx.lineWidth = 1.5 * DPR;
+  gctx.shadowColor = "#5ee6c8"; gctx.shadowBlur = hit ? 14 * DPR : 0;
+  gctx.beginPath(); gctx.moveTo(nowX - zone, 0); gctx.lineTo(nowX - zone, h); gctx.moveTo(nowX + zone, 0); gctx.lineTo(nowX + zone, h); gctx.stroke();
   // the ghost notes
   gctx.lineCap = "round"; gctx.lineJoin = "round"; gctx.shadowColor = "rgba(230,238,232,0.8)"; gctx.shadowBlur = 14 * DPR;
   gctx.strokeStyle = "rgba(230,238,232,0.28)"; gctx.lineWidth = 16 * DPR;
@@ -561,14 +559,12 @@ function renderGhost() {
   }
   gctx.shadowBlur = 0;
   paint(b, X, h);
-  if (target !== null) { // marker where you should be right now, with the forgiving zone around it
-    const ty = fToY(target * 1000, h), band = tol() * DPR;
-    gctx.fillStyle = hit ? "rgba(94,230,200,0.16)" : "rgba(230,238,232,0.07)"; gctx.fillRect(nowX - 14 * DPR, ty - band, 28 * DPR, band * 2);
-    gctx.fillStyle = hit ? "#5ee6c8" : "#e6eee8"; gctx.beginPath(); gctx.arc(nowX, fToY(target * 1000, h), 7 * DPR, 0, Math.PI * 2); gctx.fill();
+  if (demo && target !== null) { // the computer's "finger" in the demo
+    gctx.fillStyle = "#5ee6c8"; gctx.beginPath(); gctx.arc(nowX, fToY(target * 1000, h), 7 * DPR, 0, Math.PI * 2); gctx.fill();
   }
 }
-// "Anywhere" style: no line to hit. Touch or trace any floating note, wherever it is, to sing it.
-let style = "line", ghostP = null, caught = new Set();
+const ZONE = 0.1; // the band is 10% of the screen wide
+let ghostP = null;
 function noteAt(xCss) {        // which note sits under this x position right now, and its pitch there
   if (!ghostP) return null;
   const { b, nowX, speed, el, S } = ghostP, t = ((xCss * DPR - nowX) / speed + el) / S;
@@ -577,23 +573,6 @@ function noteAt(xCss) {        // which note sits under this x position right no
     if (t >= t0 - 0.03 && t <= t1 + 0.03) { const tc = Math.min(Math.max(t, t0), t1); return { i, t: tc, k: ghostFreq(b, tc) ?? n[0][1] }; }
   }
   return null;
-}
-function renderAnywhere(b, X, h) {
-  for (const v of voices) {
-    if (!v.on) continue;
-    const m = noteAt(v.x);
-    if (m && Math.abs(v.y - fToY(m.k * 1000, h) / DPR) < tol()) {
-      caught.add(m.i); painted.add(Math.round(m.t / PAINT));
-      if (autotune && ac) { v.osc.frequency.setTargetAtTime(m.k * 1000, ac.currentTime, 0.02); setDepth(v, m.k * 1000); }
-    }
-  }
-  gctx.lineCap = "round"; gctx.lineJoin = "round"; gctx.lineWidth = 16 * DPR;
-  b.notes.forEach((n, i) => {
-    gctx.strokeStyle = "rgba(230,238,232,0.3)"; gctx.shadowColor = "rgba(230,238,232,0.8)"; gctx.shadowBlur = 14 * DPR;
-    gctx.beginPath(); n.forEach(([t, k], j) => j ? gctx.lineTo(X(t), fToY(k * 1000, h)) : gctx.moveTo(X(t), fToY(k * 1000, h))); gctx.stroke();
-  });
-  gctx.shadowBlur = 0;
-  paint(b, X, h);
 }
 // Colour in the parts of the ghost you have sung on the right note.
 const PAINT = 0.02; // seconds of song per painted piece
@@ -616,27 +595,18 @@ function paint(b, X, h) {
   }
   gctx.stroke(); gctx.shadowBlur = 0;
 }
-function setStyle(st) {
-  style = st; $("sLine").setAttribute("aria-pressed", st === "line"); $("sAny").setAttribute("aria-pressed", st === "any");
-  ghostTarget = null; resetGhost();
-}
-$("sLine").onclick = () => setStyle("line");
-$("sAny").onclick = () => setStyle("any");
-
 // Auto-tune: within this distance of the ghost you count as on the note, and you hear it in tune.
-let autotune = true, ghostTarget = null;
+let autotune = true;
 const tol = () => draw.clientHeight * (autotune ? 0.16 : 0.07);
 function tuned(y, x) {
-  if (mode !== "copy" || !autotune) return null;
-  if (style === "any") { const m = noteAt(x); return m && Math.abs(y - fToY(m.k * 1000, stageH())) < tol() ? m.k * 1000 : null; }
-  if (ghostTarget === null) return null;
-  return Math.abs(y - fToY(ghostTarget * 1000, stageH())) < tol() ? ghostTarget * 1000 : null;
+  if (mode !== "copy" || !autotune || demo || !ghostP || Math.abs(x * DPR - ghostP.nowX) > ghost.width * ZONE / 2) return null;
+  const m = noteAt(x); return m && Math.abs(y - fToY(m.k * 1000, stageH())) < tol() ? m.k * 1000 : null;
 }
 $("tune").onclick = () => {
   autotune = !autotune; $("tune").setAttribute("aria-pressed", autotune);
   $("tune").textContent = autotune ? "Auto-tune on" : "Auto-tune off";
 };
-const resetGhost = () => { cycleStart = performance.now(); inNote = 0; hits = 0; caught = new Set(); painted = new Set(); best = 0; $("score").hidden = true; };
+const resetGhost = () => { cycleStart = performance.now(); painted = new Set(); best = 0; $("score").hidden = true; };
 sel.addEventListener("change", () => { if (mode === "copy") openLevel(); });
 
 // Level intro: show the bird's name and photo, play its song once, then it's your turn.
@@ -679,15 +649,16 @@ function demoTone(k) {
 }
 function endDemo() {
   if (!demo) return;
-  demo = false; demoTone(null); $("level").hidden = true; resetGhost();
+  demo = false; demoTone(null); $("level").hidden = true; document.querySelector(".legend").hidden = false; resetGhost();
 }
 $("tryIt").onclick = endDemo;
 function openLevel() {
   const k = sel.value, b = BIRDS[k];
-  ghostTarget = null; resetGhost(); demo = true; $("hint").hidden = true;
+  resetGhost(); demo = true; $("hint").hidden = true;
+  cycleStart -= ((ghost.width * 0.7) / (ghost.width / 4)) * 1000; // demo starts on the first note, no run-in
   $("levelName").textContent = b.name; $("levelSay").textContent = `“${b.say}”`;
   $("levelInitial").textContent = b.name[0]; $("levelImg").hidden = true; $("levelCredit").textContent = "";
-  $("levelStatus").textContent = "Watch and listen"; $("level").hidden = false;
+  $("levelStatus").textContent = "Watch and listen"; $("level").hidden = false; document.querySelector(".legend").hidden = true;
   photoFor(k).then(p => {
     if (!p || sel.value !== k) return;
     const img = $("levelImg"); img.onload = () => { img.hidden = false; }; img.src = p.src; img.alt = b.name;
@@ -803,8 +774,8 @@ $("closeRec").onclick = () => { $("result").hidden = true; $("recNote").textCont
 function setMode(m) {
   mode = m; $("mFree").setAttribute("aria-pressed", m === "free"); $("mCopy").setAttribute("aria-pressed", m === "copy");
   recBtn.hidden = m !== "free"; if (m !== "free") stopRec();
-  $("styleSeg").hidden = $("tune").hidden = search.hidden = sel.hidden = $("hear").hidden = $("targetPanel").hidden = ghost.hidden = m !== "copy";
-  if (m === "copy") openLevel(); else { $("score").hidden = true; ghostTarget = null; $("level").hidden = true; demo = false; demoTone(null); }
+  $("tune").hidden = search.hidden = sel.hidden = $("hear").hidden = $("targetPanel").hidden = ghost.hidden = m !== "copy";
+  if (m === "copy") openLevel(); else { $("score").hidden = true; $("level").hidden = true; demo = false; demoTone(null); document.querySelector(".legend").hidden = false; }
   requestAnimationFrame(resize);
 }
 function setInput(i) {
