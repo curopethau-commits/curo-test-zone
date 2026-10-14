@@ -418,17 +418,20 @@ function renderStage() {
 
 // ---------- touch / mouse / pen ----------
 const freeVoice = () => voices.find(v => !v.on);
+// In Mimic your finger can be anywhere: only its height counts, and it sings from a circle in the band,
+// so the finger never hides the song you are copying.
+const px = e => mode === "copy" && !demo ? ghost.width * 0.3 / DPR : e.offsetX;
 draw.addEventListener("pointerdown", e => {
   if (input !== "touch" || !ac) return;
   endDemo();
   const v = freeVoice(); if (!v) return;
   draw.setPointerCapture(e.pointerId); v.owner = e.pointerId;
-  voiceStart(v, e.offsetX, e.offsetY, pressure(e));
+  voiceStart(v, px(e), e.offsetY, pressure(e));
   $("hint").hidden = true;
 });
 draw.addEventListener("pointermove", e => {
   const v = voices.find(v => v.on && v.owner === e.pointerId);
-  if (v) voiceMove(v, e.offsetX, e.offsetY, pressure(e));
+  if (v) voiceMove(v, px(e), e.offsetY, pressure(e));
 });
 for (const ev of ["pointerup", "pointercancel"]) draw.addEventListener(ev, e => {
   const v = voices.find(v => v.on && v.owner === e.pointerId); if (v) voiceEnd(v);
@@ -666,6 +669,13 @@ function renderGhost() {
   }
   gctx.shadowBlur = 0;
   paint(b, X, h);
+  for (const v of voices) { // your circle in the band
+    if (!v.on) continue;
+    gctx.beginPath(); gctx.arc(nowX, v.y * DPR, Math.max(zone * 0.9, 18 * DPR), 0, Math.PI * 2);
+    gctx.fillStyle = hit ? "rgba(94,230,200,0.85)" : "rgba(230,238,232,0.18)"; gctx.fill();
+    gctx.lineWidth = 2.5 * DPR; gctx.strokeStyle = hit ? "#5ee6c8" : "rgba(230,238,232,0.85)";
+    gctx.shadowColor = "#5ee6c8"; gctx.shadowBlur = hit ? 18 * DPR : 0; gctx.stroke(); gctx.shadowBlur = 0;
+  }
   if (demo && target !== null) { // the computer's "finger" in the demo
     gctx.fillStyle = "#5ee6c8"; gctx.beginPath(); gctx.arc(nowX, fToY(target * 1000, h), 7 * DPR, 0, Math.PI * 2); gctx.fill();
   }
