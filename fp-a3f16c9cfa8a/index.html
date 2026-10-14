@@ -54,18 +54,21 @@ label.sens { font: 0.75rem var(--mono); color: var(--muted); display: flex; alig
 #draw { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
 select#bird { max-width: 11rem; }
 #ghost { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-.score { position: absolute; right: 12px; top: 10px; font: 500 0.85rem var(--mono); color: var(--ink); background: rgba(17,27,30,0.85); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; pointer-events: none; font-variant-numeric: tabular-nums; }
+.score { position: absolute; left: 56px; top: 10px; font: 500 0.85rem var(--mono); color: var(--ink); background: rgba(17,27,30,0.85); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; pointer-events: none; font-variant-numeric: tabular-nums; }
 #cam { position: absolute; right: 10px; bottom: 56px; width: 22%; max-width: 200px; opacity: 0.35; transform: scaleX(-1); border-radius: 6px; }
 @media (max-height: 520px) {
   .brand h1 { font-size: 1.1rem; }
   .seg button, button.act, select, #birdSearch { padding: 4px 9px; font-size: 0.75rem; }
-  header { gap: 8px; }
+  header { gap: 8px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  header::-webkit-scrollbar { display: none; }
+  header .ctrl, header .brand { flex-wrap: nowrap; flex: none; }
+  .brand { margin-right: 0; }
 }
-.legend { position: absolute; right: 12px; bottom: 10px; justify-content: flex-end; display: flex; gap: 6px; flex-wrap: wrap; z-index: 2; }
+.legend { position: absolute; right: 12px; top: 10px; justify-content: flex-end; display: flex; gap: 6px; flex-wrap: wrap; z-index: 2; }
 .legend button { font: 0.78rem var(--mono); color: var(--muted); background: rgba(17,27,30,0.8); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; cursor: pointer; }
 .legend button[aria-pressed="true"] { color: var(--ink); border-color: var(--c); box-shadow: 0 0 12px -2px var(--c); }
 .legend button::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; background: var(--c); box-shadow: 0 0 8px var(--c); }
-.hint { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); font-size: 0.85rem; color: var(--muted); pointer-events: none; text-align: center; width: max-content; max-width: 90%; }
+.hint { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); font-size: 0.85rem; color: var(--muted); pointer-events: none; text-align: center; width: max-content; max-width: 90%; }
 .msg { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); background: var(--panel); border: 1px solid var(--line); padding: 12px 16px; border-radius: 8px; font-size: 0.9rem; max-width: 80%; text-align: center; }
 .strip { display: flex; gap: 8px; height: clamp(84px, 24vh, 190px); min-width: 0; }
 .panel { position: relative; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); overflow: hidden; min-width: 0; }
@@ -95,6 +98,10 @@ select#bird { max-width: 11rem; }
       <select id="bird" aria-label="Bird to mimic" hidden></select>
       <button class="act" id="hear" hidden>Hear it</button>
       <button class="act" id="tune" aria-pressed="true" hidden>Auto-tune on</button>
+      <div class="seg" role="group" aria-label="How to hit the notes" id="styleSeg" hidden>
+        <button id="sLine" aria-pressed="true">On the line</button>
+        <button id="sAny" aria-pressed="false">Anywhere</button>
+      </div>
     </div>
     <div class="ctrl">
       <div class="seg" role="group" aria-label="Input">
@@ -246,7 +253,7 @@ function voiceStart(v, x, y, size) {
 function voiceMove(v, x, y, size) {
   const now = performance.now(), dt = Math.max(1, now - v.last.t);
   const speed = Math.hypot(x - v.last.x, y - v.last.y) / dt; // px per ms
-  const f = tuned(y) ?? yToF(y, stageH()), t = ac.currentTime;
+  const f = tuned(y, x) ?? yToF(y, stageH()), t = ac.currentTime;
   v.osc.frequency.setTargetAtTime(f, t, 0.012); setDepth(v, f);
   const a = Math.min(0.5, 0.12 + speed * 0.35) * size * (v.type === "buzz" ? 0.6 : 1);
   v.amp.gain.setTargetAtTime(a, t, 0.03);
@@ -465,12 +472,16 @@ function renderGhost() {
   const nowX = w * 0.3, speed = w / 4;                // px per real second
   const lead = (w - nowX) / speed, STRETCH = stretchFor(b), dur = songLen(b) * STRETCH;
   let el = (performance.now() - cycleStart) / 1000 - lead; // seconds since song reached the line
-  if (el > dur + GAP) {
-    if (inNote > 10) { lastScore = Math.round(100 * hits / inNote); $("score").textContent = `Match ${lastScore}%`; $("score").hidden = false; }
-    cycleStart = performance.now(); inNote = 0; hits = 0; el = -lead;
+  const end = style === "any" ? dur + nowX / speed + 0.3 : dur + GAP; // in Anywhere, notes float right off the left edge
+  if (el > end) {
+    if (style === "any") { $("score").textContent = `Caught ${caught.size} of ${b.notes.length} notes`; $("score").hidden = false; }
+    else if (inNote > 10) { lastScore = Math.round(100 * hits / inNote); $("score").textContent = `Match ${lastScore}%`; $("score").hidden = false; }
+    cycleStart = performance.now(); inNote = 0; hits = 0; caught = new Set(); el = -lead;
   }
   gctx.clearRect(0, 0, w, h);
   const X = t => nowX + (t * STRETCH - el) * speed;
+  ghostP = { b, nowX, speed, el, S: STRETCH };
+  if (style === "any") { renderAnywhere(b, X, h); return; }
   // the line you sing on
   const target = el >= 0 ? ghostFreq(b, el / STRETCH) : null;
   let hit = false;
@@ -499,24 +510,62 @@ function renderGhost() {
     gctx.fillStyle = hit ? "#5ee6c8" : "#e6eee8"; gctx.beginPath(); gctx.arc(nowX, fToY(target * 1000, h), 7 * DPR, 0, Math.PI * 2); gctx.fill();
   }
 }
+// "Anywhere" style: no line to hit. Touch or trace any floating note, wherever it is, to sing it.
+let style = "line", ghostP = null, caught = new Set();
+function noteAt(xCss) {        // which note sits under this x position right now, and its pitch there
+  if (!ghostP) return null;
+  const { b, nowX, speed, el, S } = ghostP, t = ((xCss * DPR - nowX) / speed + el) / S;
+  for (let i = 0; i < b.notes.length; i++) {
+    const n = b.notes[i], t0 = n[0][0], t1 = n[n.length - 1][0];
+    if (t >= t0 - 0.03 && t <= t1 + 0.03) return { i, k: ghostFreq(b, Math.min(Math.max(t, t0), t1)) ?? n[0][1] };
+  }
+  return null;
+}
+function renderAnywhere(b, X, h) {
+  for (const v of voices) {
+    if (!v.on) continue;
+    const m = noteAt(v.x);
+    if (m && Math.abs(v.y - fToY(m.k * 1000, h) / DPR) < tol()) {
+      caught.add(m.i);
+      if (autotune && ac) { v.osc.frequency.setTargetAtTime(m.k * 1000, ac.currentTime, 0.02); setDepth(v, m.k * 1000); }
+    }
+  }
+  gctx.lineCap = "round"; gctx.lineJoin = "round"; gctx.lineWidth = 16 * DPR;
+  b.notes.forEach((n, i) => {
+    const got = caught.has(i);
+    gctx.strokeStyle = got ? "rgba(94,230,200,0.75)" : "rgba(230,238,232,0.3)";
+    gctx.shadowColor = got ? "#5ee6c8" : "rgba(230,238,232,0.8)"; gctx.shadowBlur = (got ? 20 : 14) * DPR;
+    gctx.beginPath(); n.forEach(([t, k], j) => j ? gctx.lineTo(X(t), fToY(k * 1000, h)) : gctx.moveTo(X(t), fToY(k * 1000, h))); gctx.stroke();
+  });
+  gctx.shadowBlur = 0;
+}
+function setStyle(st) {
+  style = st; $("sLine").setAttribute("aria-pressed", st === "line"); $("sAny").setAttribute("aria-pressed", st === "any");
+  ghostTarget = null; resetGhost();
+}
+$("sLine").onclick = () => setStyle("line");
+$("sAny").onclick = () => setStyle("any");
+
 // Auto-tune: within this distance of the ghost you count as on the note, and you hear it in tune.
 let autotune = true, ghostTarget = null;
 const tol = () => draw.clientHeight * (autotune ? 0.16 : 0.07);
-function tuned(y) {
-  if (mode !== "copy" || !autotune || ghostTarget === null) return null;
+function tuned(y, x) {
+  if (mode !== "copy" || !autotune) return null;
+  if (style === "any") { const m = noteAt(x); return m && Math.abs(y - fToY(m.k * 1000, stageH())) < tol() ? m.k * 1000 : null; }
+  if (ghostTarget === null) return null;
   return Math.abs(y - fToY(ghostTarget * 1000, stageH())) < tol() ? ghostTarget * 1000 : null;
 }
 $("tune").onclick = () => {
   autotune = !autotune; $("tune").setAttribute("aria-pressed", autotune);
   $("tune").textContent = autotune ? "Auto-tune on" : "Auto-tune off";
 };
-const resetGhost = () => { cycleStart = performance.now(); inNote = 0; hits = 0; $("score").hidden = true; };
+const resetGhost = () => { cycleStart = performance.now(); inNote = 0; hits = 0; caught = new Set(); $("score").hidden = true; };
 sel.addEventListener("change", resetGhost);
 
 // ---------- controls ----------
 function setMode(m) {
   mode = m; $("mFree").setAttribute("aria-pressed", m === "free"); $("mCopy").setAttribute("aria-pressed", m === "copy");
-  $("tune").hidden = search.hidden = sel.hidden = $("hear").hidden = $("targetPanel").hidden = ghost.hidden = m !== "copy";
+  $("styleSeg").hidden = $("tune").hidden = search.hidden = sel.hidden = $("hear").hidden = $("targetPanel").hidden = ghost.hidden = m !== "copy";
   if (m === "copy") resetGhost(); else { $("score").hidden = true; ghostTarget = null; }
   requestAnimationFrame(resize);
 }
