@@ -737,15 +737,19 @@ function drawBirdEmoji(cv, spec) {
   const S = 240, d = Math.min(2, window.devicePixelRatio || 1);
   cv.width = S * d; cv.height = S * d;
   const c = cv.getContext("2d"); c.setTransform(d, 0, 0, d, 0, 0); c.clearRect(0, 0, S, S);
-  const r = RND(spec.seed), H = spec.hue + Math.round(r() * 24 - 12);
-  const hsl = (h, s, l) => `hsl(${((h % 360) + 360) % 360},${s}%,${l}%)`;
+  // flash runs from 0 (a plain brown or grey bird) to 1 (a tropical show-off); every level is equally likely
+  const r = RND(spec.seed), flash = spec.flash, dull = flash < 0.4;
+  const H = (dull ? [28, 35, 22, 40, 210, 90][Math.floor(r() * 6)] : spec.hue) + Math.round(r() * 24 - 12);
+  const sat = v => Math.round(v * (0.12 + 0.88 * flash));   // scales every colour's saturation by flashiness
+  const hsl = (h, s, l) => `hsl(${((h % 360) + 360) % 360},${sat(s)}%,${l}%)`;
   const lin = (x0, y0, x1, y1, stops) => { const g = c.createLinearGradient(x0, y0, x1, y1); stops.forEach(([o, col]) => g.addColorStop(o, col)); return g; };
-  const bands = [hsl(H + 60 + r() * 40, 95, 62), hsl(H + 180 + r() * 40, 85, 58), hsl(H - 30, 90, 55)];
+  const bands = dull ? [hsl(H + 4, 55, 50), hsl(H, 50, 36), hsl(H - 6, 45, 24)]       // plain birds: wing in tones of their own colour
+    : [hsl(H + 60 + r() * 40, 95, 62), hsl(H + 180 + r() * 40, 85, 58), hsl(H - 30, 90, 55)];
   // tail
   c.beginPath(); c.moveTo(140, 150); c.quadraticCurveTo(200, 150, 222, 168); c.quadraticCurveTo(226, 196, 206, 200); c.quadraticCurveTo(170, 204, 132, 196); c.closePath();
   c.fillStyle = lin(140, 160, 225, 195, [[0, hsl(H - 10, 85, 45)], [1, hsl(H + 10, 95, 62)]]); c.fill();
   // legs and feet
-  c.fillStyle = lin(0, 196, 0, 228, [[0, "#f5a25d"], [1, "#e0783a"]]);
+  c.fillStyle = dull ? lin(0, 196, 0, 228, [[0, "#c9a99a"], [1, "#a8877a"]]) : lin(0, 196, 0, 228, [[0, "#f5a25d"], [1, "#e0783a"]]);
   for (const x of [92, 122]) { c.beginPath(); c.roundRect(x, 192, 10, 28, 5); c.fill(); c.beginPath(); c.ellipse(x + 2, 222, 16, 6, 0, 0, 7); c.fill(); }
   // body and head as one soft shape
   const shape = () => { c.beginPath(); c.ellipse(112, 140, 58, 70, -0.12, 0, 7); c.moveTo(146, 72); c.arc(98, 72, 48, 0, 7); };
@@ -771,10 +775,11 @@ function drawBirdEmoji(cv, spec) {
   // wing with colour bands, like a folded feather fan
   const wing = () => { c.beginPath(); c.moveTo(118, 104); c.bezierCurveTo(162, 100, 188, 150, 172, 196); c.bezierCurveTo(166, 214, 150, 214, 144, 200); c.bezierCurveTo(124, 170, 108, 134, 118, 104); c.closePath(); };
   wing(); c.fillStyle = lin(150, 110, 120, 210, [[0, bands[0]], [0.52, bands[0]], [0.52, bands[1]], [0.72, bands[1]], [0.72, bands[2]], [1, bands[2]]]); c.fill();
-  c.save(); wing(); c.clip(); g = c.createRadialGradient(132, 118, 4, 132, 118, 70); g.addColorStop(0, "rgba(255,255,255,0.5)"); g.addColorStop(1, "rgba(255,255,255,0)"); c.fillStyle = g; c.fillRect(0, 0, S, S); c.restore();
+  c.save(); wing(); c.clip(); g = c.createRadialGradient(132, 118, 4, 132, 118, 70); g.addColorStop(0, `rgba(255,255,255,${(0.12 + 0.38 * flash).toFixed(2)})`); g.addColorStop(1, "rgba(255,255,255,0)"); c.fillStyle = g; c.fillRect(0, 0, S, S); c.restore();
   // beak: a soft hooked beak
   c.beginPath(); c.moveTo(58, 66); c.bezierCurveTo(36, 62, 24, 80, 30, 100); c.bezierCurveTo(34, 108, 40, 104, 40, 96); c.bezierCurveTo(44, 90, 54, 92, 62, 92); c.closePath();
-  c.fillStyle = lin(30, 64, 60, 104, [[0, "#ffd36b"], [1, "#f59b2b"]]); c.fill();
+  const beak = flash < 0.25 ? ["#6d6660", "#3f3a36"] : flash < 0.5 ? ["#f1dfa0", "#c9a85a"] : ["#ffd36b", "#f59b2b"];
+  c.fillStyle = lin(30, 64, 60, 104, [[0, beak[0]], [1, beak[1]]]); c.fill();
   // eye: white ring, dark pupil, sparkle
   c.fillStyle = "#fff"; c.beginPath(); c.arc(86, 62, 16, 0, 7); c.fill();
   c.fillStyle = "#c9c9d1"; c.beginPath(); c.arc(86, 62, 16, 0, 7); c.arc(86, 62, 12.5, 0, 7, true); c.fill();
@@ -796,7 +801,7 @@ function inventBird(st, secs) {
   const name = `${place} ${Math.random() < 0.5 ? pitchWord : moveWord} ${noun}`;
   const hues = avg < 1 ? [25, 210, 280] : avg < 2.5 ? [140, 30, 190] : avg < 5 ? [50, 340, 0] : [180, 260, 55];
   const pattern = rate > 2.5 ? pick(["speckles", "spots"]) : sweep > 0.03 ? pick(["stripes", "waves", "chevrons"]) : pick(["plain", "spots", "speckles"]);
-  const emoji = { seed: hashStr(name), hue: pick(hues), pattern, crest: ["plain", "crest", "spikes", "tuft"][voice] };
+  const emoji = { seed: hashStr(name), hue: pick(hues), flash: Math.random(), pattern, crest: ["plain", "crest", "spikes", "tuft"][voice] };
   const where = { Moonlit: "only sings after dark", Hedgerow: "hides in hedges", Dawn: "is always first to wake", Marsh: "lives in the reeds", Rooftop: "shows off from rooftops", Woodland: "sings deep in the trees", Garden: "visits bird feeders", Puddle: "loves a bath", Chimney: "warms its toes on chimneys" }[place];
   const desc = `A ${pitchWord.toLowerCase()}, ${moveWord.toLowerCase()} singer that ${where}. Its song is about ${avg.toFixed(1)} kHz and ${secs.toFixed(1)} seconds long. No one else sings it quite like you.`;
   return { name, desc, emoji };
