@@ -91,6 +91,7 @@ select#bird { max-width: 11rem; }
       <input id="birdSearch" type="search" placeholder="Search birds" aria-label="Search birds" autocomplete="off" hidden>
       <select id="bird" aria-label="Bird to copy" hidden></select>
       <button class="act" id="hear" hidden>Hear it</button>
+      <button class="act" id="tune" aria-pressed="true" hidden>Auto-tune on</button>
     </div>
     <div class="ctrl">
       <div class="seg" role="group" aria-label="Input">
@@ -238,7 +239,7 @@ function voiceStart(v, x, y, size) {
 function voiceMove(v, x, y, size) {
   const now = performance.now(), dt = Math.max(1, now - v.last.t);
   const speed = Math.hypot(x - v.last.x, y - v.last.y) / dt; // px per ms
-  const f = yToF(y, stageH()), t = ac.currentTime;
+  const f = tuned(y) ?? yToF(y, stageH()), t = ac.currentTime;
   v.osc.frequency.setTargetAtTime(f, t, 0.012); setDepth(v, f);
   const a = Math.min(0.5, 0.12 + speed * 0.35) * size * (v.type === "buzz" ? 0.6 : 1);
   v.amp.gain.setTargetAtTime(a, t, 0.03);
@@ -461,9 +462,12 @@ function renderGhost() {
   if (target !== null && ac) {
     inNote++;
     const ty = fToY(target * 1000, h) / DPR;
-    hit = voices.some(v => v.on && Math.abs(v.y - ty) < draw.clientHeight * 0.07);
+    hit = voices.some(v => v.on && Math.abs(v.y - ty) < tol());
     if (hit) hits++;
+    // auto-tune: anyone close enough sings the bird's exact note, even holding still
+    if (autotune) for (const v of voices) if (v.on && Math.abs(v.y - ty) < tol()) { v.osc.frequency.setTargetAtTime(target * 1000, ac.currentTime, 0.02); setDepth(v, target * 1000); }
   }
+  ghostTarget = target;
   gctx.strokeStyle = hit ? "#5ee6c8" : "rgba(230,238,232,0.35)"; gctx.lineWidth = (hit ? 3 : 1.5) * DPR;
   gctx.shadowColor = "#5ee6c8"; gctx.shadowBlur = hit ? 16 * DPR : 0;
   gctx.beginPath(); gctx.moveTo(nowX, 0); gctx.lineTo(nowX, h); gctx.stroke();
@@ -474,18 +478,31 @@ function renderGhost() {
     gctx.beginPath(); n.forEach(([t, k], i) => i ? gctx.lineTo(X(t), fToY(k * 1000, h)) : gctx.moveTo(X(t), fToY(k * 1000, h))); gctx.stroke();
   }
   gctx.shadowBlur = 0;
-  if (target !== null) { // marker where you should be right now
+  if (target !== null) { // marker where you should be right now, with the forgiving zone around it
+    const ty = fToY(target * 1000, h), band = tol() * DPR;
+    gctx.fillStyle = hit ? "rgba(94,230,200,0.16)" : "rgba(230,238,232,0.07)"; gctx.fillRect(nowX - 14 * DPR, ty - band, 28 * DPR, band * 2);
     gctx.fillStyle = hit ? "#5ee6c8" : "#e6eee8"; gctx.beginPath(); gctx.arc(nowX, fToY(target * 1000, h), 7 * DPR, 0, Math.PI * 2); gctx.fill();
   }
 }
+// Auto-tune: within this distance of the ghost you count as on the note, and you hear it in tune.
+let autotune = true, ghostTarget = null;
+const tol = () => draw.clientHeight * (autotune ? 0.16 : 0.07);
+function tuned(y) {
+  if (mode !== "copy" || !autotune || ghostTarget === null) return null;
+  return Math.abs(y - fToY(ghostTarget * 1000, stageH())) < tol() ? ghostTarget * 1000 : null;
+}
+$("tune").onclick = () => {
+  autotune = !autotune; $("tune").setAttribute("aria-pressed", autotune);
+  $("tune").textContent = autotune ? "Auto-tune on" : "Auto-tune off";
+};
 const resetGhost = () => { cycleStart = performance.now(); inNote = 0; hits = 0; $("score").hidden = true; };
 sel.addEventListener("change", resetGhost);
 
 // ---------- controls ----------
 function setMode(m) {
   mode = m; $("mFree").setAttribute("aria-pressed", m === "free"); $("mCopy").setAttribute("aria-pressed", m === "copy");
-  search.hidden = sel.hidden = $("hear").hidden = $("targetPanel").hidden = ghost.hidden = m !== "copy";
-  if (m === "copy") resetGhost(); else $("score").hidden = true;
+  $("tune").hidden = search.hidden = sel.hidden = $("hear").hidden = $("targetPanel").hidden = ghost.hidden = m !== "copy";
+  if (m === "copy") resetGhost(); else { $("score").hidden = true; ghostTarget = null; }
   requestAnimationFrame(resize);
 }
 function setInput(i) {
