@@ -99,12 +99,11 @@ button.rec.on { background: #c8414b; border-color: #c8414b; color: #fff; animati
 .result label { font-size: 0.8rem; color: var(--muted); }
 .result input { font: 600 1rem var(--body); color: var(--ink); background: var(--night); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
 .result .row { display: flex; gap: 8px; flex-wrap: wrap; }
-.result .row button, .result #reroll { font: 600 0.9rem var(--body); color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; cursor: pointer; }
+.result .row button { font: 600 0.9rem var(--body); color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; cursor: pointer; }
 .result .row button.primary { background: var(--v0); color: var(--night); border-color: var(--v0); }
 .result .who { display: flex; gap: 14px; align-items: center; }
 .result .who > div { min-width: 0; }
 #birdEmoji { width: clamp(84px, 24vh, 140px); height: auto; aspect-ratio: 1; flex: none; filter: drop-shadow(0 6px 14px rgba(0,0,0,0.35)); }
-.result #reroll { justify-self: start; padding: 4px 12px; font-size: 0.8rem; }
 .result small { color: var(--muted); }
 .intro .card { max-width: 34rem; display: grid; gap: 12px; text-align: left; }
 .intro h2 { font-family: var(--display); font-weight: 750; font-size: clamp(1.6rem, 4vw, 2.6rem); line-height: 1.05; margin: 0; text-wrap: balance; }
@@ -169,7 +168,6 @@ button.rec.on { background: #c8414b; border-color: #c8414b; color: #fff; animati
           </div>
         </div>
         <p id="birdDesc"></p>
-        <button id="reroll">Another name please</button>
         <label for="ownName">Or give your bird its own name</label>
         <input id="ownName" type="text" placeholder="e.g. The Sunday Morning Warbler" maxlength="40" autocomplete="off">
         <div class="row">
@@ -804,7 +802,6 @@ function showResult() {
 }
 const songName = () => ($("ownName").value.trim() || $("birdName").textContent || "My bird song");
 const songFile = () => new File([wavBlob(lastRec.samples, lastRec.sr)], `${songName().replace(/[^\w\- ]+/g, "")}.wav`, { type: "audio/wav" });
-$("reroll").onclick = showResult;
 $("playRec").onclick = () => {
   const ab = ac.createBuffer(1, lastRec.samples.length, lastRec.sr); ab.copyToChannel(lastRec.samples, 0);
   const s = ac.createBufferSource(); s.buffer = ab; s.connect(ac.destination); s.start();
