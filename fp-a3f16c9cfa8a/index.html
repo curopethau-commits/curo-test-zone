@@ -87,6 +87,21 @@ select#bird { max-width: 11rem; }
 #targetPanel { flex: 0 0 30%; }
 #livePanel { flex: 1 1 auto; }
 .intro { position: fixed; inset: 0; overflow-y: auto; display: grid; place-items: center; background: rgba(10,17,19,0.88); z-index: 5; padding: 16px; }
+button.rec.on { background: #c8414b; border-color: #c8414b; color: #fff; animation: pulse 1.2s ease-in-out infinite; font-variant-numeric: tabular-nums; }
+@keyframes pulse { 50% { box-shadow: 0 0 0 6px rgba(200,65,75,0.25); } }
+@media (prefers-reduced-motion: reduce) { button.rec.on { animation: none; } }
+.result { position: fixed; inset: 0; overflow-y: auto; display: grid; place-items: center; background: rgba(10,17,19,0.9); z-index: 6; padding: 16px; }
+.result .card { max-width: 32rem; display: grid; gap: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; }
+.result .eyebrow { font: 500 0.72rem var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--v1); }
+.result h2 { font: 750 clamp(1.4rem, 5vh, 2.2rem) var(--display); margin: 0; text-wrap: balance; color: var(--v0); }
+.result p { margin: 0; color: var(--muted); line-height: 1.45; }
+.result label { font-size: 0.8rem; color: var(--muted); }
+.result input { font: 600 1rem var(--body); color: var(--ink); background: var(--night); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+.result .row { display: flex; gap: 8px; flex-wrap: wrap; }
+.result .row button, .result #reroll { font: 600 0.9rem var(--body); color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; cursor: pointer; }
+.result .row button.primary { background: var(--v0); color: var(--night); border-color: var(--v0); }
+.result #reroll { justify-self: start; padding: 4px 12px; font-size: 0.8rem; }
+.result small { color: var(--muted); }
 .intro .card { max-width: 34rem; display: grid; gap: 12px; text-align: left; }
 .intro h2 { font-family: var(--display); font-weight: 750; font-size: clamp(1.6rem, 4vw, 2.6rem); line-height: 1.05; margin: 0; text-wrap: balance; }
 .intro p { margin: 0; color: var(--muted); line-height: 1.5; }
@@ -106,6 +121,7 @@ select#bird { max-width: 11rem; }
       </div>
       <input id="birdSearch" type="search" placeholder="Search birds" aria-label="Search birds" autocomplete="off" hidden>
       <select id="bird" aria-label="Bird to mimic" hidden></select>
+      <button class="act rec" id="rec" aria-pressed="false">● Record</button>
       <button class="act" id="hear" hidden>Hear it</button>
       <button class="act" id="tune" aria-pressed="true" hidden>Auto-tune on</button>
       <div class="seg" role="group" aria-label="How to hit the notes" id="styleSeg" hidden>
@@ -142,6 +158,23 @@ select#bird { max-width: 11rem; }
     </div>
     <div class="hint" id="hint">Pick a voice above, then draw. Higher is higher pitch, faster is louder. Up to 4 fingers at once.</div>
     <div class="msg" id="msg" hidden></div>
+    <div class="result" id="result" hidden>
+      <div class="card">
+        <div class="eyebrow">You sound like a…</div>
+        <h2 id="birdName"></h2>
+        <p id="birdDesc"></p>
+        <button id="reroll">Another name</button>
+        <label for="ownName">Or give your bird its own name</label>
+        <input id="ownName" type="text" placeholder="e.g. The Sunday Morning Warbler" maxlength="40" autocomplete="off">
+        <div class="row">
+          <button id="playRec">▶ Play</button>
+          <button id="shareRec" class="primary">Share</button>
+          <button id="saveRec">Save to phone</button>
+          <button id="closeRec">Done</button>
+        </div>
+        <small id="recNote"></small>
+      </div>
+    </div>
     <div class="intro" id="intro">
       <div class="card">
         <h2>Every bird has a song that is theirs alone.</h2>
@@ -262,7 +295,8 @@ function breath(f) {
 
 function voiceStart(v, x, y, size) {
   const h = stageH(), f = yToF(y, h), t = ac.currentTime;
-  v.on = true; v.x = x; v.y = y; v.last = { x, y, t: performance.now() }; v.trail = [];
+  v.on = true; v.x = x; v.y = y; v.last = { x, y, t: performance.now() }; v.trail = []; v.f = f; v.pf = 0;
+  if (rec) rec.notes++;
   breath(f);
   v.osc.frequency.cancelScheduledValues(t);
   v.osc.frequency.setValueAtTime(f * 0.82, t); v.osc.frequency.linearRampToValueAtTime(f, t + 0.04);
@@ -277,7 +311,7 @@ function voiceMove(v, x, y, size) {
   v.osc.frequency.setTargetAtTime(f, t, 0.012); setDepth(v, f);
   const a = Math.min(0.5, 0.12 + speed * 0.35) * size * (v.type === "buzz" ? 0.6 : 1);
   v.amp.gain.setTargetAtTime(a, t, 0.03);
-  v.x = x; v.y = y; v.last = { x, y, t: now };
+  v.x = x; v.y = y; v.last = { x, y, t: now }; v.f = f;
 }
 
 function voiceEnd(v) {
@@ -661,9 +695,111 @@ function openLevel() {
   });
 }
 
+// ---------- record your own song (Freestyle) ----------
+// Captures what you play as a WAV file, then invents a bird that sounds like you.
+let rec = null, lastRec = null;
+const recBtn = $("rec");
+function startRec() {
+  if (!ac) return;
+  const proc = ac.createScriptProcessor(4096, 1, 1);
+  rec = { proc, lastTouch: 0, chunks: [], len: 0, sr: ac.sampleRate, notes: 0, frames: 0, sumLog: 0, move: 0, voiceTime: [0, 0, 0, 0], t0: performance.now() };
+  proc.onaudioprocess = e => {
+    if (!rec) return;
+    const d = e.inputBuffer.getChannelData(0); rec.chunks.push(new Float32Array(d)); rec.len += d.length;
+    e.outputBuffer.getChannelData(0).fill(0);
+  };
+  analyser.connect(proc); proc.connect(ac.destination);
+  recBtn.classList.add("on"); recBtn.setAttribute("aria-pressed", "true");
+}
+function recFrame() { // called every frame while recording: notes, pitch and movement for the name
+  if (!rec) return;
+  const secs = (performance.now() - rec.t0) / 1000;
+  recBtn.textContent = `■ Stop ${Math.floor(secs / 60)}:${String(Math.floor(secs % 60)).padStart(2, "0")}`;
+  if (secs > 30) { stopRec(); return; }
+  // Stop by itself once you've sung and then let go for 1.5 seconds.
+  if (voices.some(v => v.on)) rec.lastTouch = performance.now();
+  else if (rec.notes && performance.now() - rec.lastTouch > 1500) { stopRec(); return; }
+  if (!rec.notes) recBtn.textContent = "● Recording… start drawing";
+  for (const v of voices) {
+    if (!v.on || !v.f) continue;
+    rec.frames++; rec.voiceTime[v.i]++; rec.sumLog += Math.log2(v.f / 1000);
+    if (v.pf) rec.move += Math.abs(Math.log2(v.f / v.pf));
+    v.pf = v.f;
+  }
+}
+function stopRec() {
+  if (!rec) return;
+  const r = rec; rec = null;
+  try { analyser.disconnect(r.proc); r.proc.disconnect(); } catch (e) {}
+  recBtn.classList.remove("on"); recBtn.setAttribute("aria-pressed", "false"); recBtn.textContent = "● Record";
+  const all = new Float32Array(r.len); let o = 0; for (const c of r.chunks) { all.set(c, o); o += c.length; }
+  let a = 0, z = all.length - 1; while (a < z && Math.abs(all[a]) < 0.01) a++; while (z > a && Math.abs(all[z]) < 0.01) z--;
+  if (z - a < r.sr * 0.25 || !r.frames) { showMsg("Nothing to keep yet. Press Record, then draw your song."); return; }
+  const pad = Math.round(r.sr * 0.1), samples = all.slice(Math.max(0, a - pad), Math.min(all.length, z + pad));
+  lastRec = { samples, sr: r.sr, stats: r, secs: samples.length / r.sr };
+  showResult();
+}
+recBtn.onclick = () => rec ? stopRec() : startRec();
+
+function wavBlob(samples, sr) {
+  const buf = new ArrayBuffer(44 + samples.length * 2), d = new DataView(buf);
+  const str = (o, s) => [...s].forEach((ch, i) => d.setUint8(o + i, ch.charCodeAt(0)));
+  str(0, "RIFF"); d.setUint32(4, 36 + samples.length * 2, true); str(8, "WAVE"); str(12, "fmt ");
+  d.setUint32(16, 16, true); d.setUint16(20, 1, true); d.setUint16(22, 1, true); d.setUint32(24, sr, true);
+  d.setUint32(28, sr * 2, true); d.setUint16(32, 2, true); d.setUint16(34, 16, true); str(36, "data"); d.setUint32(40, samples.length * 2, true);
+  let peak = 0; for (const s of samples) peak = Math.max(peak, Math.abs(s));
+  const g = peak > 0 ? 0.9 / peak : 1;
+  samples.forEach((s, i) => d.setInt16(44 + i * 2, Math.max(-1, Math.min(1, s * g)) * 0x7fff, true));
+  return new Blob([buf], { type: "audio/wav" });
+}
+
+// Made-up bird names built from how the song sounded.
+const pick = a => a[Math.floor(Math.random() * a.length)];
+function inventBird(st, secs) {
+  const avg = Math.pow(2, st.sumLog / st.frames);           // average pitch in kHz
+  const sweep = st.move / st.frames;                          // pitch movement per frame
+  const rate = st.notes / Math.max(1, secs);                  // notes per second
+  const voice = st.voiceTime.indexOf(Math.max(...st.voiceTime));
+  const pitchWord = avg < 1 ? pick(["Booming", "Dusky", "Hooting", "Velvet"]) : avg < 2.5 ? pick(["Mellow", "Fluting", "Honeyed", "Warbling"]) : avg < 5 ? pick(["Bright", "Sparkling", "Chiming", "Piping"]) : pick(["Silver", "Tinkling", "Needle-voiced", "Glassy"]);
+  const moveWord = rate > 2.5 ? pick(["Chattering", "Rattling", "Busy"]) : sweep > 0.03 ? pick(["Swooping", "Looping", "Zigzag"]) : pick(["Steady", "Patient", "Calm"]);
+  const place = pick(["Moonlit", "Hedgerow", "Dawn", "Marsh", "Rooftop", "Woodland", "Garden", "Puddle", "Chimney"]);
+  const noun = pick([["Whistler", "Lark", "Flute-thrush"], ["Warbler", "Wren", "Trill-finch"], ["Bunting", "Buzz-finch", "Bramble-hopper"], ["Sparrow", "Chirper", "Pip-finch"]][voice]);
+  const name = `${place} ${Math.random() < 0.5 ? pitchWord : moveWord} ${noun}`;
+  const where = { Moonlit: "only sings after dark", Hedgerow: "hides in hedges", Dawn: "is always first to wake", Marsh: "lives in the reeds", Rooftop: "shows off from rooftops", Woodland: "sings deep in the trees", Garden: "visits bird feeders", Puddle: "loves a bath", Chimney: "warms its toes on chimneys" }[place];
+  const desc = `A ${pitchWord.toLowerCase()}, ${moveWord.toLowerCase()} singer that ${where}. Its song is about ${avg.toFixed(1)} kHz and ${secs.toFixed(1)} seconds long. No one else sings it quite like you.`;
+  return { name, desc };
+}
+function showResult() {
+  const b = inventBird(lastRec.stats, lastRec.secs);
+  $("birdName").textContent = b.name; $("birdDesc").textContent = b.desc;
+  $("result").hidden = false;
+}
+const songName = () => ($("ownName").value.trim() || $("birdName").textContent || "My bird song");
+const songFile = () => new File([wavBlob(lastRec.samples, lastRec.sr)], `${songName().replace(/[^\w\- ]+/g, "")}.wav`, { type: "audio/wav" });
+$("reroll").onclick = showResult;
+$("playRec").onclick = () => {
+  const ab = ac.createBuffer(1, lastRec.samples.length, lastRec.sr); ab.copyToChannel(lastRec.samples, 0);
+  const s = ac.createBufferSource(); s.buffer = ab; s.connect(ac.destination); s.start();
+};
+$("shareRec").onclick = async () => {
+  const file = songFile(), data = { files: [file], title: songName(), text: `Listen to my bird song: ${songName()}` };
+  try {
+    if (navigator.canShare && navigator.canShare(data)) { await navigator.share(data); return; }
+  } catch (e) { if (e.name === "AbortError") return; }
+  saveSong(file); $("recNote").textContent = "Sharing isn't available in this browser, so the song was saved instead.";
+};
+function saveSong(file) {
+  const url = URL.createObjectURL(file), a = document.createElement("a");
+  a.href = url; a.download = file.name; document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+$("saveRec").onclick = () => { saveSong(songFile()); $("recNote").textContent = "Saved as a WAV file. On a phone, you can set it as a message sound from your downloads."; };
+$("closeRec").onclick = () => { $("result").hidden = true; $("recNote").textContent = ""; };
+
 // ---------- controls ----------
 function setMode(m) {
   mode = m; $("mFree").setAttribute("aria-pressed", m === "free"); $("mCopy").setAttribute("aria-pressed", m === "copy");
+  recBtn.hidden = m !== "free"; if (m !== "free") stopRec();
   $("styleSeg").hidden = $("tune").hidden = search.hidden = sel.hidden = $("hear").hidden = $("targetPanel").hidden = ghost.hidden = m !== "copy";
   if (m === "copy") openLevel(); else { $("score").hidden = true; ghostTarget = null; $("level").hidden = true; demo = false; demoTone(null); }
   requestAnimationFrame(resize);
@@ -688,7 +824,7 @@ const begin = m => {
 $("startFree").onclick = () => begin("free");
 $("startCopy").onclick = () => begin("copy");
 
-function loop() { cameraStep(); renderStage(); renderGhost(); renderSpec(); requestAnimationFrame(loop); }
+function loop() { cameraStep(); renderStage(); renderGhost(); renderSpec(); recFrame(); requestAnimationFrame(loop); }
 resize(); loop();
 </script>
 
