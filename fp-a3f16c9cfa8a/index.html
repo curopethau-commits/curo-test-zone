@@ -270,19 +270,25 @@ let mode = "free", input = "touch";
 
 function initAudio() {
   ac = new (window.AudioContext || window.webkitAudioContext)();
-  master = ac.createGain(); master.gain.value = 0.7;
+  master = ac.createGain(); master.gain.value = 0.45;
   const comp = ac.createDynamicsCompressor();
   analyser = ac.createAnalyser(); analyser.fftSize = 2048; analyser.smoothingTimeConstant = 0.15;
-  master.connect(comp); comp.connect(analyser); analyser.connect(ac.destination);
+  const soft = ac.createBiquadFilter(); soft.type = "lowpass"; soft.frequency.value = 9500; soft.Q.value = 0.5; // take the hiss off small phone speakers
+  master.connect(soft); soft.connect(comp); comp.connect(analyser); analyser.connect(ac.destination);
   noiseBuf = ac.createBuffer(1, ac.sampleRate * 0.5, ac.sampleRate);
   const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   voices = [0, 1, 2, 3].map(makeVoice);
 }
 
 // Each finger or light carries all four voices; how it moves decides which one you hear.
+// Oscillators are only built while a finger is down, so phones are not running 32 of them at once.
 function makeVoice(i) {
   const amp = ac.createGain(); amp.gain.value = 0; amp.connect(master);
-  const parts = VOICES.map(type => {
+  return { type: "whistle", i, parts: [], amp, on: false, owner: null, x: 0, y: 0, last: null, trail: [], hist: [] };
+}
+function buildParts(v) {
+  const amp = v.amp;
+  return VOICES.map(type => {
     const osc = ac.createOscillator(), mod = ac.createGain(), mix = ac.createGain();
     const lfo = ac.createOscillator(), depth = ac.createGain();
     osc.frequency.value = 2000; mod.gain.value = 1; mix.gain.value = type === "whistle" ? 1 : 0;
@@ -293,9 +299,8 @@ function makeVoice(i) {
     if (type === "buzz") { osc.type = "triangle"; lfo.frequency.value = 85; depth.connect(osc.frequency); }
     if (type === "chirp") { lfo.type = "sawtooth"; lfo.frequency.value = 11; depth.connect(osc.frequency); }
     osc.start(); lfo.start();
-    return { type, osc, depth, mix };
+    return { type, osc, depth, mix, lfo };
   });
-  return { type: "whistle", i, parts, amp, on: false, owner: null, x: 0, y: 0, last: null, trail: [], hist: [] };
 }
 
 function setDepth(v, f) {
@@ -336,14 +341,15 @@ function gesture(v) {
 function breath(f) {
   const src = ac.createBufferSource(), bp = ac.createBiquadFilter(), g = ac.createGain(), t = ac.currentTime;
   src.buffer = noiseBuf; bp.type = "bandpass"; bp.frequency.value = f; bp.Q.value = 3;
-  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.35, t + 0.025); g.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.12, t + 0.025); g.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
   src.connect(bp); bp.connect(g); g.connect(master); src.start(t); src.stop(t + 0.16);
 }
 
 function voiceStart(v, x, y, size) {
   const h = stageH(), f = yToF(y, h), t = ac.currentTime;
   v.on = true; v.x = x; v.y = y; v.last = { x, y, t: performance.now() }; v.trail = []; v.f = f; v.pf = 0;
-  v.hist = [v.last]; setStyle(v, "whistle");
+  if (v.parts.length) v.parts.forEach(p => { p.osc.stop(); p.lfo.stop(); });
+  clearTimeout(v.kill); v.type = "whistle"; v.parts = buildParts(v); v.hist = [v.last];
   if (rec) rec.notes++;
   breath(f);
   for (const p of v.parts) { p.osc.frequency.cancelScheduledValues(t); p.osc.frequency.setValueAtTime(f * 0.82, t); p.osc.frequency.linearRampToValueAtTime(f, t + 0.04); }
@@ -364,7 +370,9 @@ function voiceMove(v, x, y, size) {
 
 function voiceEnd(v) {
   v.on = false; v.owner = null;
-  if (ac) v.amp.gain.setTargetAtTime(0, ac.currentTime, 0.04);
+  if (!ac) return;
+  v.amp.gain.setTargetAtTime(0, ac.currentTime, 0.04);
+  clearTimeout(v.kill); v.kill = setTimeout(() => { if (v.on) return; v.parts.forEach(p => { p.osc.stop(); p.lfo.stop(); }); v.parts = []; }, 400);
 }
 
 // ---------- drawing stage ----------
@@ -544,12 +552,11 @@ function timbre(tone) {
     const o = ac.createOscillator(), g = ac.createGain(); o.type = type; g.gain.value = level;
     o.connect(g); g.connect(dest); freqs.push([o.frequency, mult]); nodes.push(o); return o;
   };
-  if (tone === "harsh") {
-    const lp = ac.createBiquadFilter(); lp.type = "lowpass"; lp.Q.value = 2; lp.connect(out); freqs.push([lp.frequency, 3]);
-    osc("sawtooth", 1, 0.35, lp);
-    const n = ac.createBufferSource(), bp = ac.createBiquadFilter(), ng = ac.createGain();
-    n.buffer = noiseBuf; n.loop = true; bp.type = "bandpass"; bp.Q.value = 1.5; ng.gain.value = 0.9;
-    n.connect(bp); bp.connect(ng); ng.connect(out); freqs.push([bp.frequency, 1.6]); nodes.push(n);
+  if (tone === "harsh") { // a raspy tone (buzzing harmonics, rough flutter) rather than hiss
+    const lp = ac.createBiquadFilter(), rough = ac.createGain(), lfo = ac.createOscillator(), d = ac.createGain();
+    lp.type = "lowpass"; lp.Q.value = 1; rough.gain.value = 0.7; lp.connect(rough); rough.connect(out); freqs.push([lp.frequency, 4]);
+    osc("sawtooth", 1, 0.4, lp); osc("square", 0.5, 0.12, lp);
+    lfo.frequency.value = 55; d.gain.value = 0.3; lfo.connect(d); d.connect(rough.gain); nodes.push(lfo);
   } else if (tone === "hoot") {
     const lp = ac.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 1800; lp.connect(out);
     osc("sine", 1, 0.9, lp); osc("sine", 2, 0.12, lp); osc("sine", 3, 0.04, lp);
@@ -568,12 +575,13 @@ function timbre(tone) {
     stop(t) { nodes.forEach(n => n.stop(t)); },
   };
 }
+const SLOW = 2;
 function playTarget() {
   if (!ac) return;
   const b = BIRDS[sel.value], t0 = ac.currentTime + 0.05;
   for (const n of b.notes) {
-    const v = timbre(b.tone), g = v.out.gain, s = t0 + n[0][0], e = t0 + n[n.length - 1][0];
-    v.set(n[0][1], s); n.slice(1).forEach(([t, k]) => v.ramp(k, t0 + t));
+    const v = timbre(b.tone), g = v.out.gain, s = t0 + n[0][0] * SLOW, e = t0 + n[n.length - 1][0] * SLOW;
+    v.set(n[0][1], s); n.slice(1).forEach(([t, k]) => v.ramp(k, t0 + t * SLOW));
     // quick rise, then the note fades a little before it ends, as a real call does
     const a = Math.min(v.attack, (e - s) / 3);
     g.setValueAtTime(0, s); g.linearRampToValueAtTime(v.level, s + a); g.linearRampToValueAtTime(v.level * 0.7, Math.max(s + a, e - a)); g.linearRampToValueAtTime(0, e);
@@ -584,9 +592,9 @@ $("hear").onclick = playTarget;
 
 // Ghost song: the target scrolls in from the right. Keep your light on it as it crosses the line.
 const ghost = $("ghost"), gctx = ghost.getContext("2d");
-// Songs play at the bird's real speed; the ghost scrolls half a screen per second so short notes stay visible.
-const stretchFor = () => 1;
-const SPEED = 0.5;              // screen widths per second
+// Real birdsong is too fast to follow, so every song (Hear it, the demo and your try) plays at half speed.
+const stretchFor = () => SLOW;
+const SPEED = 0.4;              // screen widths per second
 const GAP = 1.2;                // seconds of rest between passes
 let cycleStart = performance.now();
 function ghostFreq(b, s) {      // target kHz at song time s, or null between notes
@@ -747,7 +755,7 @@ function demoTone(k) { // the computer sings with the bird's own sound
     if (demoV) { demoV.out.gain.setTargetAtTime(0, t, 0.01); demoV.stop(t + 0.1); }
     demoKey = sel.value; demoV = timbre(BIRDS[demoKey].tone); demoV.start(t);
   }
-  if (k !== null) demoV.set(k, t, 0.008);
+  if (k !== null) demoV.set(k, t, 0.02);
   demoV.out.gain.setTargetAtTime(k !== null ? demoV.level * 0.85 : 0, t, k !== null ? demoV.attack / 3 : 0.012);
 }
 function endDemo() {
