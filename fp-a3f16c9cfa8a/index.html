@@ -54,17 +54,28 @@ label.sens { font: 0.75rem var(--mono); color: var(--muted); display: flex; alig
 #draw { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
 select#bird { max-width: 11rem; }
 #ghost { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-.level { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; gap: clamp(14px, 3vw, 28px); align-items: center; background: rgba(17,27,30,0.82); border: 1px solid var(--line); border-radius: 20px; padding: clamp(12px, 3vh, 24px) clamp(16px, 3vw, 32px) clamp(12px, 3vh, 24px) clamp(12px, 3vh, 24px); max-width: 92%; z-index: 3; }
-.level button { white-space: nowrap; justify-self: start; margin-top: 10px; font: 750 clamp(1rem, 3.5vh, 1.3rem) var(--display); background: var(--v0); color: var(--night); border: 0; border-radius: 999px; padding: 10px 24px; cursor: pointer; }
-.thumb { position: relative; flex: none; width: clamp(90px, min(40vh, 28vw), 300px); aspect-ratio: 1; border-radius: 50%; overflow: hidden; background: var(--line); display: grid; place-items: center; box-shadow: 0 0 0 3px var(--v0); }
-.thumb span { font: 750 clamp(3rem, 18vh, 7rem) var(--display); color: var(--muted); }
+.level { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; gap: clamp(8px, 1.5vw, 14px); align-items: center; background: rgba(17,27,30,0.82); border: 1px solid var(--line); border-radius: 14px; padding: clamp(8px, 1.5vh, 12px) clamp(12px, 1.5vw, 18px) clamp(8px, 1.5vh, 12px) clamp(8px, 1.5vh, 12px); max-width: 92%; z-index: 3; }
+.level button { white-space: nowrap; justify-self: start; margin-top: 6px; font: 750 clamp(0.9rem, 2.6vh, 1.05rem) var(--display); background: var(--v0); color: var(--night); border: 0; border-radius: 999px; padding: 7px 16px; cursor: pointer; }
+.thumb { position: relative; flex: none; width: clamp(56px, min(20vh, 14vw), 150px); aspect-ratio: 1; border-radius: 50%; overflow: hidden; background: var(--line); display: grid; place-items: center; box-shadow: 0 0 0 3px var(--v0); }
+.thumb span { font: 750 clamp(1.6rem, 9vh, 3.5rem) var(--display); color: var(--muted); }
 .thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .levelText { min-width: 0; display: grid; gap: 4px; max-width: 22rem; }
 .level .eyebrow { font: 500 0.7rem var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--v1); }
-.level h3 { font: 750 clamp(1.6rem, 8vh, 3.2rem) var(--display); line-height: 1.05; margin: 0; text-wrap: balance; }
-.level p { margin: 0; color: var(--muted); font-size: clamp(0.9rem, 3vh, 1.2rem); }
+.level h3 { font: 750 clamp(1.1rem, 4.5vh, 1.8rem) var(--display); line-height: 1.05; margin: 0; text-wrap: balance; }
+.level p { margin: 0; color: var(--muted); font-size: clamp(0.8rem, 2.2vh, 0.95rem); }
 .level small { color: var(--muted); font-size: 0.65rem; opacity: 0.8; }
-.score { position: absolute; left: 56px; top: 10px; font: 500 0.85rem var(--mono); color: var(--ink); background: rgba(17,27,30,0.85); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; pointer-events: none; font-variant-numeric: tabular-nums; }
+.splash { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 4; text-align: center; pointer-events: none; display: grid; gap: 2px; animation: pop 0.35s ease-out; }
+.splash b { font: 750 clamp(3rem, 22vh, 8rem) var(--display); line-height: 0.95; color: var(--v1); text-shadow: 0 0 30px rgba(94,230,200,0.45); font-variant-numeric: tabular-nums; }
+.splash span { font: 600 clamp(1rem, 4vh, 1.5rem) var(--body); color: var(--ink); }
+@keyframes pop { from { transform: translate(-50%, -50%) scale(0.7); opacity: 0; } }
+.win { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 4; background: rgba(17,27,30,0.94); border: 2px solid var(--v0); border-radius: 18px; padding: 18px 24px; text-align: center; display: grid; gap: 8px; box-shadow: 0 0 40px -8px var(--v0); }
+.win h3 { margin: 0; font: 750 clamp(1.6rem, 7vh, 2.6rem) var(--display); color: var(--v0); }
+.win p { margin: 0; color: var(--ink); font-size: 1.05rem; }
+.win .row { display: flex; gap: 10px; justify-content: center; }
+.win button { font: 750 1.05rem var(--display); border-radius: 999px; padding: 9px 24px; cursor: pointer; border: 2px solid var(--v0); background: transparent; color: var(--ink); }
+.win button#winYes { background: var(--v0); color: var(--night); }
+@media (prefers-reduced-motion: reduce) { .splash { animation: none; } }
+.score { position: absolute; left: 56px; top: 10px; font: 750 clamp(1.1rem, 4.5vh, 1.6rem) var(--display); color: var(--ink); background: rgba(17,27,30,0.9); border: 2px solid var(--v1); border-radius: 999px; padding: 6px 16px; box-shadow: 0 0 18px -4px var(--v1); pointer-events: none; font-variant-numeric: tabular-nums; }
 #cam { position: absolute; right: 10px; bottom: 56px; width: 22%; max-width: 200px; opacity: 0.35; transform: scaleX(-1); border-radius: 6px; }
 @media (max-height: 520px) {
   .brand h1 { font-size: 1.1rem; }
@@ -142,6 +153,13 @@ button.rec.on { background: #c8414b; border-color: #c8414b; color: #fff; animati
     <canvas id="ghost" hidden></canvas>
     <button class="rec" id="rec" aria-pressed="false">● Record</button>
     <div class="score" id="score" hidden></div>
+    <div class="splash" id="splash" hidden><b id="splashNum"></b><span id="splashMsg"></span></div>
+    <div class="win" id="win" hidden>
+      <h3>You got it!</h3>
+      <p id="winScore"></p>
+      <p>Pick a different bird?</p>
+      <div class="row"><button id="winYes">Yes</button><button id="winNo">No</button></div>
+    </div>
     <div class="level" id="level" hidden>
       <div class="thumb" id="levelThumb"><span id="levelInitial"></span><img id="levelImg" alt="" hidden></div>
       <div class="levelText">
@@ -526,14 +544,15 @@ function ghostFreq(b, s) {      // target kHz at song time s, or null between no
   return null;
 }
 function renderGhost() {
-  if (mode !== "copy") return;
+  if (mode !== "copy" || paused) return;
   const w = ghost.width, h = ghost.height, b = BIRDS[sel.value];
   const nowX = w * 0.3, speed = w / 4;                // px per real second
   const zone = w * ZONE / 2;                          // half-width of the band you sing in
   const lead = (w - nowX) / speed, STRETCH = stretchFor(b), dur = songLen(b) * STRETCH;
   let el = (performance.now() - cycleStart) / 1000 - lead; // seconds since song reached the middle of the band
   if (el > dur + GAP) {
-    if (!demo) best = Math.max(best, coverage(b));
+    if (!demo) { const sc = coverage(b); best = Math.max(best, sc); if (tried) endOfTry(sc); }
+    tried = false;
     cycleStart = performance.now() - (demo ? lead * 1000 : 0); painted = new Set(); el = demo ? 0 : -lead;
   }
   gctx.clearRect(0, 0, w, h);
@@ -543,6 +562,7 @@ function renderGhost() {
   let hit = false;
   if (demo) { hit = target !== null; if (hit) painted.add(Math.round(el / STRETCH / PAINT)); demoTone(target); }
   else if (ac) {
+    if (voices.some(v => v.on)) tried = true;
     // a finger or light counts when it is inside the band and close to the note passing under it
     for (const v of voices) {
       if (!v.on || Math.abs(v.x * DPR - nowX) > zone) continue;
@@ -570,6 +590,24 @@ function renderGhost() {
   }
 }
 const ZONE = 0.1; // the band is 10% of the screen wide
+// After each try: show the score big; at 95% or more, celebrate and offer a new bird.
+let tried = false, paused = false, splashTimer = null;
+function endOfTry(sc) {
+  if (sc >= 95) {
+    paused = true; $("splash").hidden = true; voices.forEach(voiceEnd);
+    $("winScore").textContent = `${sc}% match on the ${BIRDS[sel.value].name}`; $("win").hidden = false; return;
+  }
+  $("splashNum").textContent = `${sc}%`;
+  $("splashMsg").textContent = sc < 40 ? "Keep going!" : sc < 70 ? "Getting there!" : sc < 85 ? "Nice singing!" : "So close!";
+  const sp = $("splash"); sp.hidden = true; void sp.offsetWidth; sp.hidden = false;
+  clearTimeout(splashTimer); splashTimer = setTimeout(() => { sp.hidden = true; }, 1800);
+}
+$("winYes").onclick = () => { // move on to the next bird, easiest to hardest
+  const keys = ranked.map(([k]) => k), next = keys[(keys.indexOf(sel.value) + 1) % keys.length];
+  $("win").hidden = true; paused = false; search.value = ""; for (const o of sel.options) o.hidden = false;
+  sel.value = next; drawTarget(); openLevel();
+};
+$("winNo").onclick = () => { $("win").hidden = true; paused = false; cycleStart = performance.now(); painted = new Set(); };
 let ghostP = null;
 function noteAt(xCss) {        // which note sits under this x position right now, and its pitch there
   if (!ghostP) return null;
@@ -612,7 +650,7 @@ $("tune").onclick = () => {
   autotune = !autotune; $("tune").setAttribute("aria-pressed", autotune);
   $("tune").textContent = autotune ? "Auto-tune on" : "Auto-tune off";
 };
-const resetGhost = () => { cycleStart = performance.now(); painted = new Set(); best = 0; $("score").hidden = true; };
+const resetGhost = () => { cycleStart = performance.now(); painted = new Set(); tried = false; paused = false; $("win").hidden = true; $("splash").hidden = true; best = 0; $("score").hidden = true; };
 sel.addEventListener("change", () => { if (mode === "copy") openLevel(); });
 
 // Level intro: show the bird's name and photo, play its song once, then it's your turn.
