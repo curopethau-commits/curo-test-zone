@@ -733,46 +733,53 @@ function wavBlob(samples, sr) {
 // A one-off bird emoji for each invented name: colours from the pitch, pattern from how it moved, crest from the voice.
 const hashStr = s => { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0) % 2147483646 + 1; };
 function drawBirdEmoji(cv, spec) {
+  // Soft 3D emoji style: no outlines, gradients for depth, a banded wing, glossy highlights.
   const S = 240, d = Math.min(2, window.devicePixelRatio || 1);
   cv.width = S * d; cv.height = S * d;
   const c = cv.getContext("2d"); c.setTransform(d, 0, 0, d, 0, 0); c.clearRect(0, 0, S, S);
-  const r = RND(spec.seed), H = spec.hue + Math.round(r() * 30 - 15);
-  const body = `hsl(${H},68%,56%)`, dark = `hsl(${H},55%,32%)`, light = `hsl(${H + 15},85%,82%)`, acc = `hsl(${H + 150},75%,62%)`, ink = "#1b2326";
-  c.lineJoin = "round"; c.lineCap = "round"; c.lineWidth = 5; c.strokeStyle = ink;
-  // legs
-  c.beginPath(); c.moveTo(108, 190); c.lineTo(104, 220); c.moveTo(132, 190); c.lineTo(134, 220); c.moveTo(92, 222); c.lineTo(114, 222); c.moveTo(124, 222); c.lineTo(146, 222); c.strokeStyle = "#e08a2c"; c.stroke(); c.strokeStyle = ink;
+  const r = RND(spec.seed), H = spec.hue + Math.round(r() * 24 - 12);
+  const hsl = (h, s, l) => `hsl(${((h % 360) + 360) % 360},${s}%,${l}%)`;
+  const lin = (x0, y0, x1, y1, stops) => { const g = c.createLinearGradient(x0, y0, x1, y1); stops.forEach(([o, col]) => g.addColorStop(o, col)); return g; };
+  const bands = [hsl(H + 60 + r() * 40, 95, 62), hsl(H + 180 + r() * 40, 85, 58), hsl(H - 30, 90, 55)];
   // tail
-  c.beginPath(); c.moveTo(62, 120); c.lineTo(14, 96 + r() * 20); c.lineTo(22, 136); c.lineTo(10, 160 - r() * 14); c.lineTo(66, 160); c.closePath(); c.fillStyle = dark; c.fill(); c.stroke();
-  // body with its pattern
-  const bodyPath = () => { c.beginPath(); c.ellipse(118, 140, 70, 58, 0, 0, Math.PI * 2); };
-  bodyPath(); c.fillStyle = body; c.fill();
-  c.save(); bodyPath(); c.clip(); c.fillStyle = acc; c.strokeStyle = acc;
-  if (spec.pattern === "speckles") for (let i = 0; i < 60; i++) { c.beginPath(); c.arc(48 + r() * 140, 84 + r() * 115, 2 + r() * 3, 0, 7); c.fill(); }
-  if (spec.pattern === "spots") for (let i = 0; i < 9; i++) { c.beginPath(); c.arc(56 + r() * 125, 92 + r() * 100, 8 + r() * 9, 0, 7); c.fill(); }
-  if (spec.pattern === "stripes") { c.lineWidth = 9; for (let x = 20; x < 240; x += 26) { c.beginPath(); c.moveTo(x, 70); c.lineTo(x - 60, 210); c.stroke(); } }
-  if (spec.pattern === "waves") { c.lineWidth = 7; for (let y = 95; y < 210; y += 22) { c.beginPath(); for (let x = 40; x <= 200; x += 6) c.lineTo(x, y + Math.sin(x / 14 + y) * 6); c.stroke(); } }
-  if (spec.pattern === "chevrons") { c.lineWidth = 7; for (let y = 90; y < 220; y += 24) { c.beginPath(); c.moveTo(50, y); c.lineTo(118, y + 20); c.lineTo(190, y); c.stroke(); } }
-  c.fillStyle = light; c.beginPath(); c.ellipse(140, 168, 46, 30, -0.2, 0, Math.PI * 2); c.fill(); // belly
+  c.beginPath(); c.moveTo(140, 150); c.quadraticCurveTo(200, 150, 222, 168); c.quadraticCurveTo(226, 196, 206, 200); c.quadraticCurveTo(170, 204, 132, 196); c.closePath();
+  c.fillStyle = lin(140, 160, 225, 195, [[0, hsl(H - 10, 85, 45)], [1, hsl(H + 10, 95, 62)]]); c.fill();
+  // legs and feet
+  c.fillStyle = lin(0, 196, 0, 228, [[0, "#f5a25d"], [1, "#e0783a"]]);
+  for (const x of [92, 122]) { c.beginPath(); c.roundRect(x, 192, 10, 28, 5); c.fill(); c.beginPath(); c.ellipse(x + 2, 222, 16, 6, 0, 0, 7); c.fill(); }
+  // body and head as one soft shape
+  const shape = () => { c.beginPath(); c.ellipse(112, 140, 58, 70, -0.12, 0, 7); c.moveTo(146, 72); c.arc(98, 72, 48, 0, 7); };
+  shape(); c.fillStyle = lin(60, 20, 150, 220, [[0, hsl(H + 8, 90, 66)], [0.55, hsl(H, 82, 54)], [1, hsl(H - 8, 75, 40)]]); c.fill();
+  c.save(); shape(); c.clip();
+  // pattern, softly blended into the feathers
+  c.globalAlpha = 0.35; c.fillStyle = c.strokeStyle = hsl(H + 30, 100, 82);
+  if (spec.pattern === "speckles") for (let i = 0; i < 70; i++) { c.beginPath(); c.arc(56 + r() * 120, 40 + r() * 170, 1.5 + r() * 3, 0, 7); c.fill(); }
+  if (spec.pattern === "spots") for (let i = 0; i < 10; i++) { c.beginPath(); c.arc(60 + r() * 110, 50 + r() * 160, 7 + r() * 9, 0, 7); c.fill(); }
+  if (spec.pattern === "stripes") { c.lineWidth = 10; c.lineCap = "round"; for (let y = 110; y < 230; y += 24) { c.beginPath(); c.moveTo(40, y); c.quadraticCurveTo(110, y + 14, 180, y - 6); c.stroke(); } }
+  if (spec.pattern === "waves") { c.lineWidth = 7; for (let y = 105; y < 230; y += 20) { c.beginPath(); for (let x = 40; x <= 190; x += 5) c.lineTo(x, y + Math.sin(x / 12 + y) * 5); c.stroke(); } }
+  if (spec.pattern === "chevrons") { c.lineWidth = 8; c.lineJoin = "round"; for (let y = 100; y < 230; y += 24) { c.beginPath(); c.moveTo(48, y); c.lineTo(108, y + 16); c.lineTo(172, y); c.stroke(); } }
+  c.globalAlpha = 1;
+  // shading: bright top-left, deeper bottom-right
+  let g = c.createRadialGradient(80, 50, 6, 80, 50, 90); g.addColorStop(0, "rgba(255,255,255,0.45)"); g.addColorStop(1, "rgba(255,255,255,0)"); c.fillStyle = g; c.fillRect(0, 0, S, S);
+  g = c.createRadialGradient(170, 210, 10, 170, 210, 120); g.addColorStop(0, "rgba(40,0,40,0.28)"); g.addColorStop(1, "rgba(40,0,40,0)"); c.fillStyle = g; c.fillRect(0, 0, S, S);
   c.restore();
-  c.strokeStyle = ink; c.lineWidth = 5; bodyPath(); c.stroke();
-  // wing
-  c.beginPath(); c.ellipse(100, 138, 44, 27, -0.35, 0, Math.PI * 2); c.fillStyle = dark; c.fill(); c.stroke();
-  c.strokeStyle = light; c.lineWidth = 3; for (let i = 0; i < 3; i++) { c.beginPath(); c.moveTo(72 + i * 14, 150 - i * 4); c.lineTo(96 + i * 14, 136 - i * 6); c.stroke(); }
-  c.strokeStyle = ink; c.lineWidth = 5;
-  // crest, drawn before the head so it tucks behind
-  c.fillStyle = spec.crest === "plain" ? body : acc;
-  if (spec.crest === "crest") { c.beginPath(); c.moveTo(150, 60); c.quadraticCurveTo(140, 20, 172, 30); c.quadraticCurveTo(168, 44, 182, 52); c.closePath(); c.fill(); c.stroke(); }
-  if (spec.crest === "spikes") { c.beginPath(); c.moveTo(140, 66); for (let i = 0; i < 4; i++) { c.lineTo(146 + i * 12, 28 + (i % 2) * 8); c.lineTo(152 + i * 12, 58); } c.closePath(); c.fill(); c.stroke(); }
-  if (spec.crest === "tuft") { c.beginPath(); c.moveTo(160, 52); c.quadraticCurveTo(150, 30, 170, 22); c.moveTo(166, 52); c.quadraticCurveTo(170, 30, 186, 30); c.stroke(); }
-  // head
-  c.beginPath(); c.arc(166, 88, 42, 0, Math.PI * 2); c.fillStyle = body; c.fill(); c.stroke();
-  if (r() < 0.5) { c.save(); c.beginPath(); c.arc(166, 88, 40, 0, Math.PI * 2); c.clip(); c.fillStyle = dark; c.fillRect(120, 40, 100, 24 + r() * 10); c.restore(); c.beginPath(); c.arc(166, 88, 42, 0, Math.PI * 2); c.stroke(); } // cap
-  // cheek, eye, beak
-  c.fillStyle = "rgba(255,120,140,0.55)"; c.beginPath(); c.arc(170, 104, 9, 0, 7); c.fill();
-  c.fillStyle = "#fff"; c.beginPath(); c.arc(178, 80, 12, 0, 7); c.fill(); c.stroke();
-  c.fillStyle = ink; c.beginPath(); c.arc(181, 81, 6.5, 0, 7); c.fill();
-  c.fillStyle = "#fff"; c.beginPath(); c.arc(183, 78, 2.5, 0, 7); c.fill();
-  c.fillStyle = "#f2a33a"; c.beginPath(); c.moveTo(202, 84); c.lineTo(234, 96 + r() * 6); c.lineTo(202, 106); c.closePath(); c.fill(); c.stroke();
+  // crest
+  c.fillStyle = lin(90, 10, 120, 40, [[0, bands[0]], [1, hsl(H, 85, 55)]]);
+  if (spec.crest === "crest") { c.beginPath(); c.moveTo(88, 30); c.quadraticCurveTo(96, -4, 132, 6); c.quadraticCurveTo(116, 18, 118, 34); c.closePath(); c.fill(); }
+  if (spec.crest === "spikes") for (let i = 0; i < 3; i++) { c.beginPath(); c.ellipse(86 + i * 16, 22 - (i === 1 ? 6 : 0), 6, 16, -0.3 + i * 0.3, 0, 7); c.fill(); }
+  if (spec.crest === "tuft") { c.beginPath(); c.ellipse(104, 22, 18, 9, -0.5, 0, 7); c.fill(); c.beginPath(); c.ellipse(120, 28, 14, 7, 0.2, 0, 7); c.fill(); }
+  // wing with colour bands, like a folded feather fan
+  const wing = () => { c.beginPath(); c.moveTo(118, 104); c.bezierCurveTo(162, 100, 188, 150, 172, 196); c.bezierCurveTo(166, 214, 150, 214, 144, 200); c.bezierCurveTo(124, 170, 108, 134, 118, 104); c.closePath(); };
+  wing(); c.fillStyle = lin(150, 110, 120, 210, [[0, bands[0]], [0.52, bands[0]], [0.52, bands[1]], [0.72, bands[1]], [0.72, bands[2]], [1, bands[2]]]); c.fill();
+  c.save(); wing(); c.clip(); g = c.createRadialGradient(132, 118, 4, 132, 118, 70); g.addColorStop(0, "rgba(255,255,255,0.5)"); g.addColorStop(1, "rgba(255,255,255,0)"); c.fillStyle = g; c.fillRect(0, 0, S, S); c.restore();
+  // beak: a soft hooked beak
+  c.beginPath(); c.moveTo(58, 66); c.bezierCurveTo(36, 62, 24, 80, 30, 100); c.bezierCurveTo(34, 108, 40, 104, 40, 96); c.bezierCurveTo(44, 90, 54, 92, 62, 92); c.closePath();
+  c.fillStyle = lin(30, 64, 60, 104, [[0, "#ffd36b"], [1, "#f59b2b"]]); c.fill();
+  // eye: white ring, dark pupil, sparkle
+  c.fillStyle = "#fff"; c.beginPath(); c.arc(86, 62, 16, 0, 7); c.fill();
+  c.fillStyle = "#c9c9d1"; c.beginPath(); c.arc(86, 62, 16, 0, 7); c.arc(86, 62, 12.5, 0, 7, true); c.fill();
+  c.fillStyle = "#2a2a33"; c.beginPath(); c.arc(84, 62, 9, 0, 7); c.fill();
+  c.fillStyle = "#fff"; c.beginPath(); c.arc(81, 59, 3, 0, 7); c.fill();
 }
 
 // Made-up bird names built from how the song sounded.
