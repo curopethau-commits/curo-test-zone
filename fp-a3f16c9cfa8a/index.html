@@ -54,8 +54,9 @@ label.sens { font: 0.75rem var(--mono); color: var(--muted); display: flex; alig
 #draw { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
 select#bird { max-width: 11rem; }
 #ghost { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-.level { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; gap: 16px; align-items: center; background: rgba(17,27,30,0.94); border: 1px solid var(--line); border-radius: 14px; padding: 14px 20px 14px 14px; max-width: min(92%, 30rem); z-index: 3; pointer-events: none; }
-.thumb { position: relative; flex: none; width: clamp(72px, 18vh, 120px); aspect-ratio: 1; border-radius: 50%; overflow: hidden; background: var(--line); display: grid; place-items: center; box-shadow: 0 0 0 3px var(--v0); }
+.level { position: absolute; left: calc(30% + 24px); top: 10px; display: flex; gap: 16px; align-items: center; background: rgba(17,27,30,0.94); border: 1px solid var(--line); border-radius: 14px; padding: 14px 20px 14px 14px; max-width: min(60%, 26rem); z-index: 3; }
+.level button { justify-self: start; margin-top: 6px; font: 750 0.95rem var(--display); background: var(--v0); color: var(--night); border: 0; border-radius: 999px; padding: 8px 18px; cursor: pointer; }
+.thumb { position: relative; flex: none; width: clamp(60px, 15vh, 104px); aspect-ratio: 1; border-radius: 50%; overflow: hidden; background: var(--line); display: grid; place-items: center; box-shadow: 0 0 0 3px var(--v0); }
 .thumb span { font: 750 2rem var(--display); color: var(--muted); }
 .thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .levelText { min-width: 0; display: grid; gap: 2px; }
@@ -132,6 +133,7 @@ select#bird { max-width: 11rem; }
         <h3 id="levelName"></h3>
         <p id="levelSay"></p>
         <small id="levelCredit"></small>
+        <button id="tryIt">Let me try</button>
       </div>
     </div>
     <video id="cam" playsinline muted hidden></video>
@@ -333,6 +335,7 @@ document.querySelectorAll(".legend button").forEach(b => b.onclick = () => {
 });
 draw.addEventListener("pointerdown", e => {
   if (input !== "touch" || !ac) return;
+  endDemo();
   const v = freeVoice(); if (!v) return;
   draw.setPointerCapture(e.pointerId); v.owner = e.pointerId;
   voiceStart(v, e.offsetX, e.offsetY, pressure(e));
@@ -485,24 +488,26 @@ function ghostFreq(b, s) {      // target kHz at song time s, or null between no
   return null;
 }
 function renderGhost() {
-  if (mode !== "copy" || levelOpen) return;
+  if (mode !== "copy") return;
   const w = ghost.width, h = ghost.height, b = BIRDS[sel.value];
   const nowX = w * 0.3, speed = w / 4;                // px per real second
   const lead = (w - nowX) / speed, STRETCH = stretchFor(b), dur = songLen(b) * STRETCH;
   let el = (performance.now() - cycleStart) / 1000 - lead; // seconds since song reached the line
-  const end = style === "any" ? dur + nowX / speed + 0.3 : dur + GAP; // in Anywhere, notes float right off the left edge
+  const st = demo ? "line" : style; // the demo always plays on the line
+  const end = st === "any" ? dur + nowX / speed + 0.3 : dur + GAP; // in Anywhere, notes float right off the left edge
   if (el > end) {
-    best = Math.max(best, coverage(b));
+    if (!demo) best = Math.max(best, coverage(b));
     cycleStart = performance.now(); inNote = 0; hits = 0; caught = new Set(); painted = new Set(); el = -lead;
   }
   gctx.clearRect(0, 0, w, h);
   const X = t => nowX + (t * STRETCH - el) * speed;
   ghostP = { b, nowX, speed, el, S: STRETCH };
-  if (style === "any") { renderAnywhere(b, X, h); return; }
+  if (st === "any") { renderAnywhere(b, X, h); return; }
   // the line you sing on
   const target = el >= 0 ? ghostFreq(b, el / STRETCH) : null;
   let hit = false;
-  if (target !== null && ac) {
+  if (demo) { hit = target !== null; if (hit) painted.add(Math.round(el / STRETCH / PAINT)); demoTone(target); }
+  else if (target !== null && ac) {
     inNote++;
     const ty = fToY(target * 1000, h) / DPR;
     hit = voices.some(v => v.on && Math.abs(v.y - ty) < tol());
@@ -567,7 +572,7 @@ function showScore(b) {
   $("score").hidden = false;
 }
 function paint(b, X, h) {
-  showScore(b);
+  if (!demo) showScore(b);
   gctx.lineCap = "round"; gctx.lineWidth = 12 * DPR; gctx.strokeStyle = "#5ee6c8"; gctx.shadowColor = "#5ee6c8"; gctx.shadowBlur = 12 * DPR;
   gctx.beginPath();
   for (const key of painted) {
@@ -629,30 +634,38 @@ async function photoFor(k) {
     return (photos[k] = { src, credit });
   } catch (e) { return null; }
 }
-let levelTimers = [], levelOpen = false;
-const clearLevelTimers = () => { levelTimers.forEach(clearTimeout); levelTimers = []; };
+// Demo: the computer sings the song along the ghost on a loop until the player taps "Let me try" or starts drawing.
+let demo = false, demoOsc = null, demoAmp = null;
+function demoTone(k) {
+  if (!ac) return;
+  if (!demoOsc) { demoOsc = ac.createOscillator(); demoAmp = ac.createGain(); demoAmp.gain.value = 0; demoOsc.connect(demoAmp); demoAmp.connect(master); demoOsc.start(); }
+  const t = ac.currentTime;
+  if (k !== null) demoOsc.frequency.setTargetAtTime(k * 1000, t, 0.01);
+  demoAmp.gain.setTargetAtTime(k !== null ? 0.3 : 0, t, 0.015);
+}
+function endDemo() {
+  if (!demo) return;
+  demo = false; demoTone(null); $("level").hidden = true; resetGhost();
+}
+$("tryIt").onclick = endDemo;
 function openLevel() {
   const k = sel.value, b = BIRDS[k];
-  clearLevelTimers(); levelOpen = true; ghostTarget = null;
-  gctx.clearRect(0, 0, ghost.width, ghost.height); $("score").hidden = true;
+  ghostTarget = null; resetGhost(); demo = true; $("hint").hidden = true;
   $("levelName").textContent = b.name; $("levelSay").textContent = `“${b.say}”`;
   $("levelInitial").textContent = b.name[0]; $("levelImg").hidden = true; $("levelCredit").textContent = "";
-  $("levelStatus").textContent = "Listen first"; $("level").hidden = false;
+  $("levelStatus").textContent = "Watch and listen"; $("level").hidden = false;
   photoFor(k).then(p => {
     if (!p || sel.value !== k) return;
     const img = $("levelImg"); img.onload = () => { img.hidden = false; }; img.src = p.src; img.alt = b.name;
     $("levelCredit").textContent = p.credit;
   });
-  playTarget();
-  levelTimers.push(setTimeout(() => { $("levelStatus").textContent = "Your turn"; }, (songLen(b) + 0.3) * 1000));
-  levelTimers.push(setTimeout(() => { $("level").hidden = true; levelOpen = false; resetGhost(); }, (songLen(b) + 1.4) * 1000));
 }
 
 // ---------- controls ----------
 function setMode(m) {
   mode = m; $("mFree").setAttribute("aria-pressed", m === "free"); $("mCopy").setAttribute("aria-pressed", m === "copy");
   $("styleSeg").hidden = $("tune").hidden = search.hidden = sel.hidden = $("hear").hidden = $("targetPanel").hidden = ghost.hidden = m !== "copy";
-  if (m === "copy") openLevel(); else { $("score").hidden = true; ghostTarget = null; $("level").hidden = true; levelOpen = false; clearLevelTimers(); }
+  if (m === "copy") openLevel(); else { $("score").hidden = true; ghostTarget = null; $("level").hidden = true; demo = false; demoTone(null); }
   requestAnimationFrame(resize);
 }
 function setInput(i) {
