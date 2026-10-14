@@ -668,7 +668,7 @@ function renderGhost() {
   if (el > dur + GAP) {
     if (!demo) { const sc = coverage(b); best = Math.max(best, sc); if (tried) endOfTry(sc); }
     tried = false;
-    cycleStart = performance.now() - (demo ? lead * 1000 : 0); painted = new Set(); el = demo ? 0 : -lead;
+    cycleStart = performance.now() - (demo ? lead * 1000 : 0); painted = new Set(); wrong = new Set(); el = demo ? 0 : -lead;
   }
   gctx.clearRect(0, 0, w, h);
   const X = t => nowX + (t * STRETCH - el) * speed;
@@ -678,14 +678,19 @@ function renderGhost() {
   if (demo) { hit = target !== null; if (hit) painted.add(Math.round(el / STRETCH / PAINT)); demoTone(target); }
   else if (ac) {
     if (voices.some(v => v.on)) tried = true;
+    let on = false, ok = false;
     // a finger or light counts when it is inside the band and close to the note passing under it
     for (const v of voices) {
       if (!v.on || Math.abs(v.x * DPR - nowX) > zone) continue;
+      on = true;
       const m = noteAt(v.x);
       if (!m || Math.abs(v.y - fToY(m.k * 1000, h) / DPR) >= tol()) continue;
-      hit = true; painted.add(Math.round(m.t / PAINT));
+      hit = ok = true; painted.add(Math.round(m.t / PAINT));
       if (autotune) { setFreq(v, m.k * 1000, 0.02); setDepth(v, m.k * 1000); }
     }
+    // singing with nothing to match (allowing a moment either side of each note) counts against you
+    const st = el / STRETCH, near = ghostFreq(b, st - 0.06) !== null || ghostFreq(b, st + 0.06) !== null;
+    if (on && !ok && el >= 0 && el <= dur && !(target === null && near)) wrong.add(Math.round(st / PAINT));
   }
   // the band you sing in
   gctx.fillStyle = hit ? "rgba(94,230,200,0.14)" : "rgba(230,238,232,0.05)"; gctx.fillRect(nowX - zone, 0, zone * 2, h);
@@ -729,7 +734,7 @@ $("winYes").onclick = () => { // move on to the next bird, easiest to hardest
   $("win").hidden = true; paused = false; search.value = ""; for (const o of sel.options) o.hidden = false;
   sel.value = next; drawTarget(); openLevel();
 };
-$("winNo").onclick = () => { $("win").hidden = true; paused = false; cycleStart = performance.now(); painted = new Set(); };
+$("winNo").onclick = () => { $("win").hidden = true; paused = false; cycleStart = performance.now(); painted = new Set(); wrong = new Set(); };
 let ghostP = null;
 function noteAt(xCss) {        // which note sits under this x position right now, and its pitch there
   if (!ghostP) return null;
@@ -742,10 +747,11 @@ function noteAt(xCss) {        // which note sits under this x position right no
 }
 // Colour in the parts of the ghost you have sung on the right note.
 const PAINT = 0.02; // seconds of song per painted piece
-let painted = new Set(), best = 0;
+let painted = new Set(), wrong = new Set(), best = 0;
 // Live score: how much of the whole song you have coloured in so far this pass.
 const pieces = b => b.notes.reduce((m, n) => m + Math.max(1, Math.round((n[n.length - 1][0] - n[0][0]) / PAINT)), 0);
-const coverage = b => Math.min(100, Math.round(100 * painted.size / pieces(b)));
+// Singing where there is no note, or off the line, takes points back, so holding a note and sweeping up and down doesn't win.
+const coverage = b => Math.max(0, Math.min(100, Math.round(100 * (painted.size - 0.8 * wrong.size) / pieces(b))));
 function showScore(b) {
   $("score").textContent = `Match ${coverage(b)}%` + (best ? ` · best ${best}%` : "");
   $("score").hidden = false;
@@ -772,7 +778,7 @@ $("tune").onclick = () => {
   autotune = !autotune; $("tune").setAttribute("aria-pressed", autotune);
   $("tune").textContent = autotune ? "Auto-tune on" : "Auto-tune off";
 };
-const resetGhost = () => { cycleStart = performance.now(); painted = new Set(); tried = false; paused = false; $("win").hidden = true; $("splash").hidden = true; best = 0; $("score").hidden = true; };
+const resetGhost = () => { cycleStart = performance.now(); painted = new Set(); wrong = new Set(); tried = false; paused = false; $("win").hidden = true; $("splash").hidden = true; best = 0; $("score").hidden = true; };
 sel.addEventListener("change", () => { if (mode === "copy") openLevel(); });
 
 // Level intro: show the bird's name and photo, play its song once, then it's your turn.
