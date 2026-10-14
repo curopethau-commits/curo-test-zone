@@ -277,7 +277,7 @@ let ac, master, analyser, noiseBuf, voices = [];
 let mode = "free", input = "touch";
 
 function initAudio() {
-  ac = new (window.AudioContext || window.webkitAudioContext)();
+  ac = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: "balanced" }); // a bigger buffer stops phones crackling
   master = ac.createGain(); master.gain.value = 0.45;
   const comp = ac.createDynamicsCompressor();
   analyser = ac.createAnalyser(); analyser.fftSize = 2048; analyser.smoothingTimeConstant = 0.15;
