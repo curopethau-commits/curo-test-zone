@@ -13,3 +13,9 @@ Status: **WIP**. Plants are saved on the device only in this version (no shared 
 After Effects expression demo: a square parented to a spinning null stays level while it scales up and moves to the top.
 
 View: https://curopethau-commits.github.io/curo-test-zone/keep-level/
+
+## Fire Safety Certificate (WIP)
+
+Joke certificate: one question ("Is the building currently on fire?"), NO ticked, PASSED stamp. Prints on A4 landscape.
+
+View: https://curopethau-commits.github.io/curo-test-zone/fire-certificate/
