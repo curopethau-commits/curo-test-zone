@@ -17,6 +17,15 @@ Phones (via the QR): https://curopethau-commits.github.io/curo-test-zone/forest-
 
 Status: **WIP**. Needs the `forest_disco` database rule (see forest-disco/README.md) and the forest illustration (`forest-disco/forest.png`).
 
+## Niko's Birthday Forest Disco (WIP)
+
+Copy of the forest disco for Niko's grown-up birthday, with the aubergine swap back in for rude doodles.
+
+Big screen: https://curopethau-commits.github.io/curo-test-zone/niko-party/
+Phones (via the QR): https://curopethau-commits.github.io/curo-test-zone/niko-party/draw.html
+
+Status: **WIP**. Needs the `niko_forest_disco` database rule (see niko-party/README.md).
+
 ## Keep Level Test
 
 After Effects expression demo: a square parented to a spinning null stays level while it scales up and moves to the top.
