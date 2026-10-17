@@ -312,6 +312,11 @@ function grab(p) {
   cancelHold();
   strokes.pop();                           // the "press" dot wasn't meant to be ink
   if (!strokes.length) return;
+  const bb = bbox(strokes);
+  if (Terra.looksRude(strokes.map(s => ({ ...s, p: s.p.map((v, i) => v - (i % 2 ? bb.y0 : bb.x0)) })), bb.x1 - bb.x0, bb.y1 - bb.y0)) {
+    toast('Hmm, that one can\'t come to the party. Try another!');
+    redraw(); return;
+  }
   lift();
   navigator.vibrate && navigator.vibrate(25);
   startDrag(p);                            // keep dragging with the same finger

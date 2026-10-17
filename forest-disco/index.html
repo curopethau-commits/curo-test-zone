@@ -76,7 +76,7 @@ body.will #tank{cursor:pointer}
 <canvas id="tank"></canvas>
 <div id="title"><div id="pre">Bethan and Bunny's</div><div id="titleRow"><h1 id="h1"><span class="ln">Super Duper 8th Birthday</span> <span class="ln">Forest Disco!</span></h1><button id="willBtn" type="button">EDIT GUEST LIST</button></div><div id="count"></div></div>
 <div id="willBar"><span>Editing the guest list · click a dancer to manage it</span><button class="wbtn danger" id="clearAll" type="button">Clear all</button><button class="wbtn" id="willDone" type="button">Done</button></div>
-<div id="pick"><button class="wbtn" id="aubBtn" type="button"></button><button class="wbtn danger" id="delBtn" type="button">Delete</button></div>
+<div id="pick"><button class="wbtn danger" id="delBtn" type="button">Remove from the party</button></div>
 <div id="empty">The dance floor is empty… scan the code and draw the first dancer 🪩</div>
 <div id="join"><canvas id="qr"></canvas><b>Invite your friends!</b><small>Scan, draw, and dance</small></div>
 <div id="status"><i></i><span></span></div>
@@ -282,7 +282,6 @@ function crowd() { return clamp(1 / Math.sqrt(Math.max(1, creatures.size) / 14),
 function renderSprite(c) {
   const d = c.data, size = baseSize(d);
   let strokes = c.strokes, dw = d.w, dh = d.h;
-  if (c.rude) { const aub = aubergineDrawing(c.id); strokes = aub.strokes; dw = aub.w; dh = aub.h; }
   const k = size / Math.max(dw, dh, 1);
   const pad = 18;
   const w = dw * k + pad * 2, h = dh * k + pad * 2;
@@ -302,33 +301,6 @@ function renderSprite(c) {
   return sp;
 }
 
-// what a rude doodle becomes: an aubergine drawn in the same pen style as everyone else's, name tag stays
-function aubergineDrawing(seed) {
-  let r = 0; for (const ch of String(seed)) r = (r * 31 + ch.charCodeAt(0)) >>> 0;
-  const wob = () => { r = (r * 1103515245 + 12345) >>> 0; return (r / 4294967296 - 0.5) * 3; };   // steady hand-drawn wobble
-  const bez = (p0, p1, p2, p3, n = 10) => { const o = [];
-    for (let i = 1; i <= n; i++) { const t = i / n, u = 1 - t;
-      o.push([u*u*u*p0[0] + 3*u*u*t*p1[0] + 3*u*t*t*p2[0] + t*t*t*p3[0], u*u*u*p0[1] + 3*u*u*t*p1[1] + 3*u*t*t*p2[1] + t*t*t*p3[1]]); }
-    return o; };
-  const body = [[0, -72], ...bez([0, -72], [34, -72], [30, -16], [48, 28]), ...bez([48, 28], [68, 80], [28, 100], [0, 100]),
-    ...bez([0, 100], [-28, 100], [-68, 80], [-48, 28]), ...bez([-48, 28], [-30, -16], [-34, -72], [0, -72])];
-  const parts = [
-    { c: '#9b5de5', w: 10, pts: body },
-    { c: '#f4f2ff', w: 5, pts: [[-26, 14], ...bez([-26, 14], [-38, 36], [-36, 58], [-20, 76], 6)] },
-    // the cap: one closed green shape over the top of the body, zigzag leaf edge, filled solid
-    { c: '#2bd96b', w: 8, fill: true, pts: [[-42, -44], ...bez([-42, -44], [-36, -66], [-18, -80], [0, -80], 6), ...bez([0, -80], [18, -80], [36, -66], [42, -44], 6),
-      [26, -28], [15, -44], [0, -26], [-15, -44], [-26, -28], [-42, -44]] },
-    { c: '#2bd96b', w: 9, pts: [[0, -72], ...bez([0, -72], [2, -86], [6, -96], [18, -102], 5)] },
-  ];
-  const a = -0.55, ca = Math.cos(a), sa = Math.sin(a);
-  for (const pt of parts) pt.pts = pt.pts.map(([x, y]) => [x * ca - y * sa + wob(), x * sa + y * ca + wob()]);
-  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-  for (const pt of parts) for (const [x, y] of pt.pts) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
-  const pad = 9;
-  return { w: x1 - x0 + pad * 2, h: y1 - y0 + pad * 2,
-    strokes: parts.map(pt => ({ c: pt.c, w: pt.w, fill: pt.fill, p: pt.pts.flatMap(([x, y]) => [x - x0 + pad, y - y0 + pad]) })) };
-}
-
 function zone(c) {
   const s = crowd(), hw = c.w * s / 2, hh = c.h * s / 2;
   return { x0: hw + 10, x1: W - hw - 10, y0: TOP + hh + 10, y1: H - hh - 10 };
@@ -345,8 +317,9 @@ function addCreature(id, data, initial) {
   const c = { id, data, strokes, name: String(data.n || 'Someone').slice(0, 24), t: data.t || Date.now(),
     ph: rnd(0, TAU), heading: rnd(0, TAU), speed: rnd(55, 95), turnA: rnd(0.1, 0.25), turnB: rnd(0.3, 0.6),
     spin: rnd(0.15, 0.35) * (Math.random() < .5 ? -1 : 1), born: performance.now() };
-  // a: 1 = Will made it an aubergine, -1 = Will restored it; otherwise the doodle check decides
-  c.rude = data.a === 1 || (data.a !== -1 && Terra.looksRude(strokes, data.w, data.h));
+  // rude doodles never make it onto the dance floor (the phone stops them too)
+  if (Terra.looksRude(strokes, data.w, data.h)) return;
+  c.rude = false;
   try { c.rig = rigFor(strokes, data.w, data.h); } catch (e) { c.rig = null; }
   c.style = Math.floor(Math.random() * 3);
   creatures.set(id, c);
@@ -600,10 +573,10 @@ function setStatus(s) {
       : s === 'setup' ? 'not connected: add the forest_disco rule in Firebase (see README)' : 'reconnecting…';
 }
 
-/* ---------- God mode: "GOD MODE" + password → clear all, or pick a drawing to delete / aubergine ---------- */
+/* ---------- Edit guest list: button + password → clear all, or pick a dancer to remove ---------- */
 let willMode = false, sel = null;
 const willBtn = document.getElementById('willBtn'), willBar = document.getElementById('willBar');
-const pick = document.getElementById('pick'), aubBtn = document.getElementById('aubBtn');
+const pick = document.getElementById('pick');
 const store = { get(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } },
                 set(k, v) { try { sessionStorage.setItem(k, v); } catch (e) {} } };
 
@@ -639,7 +612,6 @@ function select(id) {
   sel = id;
   const c = id && creatures.get(id);
   pick.classList.toggle('on', !!c);
-  if (c) aubBtn.textContent = c.rude ? 'Restore drawing' : '🍆 Make it an aubergine';
 }
 function placePick() {
   const c = sel && creatures.get(sel);
@@ -663,17 +635,6 @@ document.getElementById('delBtn').addEventListener('click', async () => {
   if (!c) return;
   removeCreature(c.id);
   try { await Terra.remove(c.id); } catch (e) { alert('Could not delete that one. Reload and try again.'); }
-});
-aubBtn.addEventListener('click', async () => {
-  const c = sel && creatures.get(sel);
-  if (!c) return;
-  const data = { ...c.data, a: c.rude ? -1 : 1 };
-  const { id, done } = Terra.replace(c.id, data);
-  placeAt.set(id, { x: c.x, y: c.y, heading: c.heading, ph: c.ph });
-  removeCreature(c.id);
-  addCreature(id, data, true);
-  select(id);
-  try { await done; } catch (e) { alert('Could not save that change. Reload and try again.'); }
 });
 
 const fullscreen = () => {
