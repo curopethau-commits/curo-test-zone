@@ -1,4 +1,4 @@
-# Bethan (and Bunny's) Super Duper 8th Birthday Forest Disco
+# Bethan and Bunny's Super Duper 8th Birthday Forest Disco
 
 Branched from Will's Intergalactic Tarranium (`../WILLS_TERRANIUM`) on 17 Oct 2026. Same setup:
 

@@ -10,7 +10,7 @@ Status: **WIP**. Plants are saved on the device only in this version (no shared 
 
 ## Bethan's Forest Disco (WIP)
 
-Bethan (and Bunny's) super duper 8th birthday forest disco: guests scan the QR on the big screen, draw a dancer on their phone and flick it onto the dance floor. Branched from Will's Intergalactic Tarranium.
+Bethan and Bunny's super duper 8th birthday forest disco: guests scan the QR on the big screen, draw a dancer on their phone and flick it onto the dance floor. Branched from Will's Intergalactic Tarranium.
 
 Big screen: https://curopethau-commits.github.io/curo-test-zone/forest-disco/
 Phones (via the QR): https://curopethau-commits.github.io/curo-test-zone/forest-disco/draw.html
