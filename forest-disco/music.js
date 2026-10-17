@@ -22,7 +22,7 @@ const Music = (() => {
   function setup(ctx) {
     ac = ctx || new (window.AudioContext || window.webkitAudioContext)();
     const comp = ac.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 4;
-    out = ac.createGain(); out.gain.value = 0.8; out.connect(comp); comp.connect(ac.destination);
+    out = ac.createGain(); out.gain.value = 0.62; out.connect(comp); comp.connect(ac.destination);
     duck = ac.createGain(); duck.connect(out);                     // everything but the kick pumps under it
     delay = ac.createDelay(1); delay.delayTime.value = SPB * 0.75;
     const fb = ac.createGain(); fb.gain.value = 0.32; const dl = ac.createGain(); dl.gain.value = 0.25;
@@ -60,10 +60,76 @@ const Music = (() => {
     fl.connect(g); g.connect(duck); if (fx) g.connect(delay);
   }
 
-  // what plays on beat n: 16-bar loop = 8 bars groove (bass, chords, drums), then 8 bars with the tune on top
+  // Each time the tune comes round a different animal sings it, starting with the cat.
+  const ANIMALS = [
+    { id: 'cat', emoji: '🐱', name: 'Cat' }, { id: 'dog', emoji: '🐶', name: 'Dog' }, { id: 'duck', emoji: '🦆', name: 'Duck' },
+    { id: 'cow', emoji: '🐮', name: 'Cow' }, { id: 'sheep', emoji: '🐑', name: 'Sheep' }, { id: 'owl', emoji: '🦉', name: 'Owl' },
+    { id: 'frog', emoji: '🐸', name: 'Frog' }, { id: 'bird', emoji: '🐦', name: 'Bird' }];
+  // shape of the song from the moment the music starts: 2 bars of groove, then round after round of
+  // [8 bars of tune sung by the next animal + 2 bars of groove with a drum roll]
+  const INTRO = 8, ROUND = 40;
+  let startBeat = 0;
+  function where(n) {
+    const pos = n - startBeat;
+    if (pos < INTRO) return { pos, tune: -1, fill: pos >= INTRO - 4, k: 0 };
+    const r = Math.floor((pos - INTRO) / ROUND), inR = (pos - INTRO) % ROUND;
+    return { pos, tune: inR < 32 ? inR : -1, fill: inR >= 36, k: r };
+  }
+
+  // animal voices: each note of the tune is one meow / woof / quack ... at that pitch
+  function voice(id, t, midi, dur) {
+    const f = hz(midi), o = ac.createOscillator(), g = ac.createGain(), fl = ac.createBiquadFilter();
+    o.connect(fl); fl.connect(g); g.connect(duck); g.connect(delay);
+    const end = t + dur + 0.25; o.start(t); o.stop(end + 0.1);
+    const amp = (peak, a, hold, rel) => { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + a);
+      g.gain.setValueAtTime(peak, t + a + hold); g.gain.exponentialRampToValueAtTime(0.0001, t + a + hold + rel); };
+    const lfo = (rate, depth, param) => { const l = ac.createOscillator(), lg = ac.createGain(); l.frequency.value = rate; lg.gain.value = depth;
+      l.connect(lg); lg.connect(param); l.start(t); l.stop(end + 0.1); };
+    const d = Math.max(0.16, dur);
+    if (id === 'cat') {            // m-e-o-w: pitch scoops up then sags, mouth opens then closes
+      o.type = 'sawtooth'; fl.type = 'bandpass'; fl.Q.value = 3;
+      o.frequency.setValueAtTime(f * 0.85, t); o.frequency.exponentialRampToValueAtTime(f * 1.04, t + d * 0.35); o.frequency.exponentialRampToValueAtTime(f * 0.9, t + d);
+      fl.frequency.setValueAtTime(700, t); fl.frequency.exponentialRampToValueAtTime(2600, t + d * 0.3); fl.frequency.exponentialRampToValueAtTime(900, t + d);
+      amp(0.5, 0.03, d * 0.6, d * 0.4);
+    } else if (id === 'dog') {     // woof: low, punchy, drops fast
+      o.type = 'sawtooth'; fl.type = 'lowpass'; fl.Q.value = 6;
+      o.frequency.setValueAtTime(f * 0.5 * 1.2, t); o.frequency.exponentialRampToValueAtTime(f * 0.5 * 0.85, t + 0.18);
+      fl.frequency.setValueAtTime(1600, t); fl.frequency.exponentialRampToValueAtTime(350, t + 0.2);
+      amp(0.6, 0.008, 0.06, Math.min(0.25, d));
+      hiss(t, 'bandpass', 900, 1, 0.15, 0.08);
+    } else if (id === 'duck') {    // quack: buzzy and nasal
+      o.type = 'square'; fl.type = 'bandpass'; fl.Q.value = 9; fl.frequency.value = 1300;
+      o.frequency.setValueAtTime(f * 1.03, t); o.frequency.exponentialRampToValueAtTime(f * 0.94, t + Math.min(d, 0.3));
+      lfo(30, 120, fl.frequency); amp(0.55, 0.01, Math.min(d, 0.3) * 0.6, 0.12);
+    } else if (id === 'cow') {     // mooo: low, slow-opening mouth
+      o.type = 'sawtooth'; fl.type = 'lowpass'; fl.Q.value = 4;
+      o.frequency.setValueAtTime(f * 0.5 * 0.94, t); o.frequency.exponentialRampToValueAtTime(f * 0.5, t + d * 0.4);
+      fl.frequency.setValueAtTime(250, t); fl.frequency.exponentialRampToValueAtTime(1100, t + d * 0.6); fl.frequency.exponentialRampToValueAtTime(500, t + d);
+      amp(0.55, 0.06, d * 0.6, d * 0.35);
+    } else if (id === 'sheep') {   // baa-aa-aa: bleaty wobble
+      o.type = 'sawtooth'; fl.type = 'bandpass'; fl.Q.value = 2.5; fl.frequency.value = 1000;
+      o.frequency.value = f; lfo(7, 40, o.detune);
+      const trem = ac.createGain(); trem.gain.value = 0.6; g.disconnect(); g.connect(trem); trem.connect(duck); trem.connect(delay);
+      lfo(7, 0.4, trem.gain); amp(0.55, 0.02, d * 0.7, d * 0.3);
+    } else if (id === 'owl') {     // hoo: soft and round
+      o.type = 'sine'; fl.type = 'lowpass'; fl.frequency.value = 1500;
+      o.frequency.setValueAtTime(f * 1.02, t); o.frequency.exponentialRampToValueAtTime(f * 0.96, t + d);
+      amp(0.6, 0.07, d * 0.5, d * 0.4);
+    } else if (id === 'frog') {    // ribbit: croaky pulses
+      o.type = 'square'; fl.type = 'lowpass'; fl.frequency.value = 900; fl.Q.value = 8;
+      o.frequency.value = f * 0.5;
+      const pul = ac.createGain(); pul.gain.value = 0.5; g.disconnect(); g.connect(pul); pul.connect(duck); pul.connect(delay);
+      lfo(22, 0.5, pul.gain); amp(0.6, 0.01, d * 0.6, 0.1);
+    } else {                       // bird: bright chirps
+      o.type = 'sine'; fl.type = 'highpass'; fl.frequency.value = 400;
+      o.frequency.setValueAtTime(f * 2 * 0.9, t); o.frequency.exponentialRampToValueAtTime(f * 2 * 1.08, t + 0.06); o.frequency.setValueAtTime(f * 2, t + 0.08);
+      lfo(12, 30, o.detune); amp(0.35, 0.01, d * 0.6, 0.1);
+    }
+  }
+
+  // what plays on beat n
   function beat(n, t) {
-    const inLoop = n % 64, bar = Math.floor(inLoop / 4) % 8, b = inLoop % 4, withTune = inLoop >= 32;
-    const fill = inLoop % 32 >= 28;                                   // last bar before each half: snare roll
+    const w = where(n), bar = Math.floor(Math.max(0, w.tune) / 4) % 8, b = ((w.pos % 4) + 4) % 4, fill = w.fill;
     if (!(fill && b === 3)) kick(t);
     hat(t + SPB / 2, b % 2 === 1);
     if (b === 1 || b === 3) clap(t);
@@ -72,11 +138,12 @@ const Music = (() => {
     synth(t + SPB / 2, root, SPB / 2 * 0.9, { cut: 500, peak: 0.32, type: 'sawtooth' });              // offbeat bass
     synth(t + SPB / 2 + SPB / 4, root + 12, SPB / 4 * 0.9, { cut: 700, peak: 0.16, type: 'square' });
     if (b === 0 || b === 2) for (const m of CHORD[root]) synth(t + SPB / 2, m, SPB * 0.3, { cut: 2200, peak: 0.06, det: 9, fx: true });
-    if (withTune) for (const x of NOTES) {
-      if (x.b >= inLoop - 32 && x.b < inLoop - 32 + 1) {
-        const at = t + (x.b - (inLoop - 32)) * SPB, dur = x.d * SPB * 0.92;
-        synth(at, x.n, dur, { type: 'square', cut: 3200, peak: 0.13, det: 6, fx: true, vib: 12 });
-        synth(at, x.n + 12, dur, { type: 'triangle', cut: 5000, peak: 0.05 });
+    if (w.tune >= 0) {
+      const animal = ANIMALS[w.k % ANIMALS.length];
+      for (const x of NOTES) if (x.b >= w.tune && x.b < w.tune + 1) {
+        const at = t + (x.b - w.tune) * SPB, dur = x.d * SPB * 0.92;
+        voice(animal.id, at, x.n, dur);
+        synth(at, x.n, dur, { type: 'triangle', cut: 3000, peak: 0.05 });     // quiet guide so the tune stays clear
       }
     }
   }
@@ -91,7 +158,8 @@ const Music = (() => {
     ac.resume();
     offset = performance.now() / 1000 - ac.currentTime;   // page seconds minus audio seconds
     next = Math.ceil((ac.currentTime + offset + 0.05) / SPB);
-    out.gain.cancelScheduledValues(ac.currentTime); out.gain.setTargetAtTime(0.8, ac.currentTime, 0.05);
+    startBeat = Math.ceil(next / 4) * 4;                    // song starts on the next bar line
+    out.gain.cancelScheduledValues(ac.currentTime); out.gain.setTargetAtTime(0.62, ac.currentTime, 0.05);
     clearInterval(timer); timer = setInterval(pump, 50); pump(); on = true;
   }
   function stop() {
@@ -101,8 +169,14 @@ const Music = (() => {
   // render the loop offline (for previews/tests): resolves an AudioBuffer
   async function render(seconds = 32) {
     setup(new OfflineAudioContext(2, Math.ceil(44100 * seconds), 44100));
-    for (let n = 0; n * SPB < seconds; n++) beat(n, n * SPB + 0.05);
+    startBeat = 0; for (let n = 0; n * SPB < seconds; n++) beat(n, n * SPB + 0.05);
     const buf = await ac.startRendering(); ac = null; return buf;
   }
-  return { start, stop, render, toggle() { on ? stop() : start(); return on; }, get on() { return on; } };
+  // who's singing at page time t (seconds), for the on-screen banner
+  function singer(t) {
+    if (!on) return null;
+    const w = where(Math.floor(t / SPB));
+    return w.tune >= 0 ? { ...ANIMALS[w.k % ANIMALS.length], bar: w.tune } : null;
+  }
+  return { start, stop, render, singer, toggle() { on ? stop() : start(); return on; }, get on() { return on; } };
 })();

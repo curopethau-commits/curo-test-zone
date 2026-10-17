@@ -70,6 +70,11 @@ body.will #tank{cursor:pointer}
 #status.setup i{background:#e5484d}
 #music{position:fixed;left:14px;bottom:36px;z-index:4;font:inherit;font-weight:600;font-size:clamp(13px,1vw,17px);cursor:pointer;
   color:var(--ink);background:rgba(20,10,40,.85);border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:.5em 1em}
+#singer{position:fixed;left:50%;bottom:clamp(70px,16vh,170px);transform:translateX(-50%) scale(.6);opacity:0;z-index:3;pointer-events:none;
+  font-family:Bungee,Fredoka,sans-serif;font-size:clamp(18px,2.6vw,46px);white-space:nowrap;color:#fff;
+  background:rgba(20,10,40,.78);border:3px solid #ffd60a;border-radius:999px;padding:.25em .9em;text-shadow:0 2px 0 rgba(0,0,0,.5);
+  transition:transform .35s cubic-bezier(.3,1.6,.5,1),opacity .3s}
+#singer.on{opacity:1;transform:translateX(-50%) scale(1)}
 #music:hover{background:rgba(40,20,70,.95)}
 #music.off{animation:nudge 1.6s ease-in-out infinite}
 @keyframes nudge{50%{transform:scale(1.06)}}
@@ -86,9 +91,10 @@ body.will #tank{cursor:pointer}
 <div id="join"><canvas id="qr"></canvas><b>Invite your friends!</b><small>Scan, draw, and dance</small></div>
 <div id="status"><i></i><span></span></div>
 <button id="music" class="off" type="button">🔊 Click for music</button>
+<div id="singer" aria-live="polite"></div>
 
 <script src="terra.js?v=5"></script>
-<script src="music.js?v=1"></script>
+<script src="music.js?v=2"></script>
 <script>
 (() => {
 const cv = document.getElementById('tank'), ctx = cv.getContext('2d');
@@ -568,6 +574,10 @@ function frame(now) {
   drawSparks(dt, t);
   for (const id of order) { const c = creatures.get(id); if (c && c.state === 'arrive') drawCreature(c, t); }
   placePick();
+  // whose turn it is to sing Happy Birthday (shown for the first bars of each round)
+  const sg = typeof Music !== 'undefined' && Music.singer(t), sEl = document.getElementById('singer');
+  const label = sg && sg.bar < 12 ? `${sg.emoji} ${sg.name}'s turn! ${sg.emoji}` : '';
+  if (label !== (sEl.dataset.l || '')) { sEl.dataset.l = label; if (label) sEl.textContent = label; sEl.classList.toggle('on', !!label); }
   requestAnimationFrame(frame);
 }
 

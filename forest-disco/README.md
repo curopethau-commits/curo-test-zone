@@ -4,7 +4,7 @@ Branched from Will's Intergalactic Tarranium (`../WILLS_TERRANIUM`) on 17 Oct 20
 
 - `index.html`: the big screen. Night forest, mirror ball, sweeping lights, light-up dance floor. Every drawing hops to the beat (120 BPM), and anything sticking out of its body (arms, legs, head, ears, tail) swings in a dance: the page finds the body as an ellipse and rotates each bit of ink around where it leaves it. The QR code ("Invite your friends!") opens the drawing page.
 - `draw.html`: the phone page. Pick a name, draw, hold your finger on the drawing, flick it up onto the dance floor.
-- `music.js`: the soundtrack, a dance remix of Happy Birthday (the tune is public domain) made live in the browser at 120 BPM, in time with the dancers. Starts on the first click or key press on the big screen; M or the Music button turns it on and off.
+- `music.js`: the soundtrack, a dance remix of Happy Birthday (the tune is public domain) made live in the browser at 120 BPM, in time with the dancers. Two bars of groove, then the tune, sung by a different animal every round (cat, dog, duck, cow, sheep, owl, frog, bird), with a "Cat's turn!" banner on screen. Starts on the first click or key press on the big screen; M or the Music button turns it on and off.
 - `terra.js`: shared settings and the connection to the Firebase Realtime Database.
 
 ## The illustration
