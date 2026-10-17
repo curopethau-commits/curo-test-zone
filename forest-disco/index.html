@@ -74,8 +74,8 @@ body.will #tank{cursor:pointer}
 </head>
 <body>
 <canvas id="tank"></canvas>
-<div id="title"><div id="pre">Bethan and Bunny's</div><div id="titleRow"><h1 id="h1"><span class="ln">Super Duper 8th Birthday</span> <span class="ln">Forest Disco!</span></h1><button id="willBtn" type="button">GOD MODE</button></div><div id="count"></div></div>
-<div id="willBar"><span>God mode · click a drawing to manage it</span><button class="wbtn danger" id="clearAll" type="button">Clear all</button><button class="wbtn" id="willDone" type="button">Done</button></div>
+<div id="title"><div id="pre">Bethan and Bunny's</div><div id="titleRow"><h1 id="h1"><span class="ln">Super Duper 8th Birthday</span> <span class="ln">Forest Disco!</span></h1><button id="willBtn" type="button">EDIT GUEST LIST</button></div><div id="count"></div></div>
+<div id="willBar"><span>Editing the guest list · click a dancer to manage it</span><button class="wbtn danger" id="clearAll" type="button">Clear all</button><button class="wbtn" id="willDone" type="button">Done</button></div>
 <div id="pick"><button class="wbtn" id="aubBtn" type="button"></button><button class="wbtn danger" id="delBtn" type="button">Delete</button></div>
 <div id="empty">The dance floor is empty… scan the code and draw the first dancer 🪩</div>
 <div id="join"><canvas id="qr"></canvas><b>Invite your friends!</b><small>Scan, draw, and dance</small></div>
@@ -616,7 +616,7 @@ function setWill(on) {
 willBtn.addEventListener('click', () => {
   if (willMode) return setWill(false);
   if (store.get('terra_will') !== '1') {
-    const p = prompt('God mode password:');
+    const p = prompt('Guest list password:');
     if (p === null) return;
     if (p.trim().toLowerCase() !== TERRA_WILL_PASS.toLowerCase()) { alert('Nope. Mere mortal.'); return; }
     store.set('terra_will', '1');

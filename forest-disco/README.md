@@ -23,8 +23,8 @@ Drawings live under `forest_disco` in the same Firebase database as Will's, so t
 
 (Copy any extra validation from the `creatures` block too.) Until then the display shows "not connected: add the forest_disco rule".
 
-## God mode
-Same as Will's: the GOD MODE button, password `BethanRulez` (set in `terra.js`). Clear all, delete one, or turn a rude doodle into an aubergine.
+## Edit guest list
+Will's GOD MODE, renamed: the EDIT GUEST LIST button, password `BethanRulez` (set in `terra.js`). Clear all, delete one, or turn a rude doodle into an aubergine.
 
 ## Test without the database
 Set `TERRA_DB = ''` in `terra.js`: the display and drawing page then talk to each other in the same browser only.
