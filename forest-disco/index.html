@@ -68,6 +68,11 @@ body.will #tank{cursor:pointer}
 #status.reconnecting i{background:#ffb627}
 #status.local i{background:#ff5fa2}
 #status.setup i{background:#e5484d}
+#music{position:fixed;left:14px;bottom:36px;z-index:4;font:inherit;font-weight:600;font-size:clamp(13px,1vw,17px);cursor:pointer;
+  color:var(--ink);background:rgba(20,10,40,.85);border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:.5em 1em}
+#music:hover{background:rgba(40,20,70,.95)}
+#music.off{animation:nudge 1.6s ease-in-out infinite}
+@keyframes nudge{50%{transform:scale(1.06)}}
 #empty{position:fixed;left:50%;top:58%;transform:translate(-50%,-50%);font-size:clamp(16px,1.6vw,26px);color:#fff;text-shadow:0 2px 6px #000;z-index:2;
   text-align:center;pointer-events:none;transition:opacity .6s;width:min(90vw,700px)}
 </style>
@@ -80,8 +85,10 @@ body.will #tank{cursor:pointer}
 <div id="empty">The dance floor is empty… scan the code and draw the first dancer 🪩</div>
 <div id="join"><canvas id="qr"></canvas><b>Invite your friends!</b><small>Scan, draw, and dance</small></div>
 <div id="status"><i></i><span></span></div>
+<button id="music" class="off" type="button">🔊 Click for music</button>
 
 <script src="terra.js?v=5"></script>
+<script src="music.js?v=1"></script>
 <script>
 (() => {
 const cv = document.getElementById('tank'), ctx = cv.getContext('2d');
@@ -646,6 +653,18 @@ addEventListener('keydown', e => { if (e.key === 'f' || e.key === 'F') fullscree
 const wake = async () => { try { await navigator.wakeLock?.request('screen'); } catch (e) {} };
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') wake(); });
 addEventListener('pointerdown', wake, { once: true });
+
+/* ---------- music: Happy Birthday dance remix, starts on the first click or key (browsers insist) ---------- */
+const musicBtn = document.getElementById('music');
+let musicOff = false;
+const syncMusic = () => { musicBtn.textContent = Music.on ? '🔊 Music on' : musicOff ? '🔇 Music off' : '🔊 Click for music';
+  musicBtn.classList.toggle('off', !Music.on && !musicOff); };
+musicBtn.addEventListener('click', e => { e.stopPropagation(); Music.toggle(); musicOff = !Music.on; syncMusic(); });
+addEventListener('pointerdown', e => { if (e.target !== musicBtn && !Music.on && !musicOff) { Music.start(); syncMusic(); } });
+addEventListener('keydown', e => {
+  if (e.key === 'm' || e.key === 'M') { Music.toggle(); musicOff = !Music.on; syncMusic(); }
+  else if (!Music.on && !musicOff && !e.metaKey && !e.ctrlKey) { Music.start(); syncMusic(); }
+});
 
 addEventListener('resize', resize);
 resize();
