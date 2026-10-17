@@ -2,7 +2,7 @@
 
 Branched from Will's Intergalactic Tarranium (`../WILLS_TERRANIUM`) on 17 Oct 2026. Same setup:
 
-- `index.html`: the big screen. Night forest, mirror ball, sweeping lights, light-up dance floor. Every drawing hops to the beat (120 BPM). The QR code ("Invite your friends!") opens the drawing page.
+- `index.html`: the big screen. Night forest, mirror ball, sweeping lights, light-up dance floor. Every drawing hops to the beat (120 BPM), and anything sticking out of its body (arms, legs, head, ears, tail) swings in a dance: the page finds the body as an ellipse and rotates each bit of ink around where it leaves it. The QR code ("Invite your friends!") opens the drawing page.
 - `draw.html`: the phone page. Pick a name, draw, hold your finger on the drawing, flick it up onto the dance floor.
 - `terra.js`: shared settings and the connection to the Firebase Realtime Database.
 

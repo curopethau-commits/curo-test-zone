@@ -164,6 +164,87 @@ function parse(d) {
   return (d.s || []).map(s => ({ c: s.c, w: +s.w || 6, p: String(s.p || '').split(',').map(Number) }))
     .filter(s => s.p.length >= 2 && s.p.every(Number.isFinite));
 }
+/* ---------- auto-rig: find the body, let everything sticking out of it dance ----------
+   No skeleton needed: we find the drawing's "core" (the chunkiest part, or the middle of a stick
+   figure) as an ellipse. Ink outside it is an arm, leg, head, ear or tail depending on which side
+   it sticks out of, and swings around the point where it leaves the body. */
+function rigFor(strokes, dw, dh) {
+  const N = 64, k = (N - 6) / Math.max(dw, dh, 1);
+  const cv = document.createElement('canvas'); cv.width = cv.height = N;
+  const g = cv.getContext('2d'); g.lineCap = g.lineJoin = 'round';
+  for (const st of strokes) {
+    g.lineWidth = Math.max(2, st.w * k + 1.5); g.strokeStyle = '#000';
+    g.beginPath(); g.moveTo(st.p[0] * k + 3, st.p[1] * k + 3);
+    for (let i = 2; i < st.p.length; i += 2) g.lineTo(st.p[i] * k + 3, st.p[i + 1] * k + 3);
+    if (st.p.length <= 2) g.lineTo(st.p[0] * k + 3.1, st.p[1] * k + 3);
+    g.stroke();
+  }
+  const px = g.getImageData(0, 0, N, N).data, ink = new Uint8Array(N * N);
+  for (let i = 0; i < N * N; i++) ink[i] = px[i * 4 + 3] > 40 ? 1 : 0;
+  // fill enclosed areas: flood the outside, the rest is the solid silhouette
+  const out = new Uint8Array(N * N), stack = [];
+  for (let i = 0; i < N; i++) stack.push(i, N * (N - 1) + i, i * N, i * N + N - 1);
+  while (stack.length) { const i = stack.pop(); if (i < 0 || i >= N * N || out[i] || ink[i]) continue; out[i] = 1;
+    const x = i % N; stack.push(i + N, i - N); if (x > 0) stack.push(i - 1); if (x < N - 1) stack.push(i + 1); }
+  // distance to the outside (two-pass chamfer)
+  const D = new Float32Array(N * N);
+  for (let i = 0; i < N * N; i++) D[i] = out[i] ? 0 : 1e9;
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const i = y * N + x; if (!D[i]) continue;
+    if (x > 0) D[i] = Math.min(D[i], D[i - 1] + 1); if (y > 0) D[i] = Math.min(D[i], D[i - N] + 1);
+    if (x > 0 && y > 0) D[i] = Math.min(D[i], D[i - N - 1] + 1.414); if (x < N - 1 && y > 0) D[i] = Math.min(D[i], D[i - N + 1] + 1.414); }
+  for (let y = N - 1; y >= 0; y--) for (let x = N - 1; x >= 0; x--) { const i = y * N + x; if (!D[i]) continue;
+    if (x < N - 1) D[i] = Math.min(D[i], D[i + 1] + 1); if (y < N - 1) D[i] = Math.min(D[i], D[i + N] + 1);
+    if (x < N - 1 && y < N - 1) D[i] = Math.min(D[i], D[i + N + 1] + 1.414); if (x > 0 && y < N - 1) D[i] = Math.min(D[i], D[i + N - 1] + 1.414); }
+  let dmax = 0, solid = 0; for (let i = 0; i < N * N; i++) { if (D[i]) solid++; if (D[i] > dmax) dmax = D[i]; }
+  const stats = sel => { let n = 0, mx = 0, my = 0; for (let i = 0; i < N * N; i++) if (sel(i)) { n++; mx += i % N; my += (i / N) | 0; }
+    if (!n) return null; mx /= n; my /= n; let sxx = 0, syy = 0;
+    for (let i = 0; i < N * N; i++) if (sel(i)) { const dx = i % N - mx, dy = ((i / N) | 0) - my; sxx += dx * dx; syy += dy * dy; }
+    return { n, mx, my, sx: Math.sqrt(sxx / n), sy: Math.sqrt(syy / n) }; };
+  const core = stats(i => D[i] >= dmax * 0.5);
+  const all = stats(i => D[i] > 0);
+  if (!all) return null;
+  let cx, cy, rx, ry;
+  if (core && dmax >= 4 && core.n >= solid * 0.12) {          // a real body: ellipse round the chunky part
+    cx = core.mx; cy = core.my; rx = core.sx * 2.3 + 2.5; ry = core.sy * 2.3 + 2.5;
+  } else {                                                      // stick figure / scribble: the middle of the ink
+    cx = all.mx; cy = all.my; rx = all.sx * 0.75 + 1.5; ry = all.sy * 0.6 + 1.5;
+  }
+  const u = 1 / k;   // back to drawing units
+  return { cx: (cx - 3) * u, cy: (cy - 3) * u, rx: rx * u, ry: ry * u };
+}
+// how much the bit of ink in direction phi turns at this moment (screen angles: up = -PI/2, down = +PI/2)
+function limbAngle(phi, beat, style) {
+  const win = (c, w) => { let d = Math.atan2(Math.sin(phi - c), Math.cos(phi - c)); return Math.abs(d) >= w ? 0 : Math.cos(d / w * Math.PI / 2) ** 2; };
+  const side = Math.cos(phi) >= 0 ? 1 : -1, b = beat * Math.PI;
+  const legs = win(Math.PI / 2, 1.05), arms = Math.max(win(0, 1.0), win(Math.PI, 1.0)), head = win(-Math.PI / 2, 0.75);
+  const leg = -side * 0.55 * Math.max(0, Math.sin(b + (side > 0 ? 0 : Math.PI)));    // kick out, left then right
+  const arm = style === 0 ? -side * 0.75 * (0.5 + 0.5 * Math.sin(b * 0.5 + (side > 0 ? 0 : Math.PI)))   // disco point
+            : style === 1 ? -side * 0.55 * Math.sin(b)                                                  // both up, both down
+            : -side * 0.5 * Math.sin(b + (side > 0 ? 0 : Math.PI / 2));                                 // wave
+  const nod = 0.16 * Math.sin(b);
+  const sum = legs + arms + head;
+  return sum ? (legs * leg + arms * arm + head * nod) / Math.max(1, sum) : 0;
+}
+// warped copy of every stroke for this frame, in drawing units
+function dancePose(c, beat) {
+  const r = c.rig, out = c.pose || (c.pose = c.strokes.map(st => new Float32Array(st.p.length)));
+  const soft = 0.3 * Math.min(r.rx, r.ry);
+  for (let si = 0; si < c.strokes.length; si++) {
+    const p = c.strokes[si].p, o = out[si];
+    for (let i = 0; i < p.length; i += 2) {
+      const dx = p[i] - r.cx, dy = p[i + 1] - r.cy, ex = dx / r.rx, ey = dy / r.ry, e = Math.hypot(ex, ey);
+      if (e <= 1) { o[i] = p[i]; o[i + 1] = p[i + 1]; continue; }
+      const phi = Math.atan2(dy, dx);
+      // where this direction leaves the body ellipse = the joint it swings round
+      const ax = r.cx + dx / e, ay = r.cy + dy / e, d = Math.hypot(p[i] - ax, p[i + 1] - ay);
+      const ramp = Math.min(1, d / soft), th = limbAngle(phi, beat, c.style) * ramp * ramp * (3 - 2 * ramp);
+      const cs = Math.cos(th), sn = Math.sin(th), qx = p[i] - ax, qy = p[i + 1] - ay;
+      o[i] = ax + qx * cs - qy * sn; o[i + 1] = ay + qx * sn + qy * cs;
+    }
+  }
+  return out;
+}
+
 function baseSize(d) {
   const maxDim = Math.max(d.w, d.h) || 100;
   const rel = maxDim / (d.vw || 390);
@@ -239,6 +320,8 @@ function addCreature(id, data, initial) {
     spin: rnd(0.15, 0.35) * (Math.random() < .5 ? -1 : 1), born: performance.now() };
   // a: 1 = Will made it an aubergine, -1 = Will restored it; otherwise the doodle check decides
   c.rude = data.a === 1 || (data.a !== -1 && Terra.looksRude(strokes, data.w, data.h));
+  try { c.rig = rigFor(strokes, data.w, data.h); } catch (e) { c.rig = null; }
+  c.style = Math.floor(Math.random() * 3);
   creatures.set(id, c);
   c.sprite = renderSprite(c);
   const z = zone(c);
@@ -428,7 +511,16 @@ function drawCreature(c, t) {
   ctx.translate(c.x, c.y + bob);
   ctx.rotate(tilt);
   ctx.scale((1 + breathe) * (1 - stretch * 0.5), (1 - breathe) * (1 + stretch));
-  ctx.drawImage(c.sprite, -w / 2, -h / 2, w, h);
+  if (drifting && c.rig && !c.rude) {
+    // live pose: strokes redrawn every frame with arms/legs/head swinging
+    const k = baseSize(c.data) / Math.max(c.data.w, c.data.h, 1) * s, pose = dancePose(c, beat);
+    ctx.translate(-c.data.w * k / 2, -c.data.h * k / 2);
+    for (const pass of [0, 1]) for (let i = 0; i < c.strokes.length; i++) {
+      const st = c.strokes[i];
+      if (pass === 0) Terra.drawStroke(ctx, st, pose[i], k, 0, 0, 6, 'rgba(255,255,255,.22)');
+      else Terra.drawStroke(ctx, st, pose[i], k, 0, 0, Math.max(1.2, 2.2 - k));
+    }
+  } else ctx.drawImage(c.sprite, -w / 2, -h / 2, w, h);
   ctx.restore();
   if (willMode && c.id === sel) {
     ctx.save(); ctx.setLineDash([8, 6]); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
