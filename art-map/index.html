@@ -24,6 +24,9 @@
   .show { font-style:italic; }
   .addr { color:var(--muted); font-size:12px; }
   .pin { width:26px; height:26px; border-radius:50%; background:var(--accent); color:#fff; font-weight:700; font-size:12px; display:grid; place-items:center; border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.4); }
+  .me { width:16px; height:16px; border-radius:50%; background:#2563eb; border:3px solid #fff; box-shadow:0 0 0 2px rgba(37,99,235,.35), 0 1px 4px rgba(0,0,0,.4); }
+  .locate { position:absolute; right:10px; bottom:24px; z-index:1000; background:var(--card); color:var(--fg); border:1px solid var(--line); border-radius:8px; padding:8px 12px; font:600 14px system-ui, sans-serif; box-shadow:0 1px 4px rgba(0,0,0,.25); cursor:pointer; }
+  #map { position:relative; }
   @media (max-width: 700px) {
     .wrap { flex-direction:column-reverse; }
     aside { width:100%; height:40%; border-right:0; border-top:1px solid var(--line); }
@@ -37,7 +40,7 @@
     <p class="sub">Tap a place to find it on the map.</p>
     <ol id="list"></ol>
   </aside>
-  <div id="map"></div>
+  <div id="map"><button class="locate" id="locate" type="button">📍 Where am I?</button></div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
@@ -69,6 +72,31 @@ places.forEach((p,i) => {
   list.appendChild(li);
 });
 map.fitBounds(L.latLngBounds(places.map(p => p.ll)), { padding:[30,30] });
+
+// Your location stays on this device: it is only drawn on the map, never sent or saved.
+let meMarker = null, meCircle = null, firstFix = true, watching = false;
+const btn = document.getElementById('locate');
+L.DomEvent.disableClickPropagation(btn);
+function startLocating() {
+  if (!('geolocation' in navigator)) { btn.textContent = 'Location unavailable'; return; }
+  if (watching) { if (meMarker) map.setView(meMarker.getLatLng(), 15); return; }
+  watching = true;
+  btn.textContent = 'Finding you…';
+  navigator.geolocation.watchPosition(pos => {
+    const ll = [pos.coords.latitude, pos.coords.longitude];
+    if (!meMarker) {
+      meMarker = L.marker(ll, { icon: L.divIcon({ className:'', html:'<div class="me"></div>', iconSize:[22,22], iconAnchor:[11,11] }), zIndexOffset:1000 }).addTo(map).bindPopup('You are here');
+      meCircle = L.circle(ll, { radius: pos.coords.accuracy, color:'#2563eb', weight:1, fillOpacity:.1 }).addTo(map);
+    } else { meMarker.setLatLng(ll); meCircle.setLatLng(ll).setRadius(pos.coords.accuracy); }
+    btn.textContent = '📍 Me';
+    if (firstFix) { firstFix = false; map.fitBounds(L.latLngBounds(places.map(p => p.ll).concat([ll])), { padding:[30,30], maxZoom:15 }); }
+  }, err => {
+    watching = false;
+    btn.textContent = err.code === 1 ? 'Location blocked' : '📍 Try again';
+  }, { enableHighAccuracy:true, maximumAge:10000, timeout:20000 });
+}
+btn.onclick = startLocating;
+startLocating();
 </script>
 </body>
 </html>
