@@ -26,6 +26,19 @@
   .pin { width:26px; height:26px; border-radius:50%; background:var(--accent); color:#fff; font-weight:700; font-size:12px; display:grid; place-items:center; border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.4); }
   .me { width:16px; height:16px; border-radius:50%; background:#2563eb; border:3px solid #fff; box-shadow:0 0 0 2px rgba(37,99,235,.35), 0 1px 4px rgba(0,0,0,.4); }
   .locate { position:absolute; right:10px; bottom:24px; z-index:1000; background:var(--card); color:var(--fg); border:1px solid var(--line); border-radius:8px; padding:8px 12px; font:600 14px system-ui, sans-serif; box-shadow:0 1px 4px rgba(0,0,0,.25); cursor:pointer; }
+  .card { position:absolute; left:10px; top:10px; z-index:1001; width:min(340px, calc(100% - 20px)); max-height:calc(100% - 80px); overflow-y:auto; background:var(--card); color:var(--fg); border:1px solid var(--line); border-radius:12px; padding:14px 14px 12px; box-shadow:0 4px 20px rgba(0,0,0,.25); }
+  .card[hidden] { display:none; }
+  .card .close { position:absolute; top:6px; right:8px; border:0; background:none; color:var(--muted); font-size:24px; line-height:1; cursor:pointer; padding:4px; }
+  .card-head { display:flex; gap:10px; align-items:center; padding-right:24px; }
+  .card h2 { font-size:17px; margin:0; }
+  .card .label { margin-top:12px; font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+  .card ul.shows { margin:4px 0 10px; padding-left:18px; }
+  .card ul.shows li { display:list-item; border:0; padding:2px 0; margin:0; background:none; cursor:auto; font-style:italic; }
+  .card ul.shows li.unknown { font-style:normal; color:var(--muted); list-style:none; margin-left:-18px; }
+  .btns { display:flex; gap:8px; margin-top:12px; }
+  .btn { flex:1; text-align:center; text-decoration:none; padding:9px 10px; border-radius:8px; border:1px solid var(--line); color:var(--fg); font-weight:600; font-size:14px; }
+  .btn:visited { color:var(--fg); }
+  .btn.primary, .btn.primary:visited { background:var(--accent); border-color:var(--accent); color:#fff; }
   #map { position:relative; }
   @media (max-width: 700px) {
     .wrap { flex-direction:column-reverse; }
@@ -37,40 +50,58 @@
 <div class="wrap">
   <aside>
     <h1>Gallery Map <span class="wip">WIP</span></h1>
-    <p class="sub">Tap a place to find it on the map.</p>
+    <p class="sub">Tap a place or pin to see what’s on.</p>
     <ol id="list"></ol>
   </aside>
-  <div id="map"><button class="locate" id="locate" type="button">📍 Where am I?</button></div>
+  <div id="map"><button class="locate" id="locate" type="button">📍 Where am I?</button>
+    <div class="card" id="card" hidden><button class="close" type="button" aria-label="Close">×</button><div class="card-body"></div></div>
+  </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 const places = [
-  { name:"Annely Juda Fine Art", addr:"23 Dering St, W1S 1AW", ll:[51.5137,-0.1452] },
-  { name:"Serpentine Galleries", addr:"Kensington Gardens, W2 3XA", ll:[51.5048,-0.1749] },
-  { name:"Whitechapel Gallery", addr:"77–82 Whitechapel High St, E1 7QX", ll:[51.5160,-0.0703] },
-  { name:"Pilar Corrias", addr:"2 Savile Row, W1S 3PA", ll:[51.5108,-0.1406] },
-  { name:"Sprüth Magers", addr:"7A Grafton St, W1S 4EJ", ll:[51.5089,-0.1424] },
-  { name:"Gagosian, Grosvenor Hill", addr:"20 Grosvenor Hill, W1K 3QD", ll:[51.5115,-0.1458] },
-  { name:"Somerset House Studios", show:"Jenkin van Zyl: Enclosure", addr:"Strand, WC2R 1LA", ll:[51.5111,-0.1171] },
-  { name:"Elizabeth Xi Bauer", show:"Pia Camil: Bestia", addr:"Exmouth Market, EC1R", ll:[51.5258,-0.1087] },
-  { name:"Robilant+Voena", addr:"38 Dover St, W1S 4NL", ll:[51.5085,-0.1418] },
-  { name:"Barbican, The Curve", addr:"Silk St, EC2Y 8DS", ll:[51.5202,-0.0937] },
-  { name:"Emalin", show:"Pilgrims", addr:"The Clerk's House, 118½ Shoreditch High St, E1 6JN", ll:[51.5254,-0.0777] },
-  { name:"White Cube Bermondsey", show:"Gabriel Orozco: Chronotopic", addr:"144–152 Bermondsey St, SE1 3TQ", ll:[51.4977,-0.0817] },
-  { name:"Hamiltons Gallery", addr:"13 Carlos Place, W1K 2EU", ll:[51.5103,-0.1497] },
+  { name:"Annely Juda Fine Art", addr:"16 Hanover Square, W1S 1HT", ll:[51.5136,-0.1428], url:"https://www.annelyjudafineart.co.uk/exhibitions/current" },
+  { name:"Serpentine Galleries", addr:"Kensington Gardens, W2 3XA", ll:[51.5048,-0.1749], url:"https://www.serpentinegalleries.org/whats-on/" },
+  { name:"Whitechapel Gallery", addr:"77–82 Whitechapel High St, E1 7QX", ll:[51.5160,-0.0703], url:"https://www.whitechapelgallery.org", shows:["Cecilia Vicuña: Foraging Quipu","Cecilia Vicuña: Living Threads","This Must Be the Place: Artists for Whitechapel Gallery"] },
+  { name:"Pilar Corrias", addr:"2 Savile Row, W1S 3PA", ll:[51.5108,-0.1406], url:"https://www.pilarcorrias.com", shows:["Rirkrit Tiravanija: (situational awareness)"] },
+  { name:"Sprüth Magers", addr:"7A Grafton St, W1S 4EJ", ll:[51.5089,-0.1424], url:"https://spruethmagers.com", shows:["Hyun-Sook Song (opens 6 Nov)"] },
+  { name:"Gagosian, Grosvenor Hill", addr:"20 Grosvenor Hill, W1K 3QD", ll:[51.5115,-0.1458], url:"https://gagosian.com/exhibitions/", shows:["This Is Still Not a Pipe: The Afterlife of Magritte"] },
+  { name:"Somerset House Studios", addr:"Strand, WC2R 1LA", ll:[51.5111,-0.1171], url:"https://www.somersethouse.org.uk/whats-on", shows:["Jenkin van Zyl: Enclosure"] },
+  { name:"Elizabeth Xi Bauer", addr:"Exmouth Market, EC1R", ll:[51.5258,-0.1087], url:"https://elizabethxibauer.com", shows:["Pia Camil: Bestia"] },
+  { name:"Robilant+Voena", addr:"38 Dover St, W1S 4NL", ll:[51.5085,-0.1418], url:"https://www.robilantvoena.com" },
+  { name:"Barbican, The Curve", addr:"Silk St, EC2Y 8DS", ll:[51.5202,-0.0937], url:"https://www.barbican.org.uk/whats-on/art-design", shows:["Yuko Mohri"] },
+  { name:"Emalin", addr:"The Clerk's House, 118½ Shoreditch High St, E1 6JN", ll:[51.5254,-0.0777], url:"https://emalin.co.uk/exhibitions/pilgrims", shows:["Pilgrims"] },
+  { name:"White Cube Bermondsey", addr:"144–152 Bermondsey St, SE1 3TQ", ll:[51.4977,-0.0817], url:"https://www.whitecube.com/gallery-exhibitions/gabriel-orozco-bermondsey-2026", shows:["Gabriel Orozco: Chronotopic"] },
+  { name:"Hamiltons Gallery", addr:"13 Carlos Place, W1K 2EU", ll:[51.5103,-0.1497], url:"https://www.hamiltonsgallery.com" },
 ];
 const map = L.map('map');
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19, attribution:'&copy; OpenStreetMap contributors' }).addTo(map);
 const list = document.getElementById('list');
 const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const card = document.getElementById('card');
+function openCard(i) {
+  const p = places[i];
+  const gmaps = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(p.name + ', ' + p.addr + ', London');
+  const shows = p.shows && p.shows.length
+    ? p.shows.map(t => `<li>${esc(t)}</li>`).join('')
+    : '<li class="unknown">Not sure what’s on. Check their website.</li>';
+  card.querySelector('.card-body').innerHTML =
+    `<div class="card-head"><span class="n">${i+1}</span><h2>${esc(p.name)}</h2></div>
+     <div class="label">On now</div><ul class="shows">${shows}</ul>
+     <div class="addr">${esc(p.addr)}</div>
+     <div class="btns"><a class="btn primary" href="${p.url}" target="_blank" rel="noopener">Website ↗</a><a class="btn" href="${gmaps}" target="_blank" rel="noopener">Directions ↗</a></div>`;
+  card.hidden = false;
+}
+card.querySelector('.close').onclick = () => { card.hidden = true; };
+L.DomEvent.disableClickPropagation(card);
+map.on('click', () => { card.hidden = true; });
 places.forEach((p,i) => {
   const icon = L.divIcon({ className:'', html:`<div class="pin">${i+1}</div>`, iconSize:[26,26], iconAnchor:[13,13] });
-  const gmaps = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(p.name + ', ' + p.addr + ', London');
-  const html = `<b>${esc(p.name)}</b>${p.show?`<br><i>${esc(p.show)}</i>`:''}<br>${esc(p.addr)}<br><a href="${gmaps}" target="_blank" rel="noopener">Directions</a>`;
-  const m = L.marker(p.ll, { icon }).addTo(map).bindPopup(html);
+  L.marker(p.ll, { icon }).addTo(map).on('click', () => openCard(i));
   const li = document.createElement('li');
-  li.innerHTML = `<span class="n">${i+1}</span><div><div class="name">${esc(p.name)}</div>${p.show?`<div class="show">${esc(p.show)}</div>`:''}<div class="addr">${esc(p.addr)}</div></div>`;
-  li.onclick = () => { map.setView(p.ll, 16); m.openPopup(); };
+  const first = p.shows && p.shows[0];
+  li.innerHTML = `<span class="n">${i+1}</span><div><div class="name">${esc(p.name)}</div>${first?`<div class="show">${esc(first)}${p.shows.length>1?` +${p.shows.length-1} more`:''}</div>`:''}<div class="addr">${esc(p.addr)}</div></div>`;
+  li.onclick = () => { map.setView(p.ll, 16); openCard(i); };
   list.appendChild(li);
 });
 map.fitBounds(L.latLngBounds(places.map(p => p.ll)), { padding:[30,30] });
