@@ -35,6 +35,10 @@
   .card ul.shows { margin:4px 0 10px; padding-left:18px; }
   .card ul.shows li { display:list-item; border:0; padding:2px 0; margin:0; background:none; cursor:auto; font-style:italic; }
   .card ul.shows li.unknown { font-style:normal; color:var(--muted); list-style:none; margin-left:-18px; }
+  .photo { margin:10px -14px 0; aspect-ratio:21/9; background:var(--line) center/cover no-repeat; display:none; }
+  .photo.ok { display:block; }
+  .credit { font-size:10px; color:var(--muted); text-align:right; margin-top:2px; display:none; }
+  .credit.ok { display:block; }
   .btns { display:flex; gap:8px; margin-top:12px; }
   .btn { flex:1; text-align:center; text-decoration:none; padding:9px 10px; border-radius:8px; border:1px solid var(--line); color:var(--fg); font-weight:600; font-size:14px; }
   .btn:visited { color:var(--fg); }
@@ -67,20 +71,20 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 const places = [
-  { name:"Annely Juda Fine Art", addr:"16 Hanover Square, W1S 1HT", ll:[51.5136,-0.1428], url:"https://www.annelyjudafineart.co.uk/exhibitions/current" },
-  { name:"Serpentine Galleries", addr:"Kensington Gardens, W2 3XA", ll:[51.5048,-0.1749], url:"https://www.serpentinegalleries.org/whats-on/" },
-  { name:"Whitechapel Gallery", addr:"77–82 Whitechapel High St, E1 7QX", ll:[51.5160,-0.0703], url:"https://www.whitechapelgallery.org", shows:["Cecilia Vicuña: Foraging Quipu","Cecilia Vicuña: Living Threads","This Must Be the Place: Artists for Whitechapel Gallery"] },
-  { name:"Pilar Corrias", addr:"2 Savile Row, W1S 3PA", ll:[51.5108,-0.1406], url:"https://www.pilarcorrias.com", shows:["Rirkrit Tiravanija: (situational awareness)"] },
-  { name:"Sprüth Magers", addr:"7A Grafton St, W1S 4EJ", ll:[51.5089,-0.1424], url:"https://spruethmagers.com", shows:["Hyun-Sook Song (opens 6 Nov)"] },
-  { name:"Gagosian, Grosvenor Hill", addr:"20 Grosvenor Hill, W1K 3QD", ll:[51.5115,-0.1458], url:"https://gagosian.com/exhibitions/", shows:["This Is Still Not a Pipe: The Afterlife of Magritte"] },
-  { name:"Somerset House Studios", addr:"Strand, WC2R 1LA", ll:[51.5111,-0.1171], url:"https://www.somersethouse.org.uk/whats-on", shows:["Jenkin van Zyl: Enclosure"] },
-  { name:"Elizabeth Xi Bauer", addr:"Exmouth Market, EC1R", ll:[51.5258,-0.1087], url:"https://elizabethxibauer.com", shows:["Pia Camil: Bestia"] },
-  { name:"Robilant+Voena", addr:"38 Dover St, W1S 4NL", ll:[51.5085,-0.1418], url:"https://www.robilantvoena.com" },
-  { name:"Barbican, The Curve", addr:"Silk St, EC2Y 8DS", ll:[51.5202,-0.0937], url:"https://www.barbican.org.uk/whats-on/art-design", shows:["Yuko Mohri"] },
-  { name:"Emalin", addr:"The Clerk's House, 118½ Shoreditch High St, E1 6JN", ll:[51.5254,-0.0777], url:"https://emalin.co.uk/exhibitions/pilgrims", shows:["Pilgrims"] },
-  { name:"White Cube Bermondsey", addr:"144–152 Bermondsey St, SE1 3TQ", ll:[51.4977,-0.0817], url:"https://www.whitecube.com/gallery-exhibitions/gabriel-orozco-bermondsey-2026", shows:["Gabriel Orozco: Chronotopic"] },
-  { name:"Hamiltons Gallery", addr:"13 Carlos Place, W1K 2EU", ll:[51.5103,-0.1497], url:"https://www.hamiltonsgallery.com" },
-  { name:"Quentin Blake Centre for Illustration", addr:"1 Myddelton Passage, EC1R 1AG", ll:[51.5300,-0.1065], url:"https://www.quentinblakecentre.org", shows:["Quentin Blake: Performance"] },
+  { name:"Annely Juda Fine Art", wiki:"Annely Juda", addr:"16 Hanover Square, W1S 1HT", ll:[51.5136,-0.1428], url:"https://www.annelyjudafineart.co.uk/exhibitions/current" },
+  { name:"Serpentine Galleries", wiki:"Serpentine Galleries", addr:"Kensington Gardens, W2 3XA", ll:[51.5048,-0.1749], url:"https://www.serpentinegalleries.org/whats-on/" },
+  { name:"Whitechapel Gallery", wiki:"Whitechapel Gallery", addr:"77–82 Whitechapel High St, E1 7QX", ll:[51.5160,-0.0703], url:"https://www.whitechapelgallery.org", shows:["Cecilia Vicuña: Foraging Quipu","Cecilia Vicuña: Living Threads","This Must Be the Place: Artists for Whitechapel Gallery"] },
+  { name:"Pilar Corrias", wiki:"Pilar Corrias", addr:"2 Savile Row, W1S 3PA", ll:[51.5108,-0.1406], url:"https://www.pilarcorrias.com", shows:["Rirkrit Tiravanija: (situational awareness)"] },
+  { name:"Sprüth Magers", wiki:"Sprüth Magers", addr:"7A Grafton St, W1S 4EJ", ll:[51.5089,-0.1424], url:"https://spruethmagers.com", shows:["Hyun-Sook Song (opens 6 Nov)"] },
+  { name:"Gagosian, Grosvenor Hill", wiki:"Gagosian", addr:"20 Grosvenor Hill, W1K 3QD", ll:[51.5115,-0.1458], url:"https://gagosian.com/exhibitions/", shows:["This Is Still Not a Pipe: The Afterlife of Magritte"] },
+  { name:"Somerset House Studios", wiki:"Somerset House", addr:"Strand, WC2R 1LA", ll:[51.5111,-0.1171], url:"https://www.somersethouse.org.uk/whats-on", shows:["Jenkin van Zyl: Enclosure"] },
+  { name:"Elizabeth Xi Bauer", wiki:"Elizabeth Xi Bauer", addr:"Exmouth Market, EC1R", ll:[51.5258,-0.1087], url:"https://elizabethxibauer.com", shows:["Pia Camil: Bestia"] },
+  { name:"Robilant+Voena", wiki:"Robilant+Voena", addr:"38 Dover St, W1S 4NL", ll:[51.5085,-0.1418], url:"https://www.robilantvoena.com" },
+  { name:"Barbican, The Curve", wiki:"Barbican Centre", addr:"Silk St, EC2Y 8DS", ll:[51.5202,-0.0937], url:"https://www.barbican.org.uk/whats-on/art-design", shows:["Yuko Mohri"] },
+  { name:"Emalin", wiki:"Emalin", addr:"The Clerk's House, 118½ Shoreditch High St, E1 6JN", ll:[51.5254,-0.0777], url:"https://emalin.co.uk/exhibitions/pilgrims", shows:["Pilgrims"] },
+  { name:"White Cube Bermondsey", wiki:"White Cube", addr:"144–152 Bermondsey St, SE1 3TQ", ll:[51.4977,-0.0817], url:"https://www.whitecube.com/gallery-exhibitions/gabriel-orozco-bermondsey-2026", shows:["Gabriel Orozco: Chronotopic"] },
+  { name:"Hamiltons Gallery", wiki:"Hamiltons Gallery", addr:"13 Carlos Place, W1K 2EU", ll:[51.5103,-0.1497], url:"https://www.hamiltonsgallery.com" },
+  { name:"Quentin Blake Centre for Illustration", wiki:"Quentin Blake Centre for Illustration", addr:"1 Myddelton Passage, EC1R 1AG", ll:[51.5300,-0.1065], url:"https://www.quentinblakecentre.org", shows:["Quentin Blake: Performance"] },
 ];
 const map = L.map('map');
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19, attribution:'&copy; OpenStreetMap contributors' }).addTo(map);
@@ -117,6 +121,7 @@ function openCard(i) {
     : '<li class="unknown">Not sure what’s on. Check their website.</li>';
   card.querySelector('.card-body').innerHTML =
     `<div class="card-head"><span class="n">${i+1}</span><h2>${esc(p.name)}</h2></div>
+     <div class="photo"></div><div class="credit">Photo: Wikipedia</div>
      <div class="label">On now</div><ul class="shows">${shows}</ul>
      <div class="addr">${esc(p.addr)}</div>
      <button class="been-btn${been[p.name]?' on':''}" type="button">${been[p.name]?'✓ Been here':'Tick: I’ve been here'}</button>
@@ -124,6 +129,33 @@ function openCard(i) {
   card.querySelector('.been-btn').onclick = () => setBeen(i, !been[p.name]);
   openIdx = i;
   card.hidden = false;
+  loadPhoto(i);
+}
+// Photos load from Wikipedia on your phone; if there's no photo the space just stays hidden.
+const photoCache = {};
+async function loadPhoto(i) {
+  const p = places[i];
+  if (p.img) return showPhoto(i, p.img, 'Photo: ' + (p.imgCredit || p.name));
+  if (!p.wiki) return;
+  if (!(p.wiki in photoCache)) {
+    photoCache[p.wiki] = null;
+    try {
+      const r = await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(p.wiki.replace(/ /g, '_')) + '?redirect=true');
+      if (r.ok) { const j = await r.json(); if (j.type !== 'disambiguation') photoCache[p.wiki] = (j.originalimage || j.thumbnail || {}).source || null; }
+    } catch (e) {}
+  }
+  if (photoCache[p.wiki]) showPhoto(i, photoCache[p.wiki], 'Photo: Wikipedia');
+}
+function showPhoto(i, src, credit) {
+  if (openIdx !== i) return;
+  const img = new Image();
+  img.onload = () => {
+    if (openIdx !== i) return;
+    const ph = card.querySelector('.photo'), cr = card.querySelector('.credit');
+    ph.style.backgroundImage = `url("${src}")`; ph.classList.add('ok');
+    cr.textContent = credit; cr.classList.add('ok');
+  };
+  img.src = src;
 }
 card.querySelector('.close').onclick = () => { card.hidden = true; openIdx = -1; };
 L.DomEvent.disableClickPropagation(card);
