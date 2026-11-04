@@ -26,9 +26,9 @@ Phones (via the QR): https://curopethau-commits.github.io/curo-test-zone/niko-pa
 
 Status: **WIP**. Needs the `niko_forest_disco` database rule (see niko-party/README.md).
 
-## Gallery Map (WIP)
+## robrob gallery mapmap (WIP)
 
-London galleries and shows to visit, pinned on one map.
+London galleries and shows to visit, pinned on one map. Tick the ones you have been to (saved on your device only).
 
 View: https://curopethau-commits.github.io/curo-test-zone/art-map/
 

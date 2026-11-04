@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Gallery Map (WIP)</title>
+<title>robrob gallery mapmap (WIP)</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
   :root { --bg:#faf8f4; --fg:#1d1b18; --muted:#6b665e; --line:#e4dfd6; --accent:#c2410c; --card:#fff; }
@@ -39,6 +39,13 @@
   .btn { flex:1; text-align:center; text-decoration:none; padding:9px 10px; border-radius:8px; border:1px solid var(--line); color:var(--fg); font-weight:600; font-size:14px; }
   .btn:visited { color:var(--fg); }
   .btn.primary, .btn.primary:visited { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .tick { flex:none; margin-left:auto; align-self:center; width:32px; height:32px; border-radius:50%; border:2px solid var(--line); background:none; color:transparent; font-size:16px; font-weight:700; cursor:pointer; display:grid; place-items:center; }
+  .tick.on { background:#16a34a; border-color:#16a34a; color:#fff; }
+  li.been { opacity:.6; }
+  li.been .n, .pin.been { background:#16a34a; }
+  #count { font-weight:700; color:var(--fg); }
+  .been-btn { width:100%; margin-top:8px; padding:9px 10px; border-radius:8px; border:2px solid #16a34a; background:none; color:#16a34a; font:600 14px system-ui, sans-serif; cursor:pointer; }
+  .been-btn.on { background:#16a34a; color:#fff; }
   #map { position:relative; }
   @media (max-width: 700px) {
     .wrap { flex-direction:column-reverse; }
@@ -49,8 +56,8 @@
 <body>
 <div class="wrap">
   <aside>
-    <h1>Gallery Map <span class="wip">WIP</span></h1>
-    <p class="sub">Tap a place or pin to see what’s on.</p>
+    <h1>robrob gallery mapmap <span class="wip">WIP</span></h1>
+    <p class="sub">Tap a place or pin to see what’s on. Tick the ones you’ve been to. <span id="count"></span></p>
     <ol id="list"></ol>
   </aside>
   <div id="map"><button class="locate" id="locate" type="button">📍 Where am I?</button>
@@ -80,6 +87,28 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19, 
 const list = document.getElementById('list');
 const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const card = document.getElementById('card');
+// Ticks are saved in this browser only, so they're private to you on this device.
+const KEY = 'robrob-mapmap-been';
+let been = {};
+try { been = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) {}
+const markers = [], items = [];
+let openIdx = -1;
+function setBeen(i, v) {
+  if (v) been[places[i].name] = true; else delete been[places[i].name];
+  try { localStorage.setItem(KEY, JSON.stringify(been)); } catch (e) {}
+  render(i);
+  if (openIdx === i) openCard(i);
+}
+function render(i) {
+  const on = !!been[places[i].name];
+  items[i].classList.toggle('been', on);
+  const t = items[i].querySelector('.tick');
+  t.classList.toggle('on', on); t.setAttribute('aria-pressed', on); t.textContent = '✓';
+  const el = markers[i].getElement();
+  if (el) el.querySelector('.pin').classList.toggle('been', on);
+  const n = places.filter(p => been[p.name]).length;
+  document.getElementById('count').textContent = `${n}/${places.length} visited`;
+}
 function openCard(i) {
   const p = places[i];
   const gmaps = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(p.name + ', ' + p.addr + ', London');
@@ -90,22 +119,29 @@ function openCard(i) {
     `<div class="card-head"><span class="n">${i+1}</span><h2>${esc(p.name)}</h2></div>
      <div class="label">On now</div><ul class="shows">${shows}</ul>
      <div class="addr">${esc(p.addr)}</div>
+     <button class="been-btn${been[p.name]?' on':''}" type="button">${been[p.name]?'✓ Been here':'Tick: I’ve been here'}</button>
      <div class="btns"><a class="btn primary" href="${p.url}" target="_blank" rel="noopener">Website ↗</a><a class="btn" href="${gmaps}" target="_blank" rel="noopener">Directions ↗</a></div>`;
+  card.querySelector('.been-btn').onclick = () => setBeen(i, !been[p.name]);
+  openIdx = i;
   card.hidden = false;
 }
-card.querySelector('.close').onclick = () => { card.hidden = true; };
+card.querySelector('.close').onclick = () => { card.hidden = true; openIdx = -1; };
 L.DomEvent.disableClickPropagation(card);
-map.on('click', () => { card.hidden = true; });
+map.on('click', () => { card.hidden = true; openIdx = -1; });
 places.forEach((p,i) => {
   const icon = L.divIcon({ className:'', html:`<div class="pin">${i+1}</div>`, iconSize:[26,26], iconAnchor:[13,13] });
-  L.marker(p.ll, { icon }).addTo(map).on('click', () => openCard(i));
+  markers[i] = L.marker(p.ll, { icon }).addTo(map).on('click', () => openCard(i));
   const li = document.createElement('li');
   const first = p.shows && p.shows[0];
-  li.innerHTML = `<span class="n">${i+1}</span><div><div class="name">${esc(p.name)}</div>${first?`<div class="show">${esc(first)}${p.shows.length>1?` +${p.shows.length-1} more`:''}</div>`:''}<div class="addr">${esc(p.addr)}</div></div>`;
+  li.innerHTML = `<span class="n">${i+1}</span><div><div class="name">${esc(p.name)}</div>${first?`<div class="show">${esc(first)}${p.shows.length>1?` +${p.shows.length-1} more`:''}</div>`:''}<div class="addr">${esc(p.addr)}</div></div><button class="tick" type="button" aria-label="Been here">✓</button>`;
+  li.querySelector('.tick').onclick = e => { e.stopPropagation(); setBeen(i, !been[p.name]); };
   li.onclick = () => { map.setView(p.ll, 16); openCard(i); };
   list.appendChild(li);
+  items[i] = li;
+  render(i);
 });
 map.fitBounds(L.latLngBounds(places.map(p => p.ll)), { padding:[30,30] });
+places.forEach((_, i) => render(i));
 
 // Your location stays on this device: it is only drawn on the map, never sent or saved.
 let meMarker = null, meCircle = null, firstFix = true, watching = false;
