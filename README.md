@@ -26,6 +26,14 @@ Phones (via the QR): https://curopethau-commits.github.io/curo-test-zone/niko-pa
 
 Status: **WIP**. Needs the `niko_forest_disco` database rule (see niko-party/README.md).
 
+## Gallery Map (WIP)
+
+London galleries and shows to visit, pinned on one map.
+
+View: https://curopethau-commits.github.io/curo-test-zone/art-map/
+
+Status: **WIP**.
+
 ## Keep Level Test
 
 After Effects expression demo: a square parented to a spinning null stays level while it scales up and moves to the top.

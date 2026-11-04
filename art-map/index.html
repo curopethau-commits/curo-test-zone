@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gallery Map (WIP)</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  :root { --bg:#faf8f4; --fg:#1d1b18; --muted:#6b665e; --line:#e4dfd6; --accent:#c2410c; --card:#fff; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#16140f; --fg:#f1ede6; --muted:#a39d92; --line:#2c2922; --accent:#fb923c; --card:#1f1c16; } }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--fg); font:15px/1.4 system-ui, -apple-system, sans-serif; }
+  .wrap { display:flex; height:100%; }
+  aside { width:300px; flex:none; overflow-y:auto; border-right:1px solid var(--line); padding:16px; }
+  #map { flex:1; }
+  h1 { font-size:18px; margin:0 0 4px; }
+  .wip { display:inline-block; font-size:11px; font-weight:700; letter-spacing:.05em; background:var(--accent); color:#fff; border-radius:4px; padding:1px 6px; vertical-align:middle; margin-left:6px; }
+  p.sub { margin:0 0 12px; color:var(--muted); font-size:13px; }
+  ol { list-style:none; padding:0; margin:0; }
+  li { padding:10px; border:1px solid var(--line); border-radius:8px; margin-bottom:8px; background:var(--card); cursor:pointer; display:flex; gap:10px; }
+  li:hover { border-color:var(--accent); }
+  .n { flex:none; width:24px; height:24px; border-radius:50%; background:var(--accent); color:#fff; font-weight:700; font-size:12px; display:grid; place-items:center; }
+  .name { font-weight:600; }
+  .show { font-style:italic; }
+  .addr { color:var(--muted); font-size:12px; }
+  .pin { width:26px; height:26px; border-radius:50%; background:var(--accent); color:#fff; font-weight:700; font-size:12px; display:grid; place-items:center; border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.4); }
+  @media (max-width: 700px) {
+    .wrap { flex-direction:column-reverse; }
+    aside { width:100%; height:40%; border-right:0; border-top:1px solid var(--line); }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <aside>
+    <h1>Gallery Map <span class="wip">WIP</span></h1>
+    <p class="sub">Tap a place to find it on the map.</p>
+    <ol id="list"></ol>
+  </aside>
+  <div id="map"></div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+const places = [
+  { name:"Annely Juda Fine Art", addr:"23 Dering St, W1S 1AW", ll:[51.5137,-0.1452] },
+  { name:"Serpentine Galleries", addr:"Kensington Gardens, W2 3XA", ll:[51.5048,-0.1749] },
+  { name:"Whitechapel Gallery", addr:"77–82 Whitechapel High St, E1 7QX", ll:[51.5160,-0.0703] },
+  { name:"Pilar Corrias", addr:"2 Savile Row, W1S 3PA", ll:[51.5108,-0.1406] },
+  { name:"Sprüth Magers", addr:"7A Grafton St, W1S 4EJ", ll:[51.5089,-0.1424] },
+  { name:"Gagosian, Grosvenor Hill", addr:"20 Grosvenor Hill, W1K 3QD", ll:[51.5115,-0.1458] },
+  { name:"Somerset House Studios", show:"Jenkin van Zyl: Enclosure", addr:"Strand, WC2R 1LA", ll:[51.5111,-0.1171] },
+];
+const map = L.map('map');
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19, attribution:'&copy; OpenStreetMap contributors' }).addTo(map);
+const list = document.getElementById('list');
+const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+places.forEach((p,i) => {
+  const icon = L.divIcon({ className:'', html:`<div class="pin">${i+1}</div>`, iconSize:[26,26], iconAnchor:[13,13] });
+  const gmaps = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(p.name + ', ' + p.addr + ', London');
+  const html = `<b>${esc(p.name)}</b>${p.show?`<br><i>${esc(p.show)}</i>`:''}<br>${esc(p.addr)}<br><a href="${gmaps}" target="_blank" rel="noopener">Directions</a>`;
+  const m = L.marker(p.ll, { icon }).addTo(map).bindPopup(html);
+  const li = document.createElement('li');
+  li.innerHTML = `<span class="n">${i+1}</span><div><div class="name">${esc(p.name)}</div>${p.show?`<div class="show">${esc(p.show)}</div>`:''}<div class="addr">${esc(p.addr)}</div></div>`;
+  li.onclick = () => { map.setView(p.ll, 16); m.openPopup(); };
+  list.appendChild(li);
+});
+map.fitBounds(L.latLngBounds(places.map(p => p.ll)), { padding:[30,30] });
+</script>
+</body>
+</html>
