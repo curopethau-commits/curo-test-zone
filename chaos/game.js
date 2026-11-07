@@ -749,6 +749,7 @@ const ACTS = {
     else Net.del('players/' + b.dataset.id);
   },
   start: () => startGame(),
+  dice: () => rollName(),
   invite: () => invite(),
   leave: () => leave(),
 };
@@ -949,6 +950,53 @@ function sendChat() {
 const away = () => document.body.classList.toggle('away', document.hidden || !document.hasFocus());
 document.addEventListener('visibilitychange', away);
 addEventListener('blur', away); addEventListener('focus', away);
+
+// ---------------------------------------------------------------- name dice
+const NA = ['ZOR', 'MOR', 'GRIM', 'AL', 'BAL', 'VAX', 'THAL', 'MER', 'RAZ', 'KAL', 'XAN', 'OR', 'SYL', 'DRAK', 'FEN', 'HEX', 'QUIL', 'UR', 'BRAM', 'NYX', 'EL', 'GOR', 'ZAN', 'MAL', 'WOB', 'PIP', 'TOR', 'IG'];
+const NB = ['BAX', 'GRIM', 'DOR', 'WYN', 'AZAR', 'THOR', 'LOCK', 'ZAR', 'IX', 'UMBRA', 'ORN', 'ETH', 'IN', 'OTH', 'ARD', 'ISTO', 'EUS', 'OCK', 'ANDO', 'RAX', 'IEL', 'OS', 'WIN', 'BLE', 'MOTH', 'AGON'];
+function wizName() {
+  for (;;) {
+    const a = NA[rnd(NA.length)], b = NB[rnd(NB.length)];
+    const n = a + b;
+    if (a !== b && n.length >= 4 && n.length <= 10) return n;
+  }
+}
+// pixel die face 1-6 as an 11x11 SVG
+const PIPS = { 1: [[5, 5]], 2: [[2, 2], [8, 8]], 3: [[2, 2], [5, 5], [8, 8]], 4: [[2, 2], [8, 2], [2, 8], [8, 8]], 5: [[2, 2], [8, 2], [5, 5], [2, 8], [8, 8]], 6: [[2, 2], [8, 2], [2, 5], [8, 5], [2, 8], [8, 8]] };
+function dieSvg(n, col = '#fff') {
+  let r = '';
+  for (let y = 0; y < 11; y++) for (let x = 0; x < 11; x++) {
+    const corner = (x === 0 || x === 10) && (y === 0 || y === 10);
+    if (!corner) r += `<rect x="${x}" y="${y}" width="1" height="1" fill="${col}"/>`;
+  }
+  for (const [x, y] of PIPS[n]) r += `<rect x="${x}" y="${y}" width="1" height="1" fill="#000"/>`;
+  return `<svg viewBox="0 0 11 11" xmlns="http://www.w3.org/2000/svg">${r}</svg>`;
+}
+const DIE_COLS = ['#fff', '#ff0', '#0ff', '#f0f', '#0f0', '#f22'];
+$('dice').innerHTML = dieSvg(5);
+let rolling = false;
+function rollName() {
+  if (rolling) return;
+  rolling = true;
+  const d = $('dice'), inp = $('name');
+  d.classList.add('roll');
+  let i = 0;
+  const tick = () => {
+    const face = 1 + rnd(6);
+    d.innerHTML = dieSvg(face, DIE_COLS[rnd(DIE_COLS.length)]);
+    inp.value = wizName();
+    SFX.play('click');
+    if (++i < 9) setTimeout(tick, 45 + i * 12);
+    else {
+      d.classList.remove('roll');
+      d.innerHTML = dieSvg(face);
+      SFX.play('success');
+      myName();
+      rolling = false;
+    }
+  };
+  tick();
+}
 
 // ---------------------------------------------------------------- boot
 $('logo').innerHTML = 'CHAOS'.split('').map((c, i) => `<span style="animation-delay:${-i * 0.27}s">${c}</span>`).join('');

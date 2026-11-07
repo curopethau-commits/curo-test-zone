@@ -37,6 +37,11 @@
   .row { display: flex; gap: 8px; align-items: center; }
   .row > * { flex: 1; }
   .label { color: #0ff; font-size: 9px; }
+  .dice { flex: none !important; width: 44px; height: 44px; padding: 0; border: 0; background: none; display: flex; align-items: center; justify-content: center; }
+  .dice:active { background: none; }
+  .dice svg { width: 36px; height: 36px; shape-rendering: crispEdges; display: block; }
+  .dice.roll svg { animation: shake .09s steps(2) infinite; }
+  @keyframes shake { 0% { transform: translate(-2px, 1px) rotate(-8deg) } 100% { transform: translate(2px, -1px) rotate(8deg) } }
   .err { color: #f22; min-height: 1.6em; font-size: 9px; }
 
   /* lobby */
@@ -98,7 +103,7 @@
   </div>
   <div class="tcol">
     <div class="label">YOUR NAME</div>
-    <input id="name" maxlength="12" autocomplete="off" spellcheck="false">
+    <div class="row"><input id="name" maxlength="12" autocomplete="off" spellcheck="false"><button id="dice" class="dice" data-act="dice" aria-label="Random wizard name" title="Random wizard name"></button></div>
     <button class="big y" data-act="create">CREATE ROOM</button>
     <div class="row"><input id="joincode" maxlength="5" placeholder="CODE" autocomplete="off" spellcheck="false"><button class="big c" data-act="join">JOIN</button></div>
     <button class="g" data-act="hotseat">PLAY ON THIS DEVICE</button>
