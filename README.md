@@ -1,5 +1,13 @@
 # curo-test-zone
 
+## CHAOS: The Battle of Wizards (WIP)
+
+Family remake of Julian Gollop's 1985 Spectrum game: 2 to 8 wizards online with a room code, or on one device, plus computer wizards and a private room chat. Landscape.
+
+Play: https://curopethau-commits.github.io/curo-test-zone/chaos/
+
+Status: **WIP**. Online rooms need the `chaos_rooms` database rule (see chaos/README.md). Sprites are stand-ins to be redrawn.
+
 ## Doodle Garden (WIP)
 
 Prototype of the AR plant game: kids draw a plant, it turns into 3D, they plant its seed on a map, water it to make it grow, and can view it in AR on a phone.

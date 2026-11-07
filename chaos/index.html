@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>CHAOS (WIP)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<link rel="manifest" href="manifest.json">
+<style>
+  :root { --font: 'Press Start 2P', ui-monospace, monospace; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; background: #000; color: #fff; font-family: var(--font); font-size: 10px; line-height: 1.6; overflow: hidden; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+  button, input { font-family: var(--font); font-size: 10px; }
+  button { background: #000; color: #fff; border: 2px solid #fff; padding: 7px 9px; cursor: pointer; text-transform: uppercase; }
+  button:active { background: #fff; color: #000; }
+  button.big { font-size: 12px; padding: 12px 14px; }
+  button.y { color: #ff0; border-color: #ff0; } button.c { color: #0ff; border-color: #0ff; } button.m { color: #f0f; border-color: #f0f; } button.g { color: #0f0; border-color: #0f0; } button.r { color: #f22; border-color: #f22; }
+  button:disabled { opacity: .35; }
+  input { background: #000; color: #ff0; border: 2px solid #ff0; padding: 8px; text-transform: uppercase; outline: none; width: 100%; user-select: text; -webkit-user-select: text; }
+  .screen { position: fixed; inset: 0; display: none; }
+  .screen.on { display: flex; }
+  .wip { display: inline-block; background: #f00; color: #ff0; padding: 2px 5px; font-size: 9px; vertical-align: middle; }
+
+  /* title */
+  #title { flex-direction: row; align-items: center; justify-content: center; gap: 4vw; padding: 3vh 4vw; border: 12px solid #00d; animation: border 3s steps(1) infinite; }
+  @keyframes border { 0% { border-color: #00d } 25% { border-color: #d00 } 50% { border-color: #d0d } 75% { border-color: #0d0 } }
+  .logo { font-size: clamp(30px, 9vw, 72px); letter-spacing: .08em; line-height: 1.1; }
+  .logo span { display: inline-block; animation: hue 1.6s steps(1) infinite; }
+  @keyframes hue { 0% { color: #0ff } 16% { color: #ff0 } 33% { color: #f0f } 50% { color: #0f0 } 66% { color: #f22 } 83% { color: #fff } }
+  .sub { color: #0ff; margin-top: 1.5vh; }
+  .credit { color: #888; font-size: 8px; margin-top: 2vh; max-width: 36em; }
+  .tcol { display: flex; flex-direction: column; gap: 10px; width: min(330px, 44vw); }
+  .row { display: flex; gap: 8px; align-items: center; }
+  .row > * { flex: 1; }
+  .label { color: #0ff; font-size: 9px; }
+  .err { color: #f22; min-height: 1.6em; font-size: 9px; }
+
+  /* lobby */
+  #lobby { flex-direction: row; gap: 3vw; padding: 3vh 3vw; border: 12px solid #00d; }
+  #lobby .left { flex: 1; display: flex; flex-direction: column; gap: 10px; min-width: 0; overflow: auto; }
+  .code { font-size: 30px; color: #ff0; letter-spacing: .2em; }
+  .plist div { padding: 4px 0; display: flex; align-items: center; gap: 8px; }
+  .plist .x { padding: 2px 6px; font-size: 8px; margin-left: auto; }
+  .sw { display: inline-block; width: 12px; height: 12px; flex: none; }
+
+  /* game */
+  #game { flex-direction: row; align-items: stretch; }
+  #boardWrap { flex: none; display: flex; align-items: center; justify-content: center; border: 8px solid #00d; background: #000; }
+  #board { display: block; image-rendering: pixelated; image-rendering: crisp-edges; touch-action: none; }
+  #panel { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 6px 8px; gap: 6px; position: relative; }
+  #top { display: flex; align-items: center; gap: 6px; font-size: 9px; }
+  #top .who { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  #top button { padding: 4px 6px; font-size: 8px; }
+  #main { flex: 1; overflow-y: auto; min-height: 0; }
+  #main .h { color: #ff0; margin-bottom: 4px; }
+  .spells { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 6px; }
+  .spells button { border: 0; padding: 4px 2px; text-align: left; font-size: 9px; display: flex; justify-content: space-between; }
+  .spells button b { font-weight: normal; color: #fff; }
+  .law { color: #0ff !important; } .chaos { color: #f0f !important; } .neut { color: #fff !important; }
+  .acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .stats { display: grid; grid-template-columns: auto auto; gap: 0 10px; font-size: 9px; color: #0f0; margin-top: 4px; }
+  .stats span:nth-child(even) { color: #fff; }
+  #log { font-size: 8px; color: #aaa; line-height: 1.7; max-height: 5.2em; overflow: hidden; }
+  #log div:last-child { color: #ff0; }
+  .hint { color: #0ff; }
+
+  /* chat */
+  #chat { position: absolute; inset: 0; background: #000; display: none; flex-direction: column; padding: 6px 8px; gap: 6px; z-index: 5; border-left: 2px solid #0ff; }
+  #chat.on { display: flex; }
+  #lobby #chat { position: static; display: flex; flex: 1; border-left: 2px solid #0ff; min-width: 0; }
+  #msgs { flex: 1; overflow-y: auto; font-size: 9px; line-height: 1.7; word-wrap: break-word; }
+  #msgs .n { margin-right: 6px; }
+  .chathead { display: flex; justify-content: space-between; align-items: center; color: #0ff; font-size: 9px; }
+  .chathead button { padding: 3px 6px; font-size: 8px; }
+  body.away #msgs { filter: blur(7px); }
+  #chatHome { flex: 1; display: flex; min-width: 0; }
+  #lobby .chathead button { display: none; }
+  .badge { background: #f00; color: #ff0; padding: 0 4px; }
+
+  @media (orientation: portrait) {
+    #title, #lobby { flex-direction: column; }
+    .tcol { width: 100%; }
+    #game { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<section id="title" class="screen on">
+  <div>
+    <div class="logo" id="logo"></div>
+    <div class="sub">THE BATTLE OF WIZARDS <span class="wip">WIP</span></div>
+    <div class="credit">A family remake of Julian Gollop's 1985 ZX Spectrum game. 2 to 8 wizards, last one standing wins.</div>
+  </div>
+  <div class="tcol">
+    <div class="label">YOUR NAME</div>
+    <input id="name" maxlength="12" autocomplete="off" spellcheck="false">
+    <button class="big y" data-act="create">CREATE ROOM</button>
+    <div class="row"><input id="joincode" maxlength="5" placeholder="CODE" autocomplete="off" spellcheck="false"><button class="big c" data-act="join">JOIN</button></div>
+    <button class="g" data-act="hotseat">PLAY ON THIS DEVICE</button>
+    <div class="err" id="terr"></div>
+  </div>
+</section>
+
+<section id="lobby" class="screen">
+  <div class="left" id="lobbyLeft"></div>
+  <div id="chatHome"></div>
+</section>
+
+<section id="game" class="screen">
+  <div id="boardWrap"><canvas id="board" width="240" height="160"></canvas></div>
+  <div id="panel">
+    <div id="top"></div>
+    <div id="main"></div>
+    <div id="log"></div>
+  </div>
+</section>
+
+<div id="chat">
+  <div class="chathead"><span>FAMILY CHAT · ROOM ONLY</span><button data-act="chatclose">CLOSE</button></div>
+  <div id="msgs"></div>
+  <div class="row"><input id="say" maxlength="140" placeholder="SAY SOMETHING" autocomplete="off" style="text-transform:none"><button class="c" data-act="send" style="flex:none">SEND</button></div>
+  <div style="color:#666;font-size:7px">Messages vanish after 5 minutes.</div>
+</div>
+
+<script src="sprites.js"></script>
+<script src="sfx.js"></script>
+<script src="net.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
