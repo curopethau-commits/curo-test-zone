@@ -55,3 +55,12 @@ Status: **WIP**.
 After Effects expression demo: a square parented to a spinning null stays level while it scales up and moves to the top.
 
 View: https://curopethau-commits.github.io/curo-test-zone/keep-level/
+
+## robrob mapmap (WIP)
+
+Reusable version of the art map: one page, any list of places. Each map is a JSON file in `mapmap/maps/`, opened with `?m=<slug>` and listed in `mapmap/maps/index.json`. Same look as the gallery mapmap: numbered pins, tap for a card with notes and directions, tick places off (saved on your device only), and "Where am I?".
+
+All maps: https://curopethau-commits.github.io/curo-test-zone/mapmap/
+Koh Lanta sunsets: https://curopethau-commits.github.io/curo-test-zone/mapmap/?m=koh-lanta-sunsets
+
+Status: **WIP**.

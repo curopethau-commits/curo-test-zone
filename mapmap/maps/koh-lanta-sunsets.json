@@ -1,0 +1,19 @@
+{
+  "title": "Koh Lanta sunsets",
+  "sub": "Whole west coast faces the sun. Tap a pin, tick the ones you've done.",
+  "tip": "Sunset is around 6pm, so get there by 5:15 for a good seat. The National Park lighthouse shuts at 5:30, before sunset.",
+  "area": "Koh Lanta, Krabi, Thailand",
+  "noteLabel": "Why go",
+  "places": [
+    { "name": "Sunset Rock & Viewpoint", "area": "Klong Khong, north end", "ll": [7.58399, 99.03097], "notes": ["Quiet rock ledge above the sea, usually just you", "Short scramble over rocks. Bring your own drinks"], "tags": ["quiet", "free"] },
+    { "name": "Klong Khong Restaurant", "area": "Klong Khong", "ll": [7.57429, 99.03348], "notes": ["Best food-with-a-view pick", "Book for 4:30 to 5:30pm. Order before the fire show"], "tags": ["food", "fire show"] },
+    { "name": "LightHouse Beach Bar", "area": "Klong Khong", "ll": [7.57435, 99.03346], "notes": ["Hippie beach bar: chillout before sunset, house after", "Happy hour 4 to 9pm"], "tags": ["drinks", "music"] },
+    { "name": "Freedom Bar", "area": "Klong Khong", "ll": [7.57382, 99.03401], "notes": ["Reggae, beach lamps, neon inside, fire show"], "tags": ["drinks", "fire show"] },
+    { "name": "Pangea Bar & Kitchen", "area": "Long Beach", "ll": [7.60617, 99.03347], "notes": ["Bamboo bar, DJs, live music Sundays. Party nights Sun and Tue", "Closed Wednesdays. Arrive early"], "tags": ["party", "food"] },
+    { "name": "Ozone Beach Bar", "area": "Long Beach", "ll": [7.61730, 99.02929], "notes": ["Sunset into deep house DJ sets", "Stick to beer or shakes, cocktails get mixed reviews"], "tags": ["party", "drinks"] },
+    { "name": "Majestic Bar", "area": "Klong Dao", "ll": [7.63379, 99.03105], "notes": ["Comfy seats, proper cocktails", "100 baht happy hour from 5pm"], "tags": ["cocktails"] },
+    { "name": "New Harry's Sunset Beach Bar", "area": "Klong Nin", "ll": [7.53914, 99.04848], "notes": ["Simple, low-key beachfront spot", "Service can be slow"], "tags": ["quiet"] },
+    { "name": "Klong Jak Beach", "area": "South", "ll": [7.48629, 99.08335], "notes": ["Quieter beach with mountain backdrop, sunsets rated unreal", "Buy a drink at a beach bar to get through"], "tags": ["quiet", "scooter"] },
+    { "name": "Kantiang Bay", "area": "South", "ll": [7.49744, 99.07260], "notes": ["Big clean bay, gorgeous golden hour", "Headland can hide the sun dropping into the sea. Steep road, take a decent scooter"], "tags": ["beach", "scooter"] }
+  ]
+}
