@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>robrob trip mapmap (WIP)</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  :root { --bg:#faf8f4; --fg:#1d1b18; --muted:#6b665e; --line:#e4dfd6; --accent:#c2410c; --card:#fff; --boat:#0369a1; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#16140f; --fg:#f1ede6; --muted:#a39d92; --line:#2c2922; --accent:#fb923c; --card:#1f1c16; --boat:#38bdf8; } }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--fg); font:15px/1.4 system-ui, -apple-system, sans-serif; }
+  .wrap { display:flex; height:100%; }
+  aside { width:300px; flex:none; overflow-y:auto; border-right:1px solid var(--line); padding:16px; }
+  #map { flex:1; position:relative; }
+  h1 { font-size:18px; margin:0 0 4px; }
+  .wip { display:inline-block; font-size:11px; font-weight:700; letter-spacing:.05em; background:var(--accent); color:#fff; border-radius:4px; padding:1px 6px; vertical-align:middle; margin-left:6px; }
+  p.sub { margin:0 0 10px; color:var(--muted); font-size:13px; }
+  .legend { display:flex; flex-wrap:wrap; gap:6px 12px; font-size:12px; color:var(--muted); margin:0 0 12px; }
+  .legend span { display:inline-flex; align-items:center; gap:5px; }
+  .legend i { display:inline-block; width:22px; height:0; border-top:3px solid var(--accent); }
+  .legend i.flight { border-top-style:dashed; border-color:var(--muted); }
+  .legend i.boat { border-top-style:dotted; border-color:var(--boat); }
+  ol { list-style:none; padding:0; margin:0; }
+  li { padding:10px; border:1px solid var(--line); border-radius:8px; margin-bottom:8px; background:var(--card); cursor:pointer; display:flex; gap:10px; }
+  li:hover { border-color:var(--accent); }
+  .n { flex:none; width:24px; height:24px; border-radius:50%; background:var(--accent); color:#fff; font-weight:700; font-size:12px; display:grid; place-items:center; }
+  .name { font-weight:600; }
+  .show { font-style:italic; }
+  .addr { color:var(--muted); font-size:12px; }
+  .pin { width:26px; height:26px; border-radius:50%; background:var(--accent); color:#fff; font-weight:700; font-size:12px; display:grid; place-items:center; border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.4); }
+  .me { width:16px; height:16px; border-radius:50%; background:#2563eb; border:3px solid #fff; box-shadow:0 0 0 2px rgba(37,99,235,.35), 0 1px 4px rgba(0,0,0,.4); }
+  .locate { position:absolute; right:10px; bottom:24px; z-index:1000; background:var(--card); color:var(--fg); border:1px solid var(--line); border-radius:8px; padding:8px 12px; font:600 14px system-ui, sans-serif; box-shadow:0 1px 4px rgba(0,0,0,.25); cursor:pointer; }
+  .card { position:absolute; left:10px; top:10px; z-index:1001; width:min(340px, calc(100% - 20px)); max-height:calc(100% - 80px); overflow-y:auto; background:var(--card); color:var(--fg); border:1px solid var(--line); border-radius:12px; padding:14px 14px 12px; box-shadow:0 4px 20px rgba(0,0,0,.25); }
+  .card[hidden] { display:none; }
+  .card .close { position:absolute; top:6px; right:8px; border:0; background:none; color:var(--muted); font-size:24px; line-height:1; cursor:pointer; padding:4px; }
+  .card-head { display:flex; gap:10px; align-items:center; padding-right:24px; }
+  .card h2 { font-size:17px; margin:0; }
+  .card .label { margin-top:12px; font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+  .card ul.shows { margin:4px 0 10px; padding-left:18px; }
+  .card ul.shows li { display:list-item; border:0; padding:2px 0; margin:0; background:none; cursor:auto; }
+  .card .next { margin:4px 0 10px; }
+  .photo { margin:10px -14px 0; aspect-ratio:21/9; background:var(--line) center/cover no-repeat; display:none; }
+  .photo.ok { display:block; }
+  .credit { font-size:10px; color:var(--muted); text-align:right; margin-top:2px; display:none; }
+  .credit.ok { display:block; }
+  .btns { display:flex; gap:8px; margin-top:12px; }
+  .btn { flex:1; text-align:center; text-decoration:none; padding:9px 10px; border-radius:8px; border:1px solid var(--line); color:var(--fg); font-weight:600; font-size:14px; }
+  .btn:visited { color:var(--fg); }
+  .btn.primary, .btn.primary:visited { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .tick { flex:none; margin-left:auto; align-self:center; width:32px; height:32px; border-radius:50%; border:2px solid var(--line); background:none; color:transparent; font-size:16px; font-weight:700; cursor:pointer; display:grid; place-items:center; }
+  .tick.on { background:#16a34a; border-color:#16a34a; color:#fff; }
+  li.been { opacity:.6; }
+  li.been .n, .pin.been { background:#16a34a; }
+  #count { font-weight:700; color:var(--fg); }
+  .been-btn { width:100%; margin-top:8px; padding:9px 10px; border-radius:8px; border:2px solid #16a34a; background:none; color:#16a34a; font:600 14px system-ui, sans-serif; cursor:pointer; }
+  .been-btn.on { background:#16a34a; color:#fff; }
+  @media (max-width: 700px) {
+    .wrap { flex-direction:column-reverse; }
+    aside { width:100%; height:40%; border-right:0; border-top:1px solid var(--line); }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <aside>
+    <h1>robrob trip mapmap <span class="wip">WIP</span></h1>
+    <p class="sub">South Vietnam, up the Mekong, round Cambodia and back. Starts Wed 25 Nov, about 17 nights. Tap a stop for the plan. Tick them off as you go. <span id="count"></span></p>
+    <div class="legend"><span><i></i>Bus</span><span><i class="boat"></i>Boat</span><span><i class="flight"></i>Flight</span></div>
+    <ol id="list"></ol>
+  </aside>
+  <div id="map"><button class="locate" id="locate" type="button">📍 Where am I?</button>
+    <div class="card" id="card" hidden><button class="close" type="button" aria-label="Close">×</button><div class="card-body"></div></div>
+  </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+// Each stop: when, what to do, and how you get to the next one (mode drives the line style on the map).
+const places = [
+  { name:"Phuket", wiki:"Phuket International Airport", when:"Wed 25 Nov", ll:[8.1132,98.3169],
+    dos:["Evening direct flight to Ho Chi Minh City (about 2h)"],
+    next:"Flight, about 2h", mode:"flight" },
+  { name:"Ho Chi Minh City", wiki:"Ho Chi Minh City", when:"2 nights", ll:[10.7769,106.7009],
+    dos:["Leave the laptop at the hotel, and book it for your last night too","War Remnants Museum","Street food around Ben Thanh and District 4","Cu Chi tunnels half-day trip"],
+    next:"Bus to Can Tho, about 3.5h", mode:"bus" },
+  { name:"Can Tho", wiki:"Cần Thơ", when:"2 nights", ll:[10.0452,105.7469],
+    dos:["Cai Rang floating market at dawn","Ninh Kieu riverfront night market","Bike the canal villages"],
+    next:"Bus to Chau Doc, about 3.5h", mode:"bus" },
+  { name:"Chau Doc", wiki:"Châu Đốc", when:"1 night", ll:[10.7000,105.1167],
+    dos:["Sam Mountain at sunset","Floating fish farms and Cham villages","Tra Su cajuput forest by boat"],
+    next:"Speedboat up the Mekong to Phnom Penh, about 5h, border on the river. Have the Cambodia e-visa ready", mode:"boat" },
+  { name:"Phnom Penh", wiki:"Phnom Penh", when:"2 nights", ll:[11.5564,104.9282],
+    dos:["Tuol Sleng (S-21) and the Choeung Ek Killing Fields","Royal Palace and the riverside","Phnom Tamao Wildlife Rescue Centre (Wildlife Alliance tour)","Keep bags on your lap in tuk-tuks"],
+    next:"Bus to Sihanoukville (about 3h), then speedboat (about 45 min)", mode:"boat" },
+  { name:"Koh Rong", wiki:"Koh Rong", when:"3 nights", ll:[10.7136,103.2404],
+    dos:["Long Set and Sok San beaches","Bioluminescent plankton on dark nights (new moon about 9 Dec)","Snorkelling trips, or hop to Koh Rong Samloem for quiet"],
+    next:"Boat and bus back to Phnom Penh (about 4–5h), a night there, then bus to Battambang (about 5h)", mode:"bus", via:[[10.6273,103.5222],[11.5564,104.9282]] },
+  { name:"Battambang", wiki:"Battambang", when:"2 nights", ll:[13.0957,103.2022],
+    dos:["Phnom Sampeau at sunset for the bat exodus","Countryside loop by tuk-tuk: rice paper, rice wine, Ek Phnom","Bamboo train and Wat Banan","Phare Ponleu Selpak show if one is on"],
+    next:"Bus to Siem Reap, about 3–4h", mode:"bus" },
+  { name:"Siem Reap", wiki:"Angkor Wat", when:"3 nights", ll:[13.3633,103.8564],
+    dos:["Angkor Wat sunrise, Bayon, Ta Prohm","Gibbon spotting in the Angkor forest","Prek Toal bird sanctuary by boat"],
+    next:"Direct flight to Ho Chi Minh City, about 1h", mode:"flight" },
+  { name:"Ho Chi Minh City (home)", wiki:"Tan Son Nhat International Airport", when:"Last night", ll:[10.8188,106.6519],
+    dos:["Collect the laptop from the hotel","Fly home"] },
+];
+const map = L.map('map');
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19, attribution:'&copy; OpenStreetMap contributors' }).addTo(map);
+const css = getComputedStyle(document.documentElement);
+const col = { bus:css.getPropertyValue('--accent').trim(), boat:css.getPropertyValue('--boat').trim(), flight:css.getPropertyValue('--muted').trim() };
+const dash = { bus:null, boat:'2 7', flight:'8 8' };
+// Route lines between stops, styled by how you travel that leg.
+places.forEach((p,i) => {
+  if (!places[i+1] || !p.mode) return;
+  const pts = [p.ll].concat(p.via || [], [places[i+1].ll]);
+  L.polyline(pts, { color:col[p.mode], weight:3, opacity:.85, dashArray:dash[p.mode], lineCap:'round' }).addTo(map);
+});
+const list = document.getElementById('list');
+const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const card = document.getElementById('card');
+// Ticks are saved in this browser only, so they're private to you on this device.
+const KEY = 'robrob-tripmap-been';
+let been = {};
+try { been = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) {}
+const markers = [], items = [];
+let openIdx = -1;
+function setBeen(i, v) {
+  if (v) been[places[i].name] = true; else delete been[places[i].name];
+  try { localStorage.setItem(KEY, JSON.stringify(been)); } catch (e) {}
+  render(i);
+  if (openIdx === i) openCard(i);
+}
+function render(i) {
+  const on = !!been[places[i].name];
+  items[i].classList.toggle('been', on);
+  const t = items[i].querySelector('.tick');
+  t.classList.toggle('on', on); t.setAttribute('aria-pressed', on); t.textContent = '✓';
+  const el = markers[i].getElement();
+  if (el) el.querySelector('.pin').classList.toggle('been', on);
+  const n = places.filter(p => been[p.name]).length;
+  document.getElementById('count').textContent = `${n}/${places.length} done`;
+}
+function openCard(i) {
+  const p = places[i];
+  const gmaps = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(p.ll.join(','));
+  const wiki = 'https://en.wikipedia.org/wiki/' + encodeURIComponent(p.wiki.replace(/ /g, '_'));
+  card.querySelector('.card-body').innerHTML =
+    `<div class="card-head"><span class="n">${i+1}</span><h2>${esc(p.name)}</h2></div>
+     <div class="photo"></div><div class="credit">Photo: Wikipedia</div>
+     <div class="label">${esc(p.when)}</div><ul class="shows">${p.dos.map(t => `<li>${esc(t)}</li>`).join('')}</ul>
+     ${p.next ? `<div class="label">Next</div><div class="next">${esc(p.next)}</div>` : ''}
+     <button class="been-btn${been[p.name]?' on':''}" type="button">${been[p.name]?'✓ Done':'Tick: done this one'}</button>
+     <div class="btns"><a class="btn primary" href="${wiki}" target="_blank" rel="noopener">Wikipedia ↗</a><a class="btn" href="${gmaps}" target="_blank" rel="noopener">Google Maps ↗</a></div>`;
+  card.querySelector('.been-btn').onclick = () => setBeen(i, !been[p.name]);
+  openIdx = i;
+  card.hidden = false;
+  loadPhoto(i);
+}
+// Photos load from Wikipedia on your phone; if there's no photo the space just stays hidden.
+const photoCache = {};
+async function loadPhoto(i) {
+  const p = places[i];
+  if (!p.wiki) return;
+  if (!(p.wiki in photoCache)) {
+    photoCache[p.wiki] = null;
+    try {
+      const r = await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(p.wiki.replace(/ /g, '_')) + '?redirect=true');
+      if (r.ok) { const j = await r.json(); if (j.type !== 'disambiguation') photoCache[p.wiki] = (j.originalimage || j.thumbnail || {}).source || null; }
+    } catch (e) {}
+  }
+  if (photoCache[p.wiki]) showPhoto(i, photoCache[p.wiki], 'Photo: Wikipedia');
+}
+function showPhoto(i, src, credit) {
+  if (openIdx !== i) return;
+  const img = new Image();
+  img.onload = () => {
+    if (openIdx !== i) return;
+    const ph = card.querySelector('.photo'), cr = card.querySelector('.credit');
+    ph.style.backgroundImage = `url("${src}")`; ph.classList.add('ok');
+    cr.textContent = credit; cr.classList.add('ok');
+  };
+  img.src = src;
+}
+card.querySelector('.close').onclick = () => { card.hidden = true; openIdx = -1; };
+L.DomEvent.disableClickPropagation(card);
+map.on('click', () => { card.hidden = true; openIdx = -1; });
+places.forEach((p,i) => {
+  const icon = L.divIcon({ className:'', html:`<div class="pin">${i+1}</div>`, iconSize:[26,26], iconAnchor:[13,13] });
+  markers[i] = L.marker(p.ll, { icon }).addTo(map).on('click', () => openCard(i));
+  const li = document.createElement('li');
+  li.innerHTML = `<span class="n">${i+1}</span><div><div class="name">${esc(p.name)}</div><div class="show">${esc(p.when)}</div>${p.next?`<div class="addr">→ ${esc(p.next.split(',')[0].split('.')[0])}</div>`:''}</div><button class="tick" type="button" aria-label="Done">✓</button>`;
+  li.querySelector('.tick').onclick = e => { e.stopPropagation(); setBeen(i, !been[p.name]); };
+  li.onclick = () => { map.setView(p.ll, 11); openCard(i); };
+  list.appendChild(li);
+  items[i] = li;
+});
+map.fitBounds(L.latLngBounds(places.map(p => p.ll)), { padding:[30,30] });
+places.forEach((_, i) => render(i));
+
+// Your location stays on this device: it is only drawn on the map, never sent or saved.
+let meMarker = null, meCircle = null, watching = false;
+const btn = document.getElementById('locate');
+L.DomEvent.disableClickPropagation(btn);
+function startLocating() {
+  if (!('geolocation' in navigator)) { btn.textContent = 'Location unavailable'; return; }
+  if (watching) { if (meMarker) map.setView(meMarker.getLatLng(), 12); return; }
+  watching = true;
+  btn.textContent = 'Finding you…';
+  navigator.geolocation.watchPosition(pos => {
+    const ll = [pos.coords.latitude, pos.coords.longitude];
+    if (!meMarker) {
+      meMarker = L.marker(ll, { icon: L.divIcon({ className:'', html:'<div class="me"></div>', iconSize:[22,22], iconAnchor:[11,11] }), zIndexOffset:1000 }).addTo(map).bindPopup('You are here');
+      meCircle = L.circle(ll, { radius: pos.coords.accuracy, color:'#2563eb', weight:1, fillOpacity:.1 }).addTo(map);
+    } else { meMarker.setLatLng(ll); meCircle.setLatLng(ll).setRadius(pos.coords.accuracy); }
+    btn.textContent = '📍 Me';
+  }, err => {
+    watching = false;
+    btn.textContent = err.code === 1 ? 'Location blocked' : '📍 Try again';
+  }, { enableHighAccuracy:true, maximumAge:10000, timeout:20000 });
+}
+btn.onclick = startLocating;
+</script>
+</body>
+</html>
