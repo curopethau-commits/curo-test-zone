@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>robrob mapmap (WIP)</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
@@ -58,15 +58,37 @@
   .switch a { text-decoration:none; font-size:13px; font-weight:600; padding:5px 12px; border-radius:99px; border:1px solid var(--line); color:var(--fg); background:var(--card); }
   .switch a.on { background:var(--accent); border-color:var(--accent); color:#fff; }
   .home a { display:block; text-decoration:none; color:var(--fg); }
+  .grab { display:none; }
+  /* Phone portrait: full-screen map, list in a bottom sheet you can drag or tap (peek / half / full). */
   @media (max-width: 700px) {
-    .wrap { flex-direction:column-reverse; }
-    aside { width:100%; height:40%; border-right:0; border-top:1px solid var(--line); }
+    html,body { height:100dvh; overflow:hidden; }
+    .wrap { display:block; position:relative; height:100dvh; --sheetH:46dvh; }
+    #map { position:absolute; inset:0; }
+    aside { position:absolute; left:0; right:0; bottom:0; width:auto; height:var(--sheetH); z-index:1002; border:0; border-radius:16px 16px 0 0; background:var(--bg); box-shadow:0 -4px 20px rgba(0,0,0,.2); padding:0 14px calc(14px + env(safe-area-inset-bottom)); overscroll-behavior:contain; transition:height .22s ease; }
+    aside.dragging { transition:none; }
+    .grab { display:block; position:sticky; top:0; z-index:2; margin:0 -14px 6px; padding:10px 0 8px; background:var(--bg); cursor:grab; touch-action:none; border:0; width:calc(100% + 28px); }
+    .grab::before { content:''; display:block; width:44px; height:5px; border-radius:3px; background:var(--muted); opacity:.5; margin:0 auto; }
+    h1 { font-size:17px; }
+    .switch { flex-wrap:nowrap; overflow-x:auto; }
+    .switch a { flex:none; padding:7px 14px; }
+    p.sub { font-size:13px; margin-bottom:8px; }
+    p.tip { cursor:pointer; }
+    p.tip span { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+    p.tip.open span { display:block; }
+    li { padding:12px 10px; }
+    .tick { width:40px; height:40px; }
+    .locate { bottom:calc(var(--sheetH) + 12px); transition:bottom .22s ease; }
+    .card { position:fixed; left:0; right:0; top:auto; bottom:0; width:auto; max-height:72dvh; border-radius:16px 16px 0 0; padding:16px 16px calc(14px + env(safe-area-inset-bottom)); z-index:1003; box-shadow:0 -4px 24px rgba(0,0,0,.3); }
+    .card .close { top:8px; right:10px; font-size:28px; }
+    .btn { padding:12px 10px; }
+    .been-btn { padding:12px 10px; }
   }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <aside>
+  <aside id="sheet">
+    <button class="grab" id="grab" type="button" aria-label="Drag or tap to resize list"></button>
     <h1><span id="title">robrob mapmap</span><span class="wip" id="wip">WIP</span></h1>
     <div class="switch" id="switch" hidden></div>
     <p class="sub"><span id="sub">Tap a place or pin.</span> <span id="count"></span></p>
@@ -85,6 +107,48 @@ const $ = id => document.getElementById(id);
 const slug = (new URLSearchParams(location.search).get('m') || '').replace(/[^a-z0-9-]/gi, '');
 const map = L.map('map');
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19, attribution:'&copy; OpenStreetMap contributors' }).addTo(map);
+
+// Phone bottom sheet: three snap heights, tap the handle to cycle, drag to resize.
+const mob = () => matchMedia('(max-width: 700px)').matches;
+if (mob()) map.attributionControl.setPosition('topright');
+const sheet = $('sheet'), wrap = document.querySelector('.wrap');
+const snaps = () => { const H = wrap.clientHeight; return { peek: 132, half: Math.round(H * .46), full: Math.round(H * .86) }; };
+let sheetState = 'half';
+function setSheet(s, px) {
+  if (!mob()) return;
+  sheetState = s;
+  wrap.style.setProperty('--sheetH', (px != null ? px : snaps()[s]) + 'px');
+  if (s === 'peek') sheet.scrollTop = 0;
+}
+setSheet('half');
+addEventListener('resize', () => setSheet(sheetState));
+{
+  const g = $('grab');
+  let y0 = null, h0 = 0, moved = false;
+  g.addEventListener('pointerdown', e => { y0 = e.clientY; h0 = sheet.offsetHeight; moved = false; sheet.classList.add('dragging'); g.setPointerCapture(e.pointerId); });
+  g.addEventListener('pointermove', e => {
+    if (y0 == null) return;
+    const dy = y0 - e.clientY;
+    if (Math.abs(dy) > 4) moved = true;
+    const s = snaps();
+    wrap.style.setProperty('--sheetH', Math.max(s.peek - 40, Math.min(s.full + 20, h0 + dy)) + 'px');
+  });
+  const end = () => {
+    if (y0 == null) return;
+    y0 = null; sheet.classList.remove('dragging');
+    const s = snaps(), h = sheet.offsetHeight;
+    if (!moved) { setSheet(sheetState === 'peek' ? 'half' : sheetState === 'half' ? 'full' : 'peek'); return; }
+    setSheet(Object.keys(s).reduce((a, b) => Math.abs(s[b] - h) < Math.abs(s[a] - h) ? b : a));
+  };
+  g.addEventListener('pointerup', end); g.addEventListener('pointercancel', end);
+}
+// On a phone, keep the pin visible above the bottom card.
+function framePin(ll) {
+  if (!mob()) return;
+  const card = $('card'), H = map.getSize().y, W = map.getSize().x;
+  const pt = map.latLngToContainerPoint(ll);
+  map.panBy([pt.x - W / 2, pt.y - Math.max(70, (H - card.offsetHeight) / 2)]);
+}
 
 if (!slug) showHome(); else fetch('maps/' + slug + '.json').then(r => { if (!r.ok) throw 0; return r.json(); }).then(build).catch(() => { $('title').textContent = 'Map not found'; showHome(); });
 
@@ -117,7 +181,7 @@ function build(data) {
   $('title').textContent = data.title;
   if (data.wip === false) $('wip').remove();
   $('sub').textContent = data.sub || 'Tap a place or pin. Tick the ones you’ve been to.';
-  if (data.tip) { $('tip').textContent = data.tip; $('tip').hidden = false; }
+  if (data.tip) { $('tip').innerHTML = '<span>' + esc(data.tip) + '</span>'; $('tip').hidden = false; $('tip').onclick = () => $('tip').classList.toggle('open'); }
   const label = data.noteLabel || 'Why go';
   const list = $('list'), card = $('card');
   const KEY = 'robrob-mapmap-been-' + slug;
@@ -161,6 +225,7 @@ function build(data) {
     card.querySelector('.been-btn').onclick = () => setBeen(i, !been[p.name]);
     openIdx = i;
     card.hidden = false;
+    if (mob()) { setSheet('peek'); requestAnimationFrame(() => framePin(p.ll)); }
     loadPhoto(i);
   }
   const photoCache = {};
@@ -181,12 +246,14 @@ function build(data) {
       if (openIdx !== i) return;
       const ph = card.querySelector('.photo'), cr = card.querySelector('.credit');
       ph.style.backgroundImage = `url("${src}")`; ph.classList.add('ok'); cr.classList.add('ok');
+      framePin(p.ll);
     };
     img.src = src;
   }
-  card.querySelector('.close').onclick = () => { card.hidden = true; openIdx = -1; };
+  const closeCard = () => { if (card.hidden) return; card.hidden = true; openIdx = -1; setSheet('half'); };
+  card.querySelector('.close').onclick = closeCard;
   L.DomEvent.disableClickPropagation(card);
-  map.on('click', () => { card.hidden = true; openIdx = -1; });
+  map.on('click', closeCard);
   places.forEach((p, i) => {
     const icon = L.divIcon({ className:'', html:`<div class="pin">${i+1}</div>`, iconSize:[26,26], iconAnchor:[13,13] });
     markers[i] = L.marker(p.ll, { icon }).addTo(map).on('click', () => openCard(i));
@@ -194,11 +261,11 @@ function build(data) {
     const first = [].concat(p.notes || [])[0];
     li.innerHTML = `<span class="n">${i+1}</span><div><div class="name">${esc(p.name)}</div>${first ? `<div class="show">${esc(first)}</div>` : ''}${p.area ? `<div class="addr">${esc(p.area)}</div>` : ''}</div><button class="tick" type="button" aria-label="Been here">✓</button>`;
     li.querySelector('.tick').onclick = e => { e.stopPropagation(); setBeen(i, !been[p.name]); };
-    li.onclick = () => { map.setView(p.ll, 15); openCard(i); };
+    li.onclick = () => { map.setView(p.ll, 15, { animate: !mob() }); openCard(i); };
     list.appendChild(li);
     items[i] = li;
   });
-  map.fitBounds(L.latLngBounds(places.map(p => p.ll)), { padding:[30,30] });
+  map.fitBounds(L.latLngBounds(places.map(p => p.ll)), mob() ? { paddingTopLeft:[30,30], paddingBottomRight:[30, sheet.offsetHeight + 30] } : { padding:[30,30] });
   places.forEach((_, i) => render(i));
   window._places = places;
 }
