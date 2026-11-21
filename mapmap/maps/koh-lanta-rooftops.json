@@ -1,0 +1,99 @@
+{
+  "title": "Koh Lanta rooftops & high bars",
+  "sub": "Lanta has almost no real rooftops, so these are the bars up on hills and cliffs. Tick the ones you've done.",
+  "tip": "Sunset is around 6pm. Sabai Sabai fills up: ring ahead (+66 83 223 5849) and note it's shut on Saturdays. Hill roads are steep, take it slow on the scooter after dark.",
+  "area": "Koh Lanta, Krabi, Thailand",
+  "noteLabel": "Why go",
+  "places": [
+    {
+      "name": "Sabai Sabai Viewpoint & Lounge",
+      "area": "Hills above Klong Khong",
+      "ll": [
+        7.5766993,
+        99.0397085
+      ],
+      "notes": [
+        "Best view on the island, sunset over the green hills to the sea",
+        "Book for sunset, every table goes",
+        "Open 12–9pm, closed Saturdays"
+      ],
+      "tags": [
+        "sunset",
+        "book ahead",
+        "cocktails"
+      ]
+    },
+    {
+      "name": "The Rock Bar & Restaurant",
+      "area": "Avani+, Kaw Kwang (north)",
+      "ll": [
+        7.6446202,
+        99.0191574
+      ],
+      "notes": [
+        "Clifftop deck down the stairs at Avani+, open to non-guests",
+        "Quiet and smart, proper sunset seat",
+        "Open 4pm–midnight"
+      ],
+      "tags": [
+        "sunset",
+        "clifftop",
+        "resort bar"
+      ]
+    },
+    {
+      "name": "Nomad Beach Bar",
+      "area": "Bamboo Beach (far south)",
+      "ll": [
+        7.4842381,
+        99.0872174
+      ],
+      "notes": [
+        "Hippie bar up a steep road above Bamboo Beach, big view",
+        "Great Thai food, passion fruit mojitos",
+        "Shuts at 8pm, so go for sunset not late night"
+      ],
+      "tags": [
+        "view",
+        "food",
+        "far south"
+      ]
+    },
+    {
+      "name": "View Point Restaurant",
+      "area": "Cross-island road, east side",
+      "ll": [
+        7.5583558,
+        99.0686027
+      ],
+      "notes": [
+        "Perched high over the east bay and mangroves",
+        "Faces east, so it's a daytime/shake stop, not sunset",
+        "Cheap, 9am–9pm, monkeys about"
+      ],
+      "tags": [
+        "daytime",
+        "cheap",
+        "view"
+      ]
+    },
+    {
+      "name": "Rock Beach Bar",
+      "area": "Kaw Kwang (north)",
+      "ll": [
+        7.6470208,
+        99.0198927
+      ],
+      "notes": [
+        "Raised over the rocks with Phi Phi on the horizon",
+        "Pool and pool table, cheap drinks",
+        "A review says it was mid-renovation, check it's serving"
+      ],
+      "tags": [
+        "sunset",
+        "cheap",
+        "pool"
+      ]
+    }
+  ]
+}

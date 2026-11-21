@@ -1,3 +1,16 @@
 [
-  { "slug": "koh-lanta-sunsets", "title": "Koh Lanta sunsets", "sub": "10 sunset spots, Nov 2026" }
+  {
+    "slug": "koh-lanta-sunsets",
+    "title": "Koh Lanta sunsets",
+    "sub": "10 sunset spots, Nov 2026",
+    "group": "koh-lanta",
+    "tab": "🌅 Sunsets"
+  },
+  {
+    "slug": "koh-lanta-rooftops",
+    "title": "Koh Lanta rooftops & high bars",
+    "sub": "5 up-high drinks spots, Nov 2026",
+    "group": "koh-lanta",
+    "tab": "🍸 Rooftops"
+  }
 ]

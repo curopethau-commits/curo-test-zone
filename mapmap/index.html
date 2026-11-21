@@ -53,6 +53,10 @@
   #count { font-weight:700; color:var(--fg); }
   .been-btn { width:100%; margin-top:8px; padding:9px 10px; border-radius:8px; border:2px solid #16a34a; background:none; color:#16a34a; font:600 14px system-ui, sans-serif; cursor:pointer; }
   .been-btn.on { background:#16a34a; color:#fff; }
+  .switch { display:flex; gap:6px; margin:0 0 10px; flex-wrap:wrap; }
+  .switch[hidden] { display:none; }
+  .switch a { text-decoration:none; font-size:13px; font-weight:600; padding:5px 12px; border-radius:99px; border:1px solid var(--line); color:var(--fg); background:var(--card); }
+  .switch a.on { background:var(--accent); border-color:var(--accent); color:#fff; }
   .home a { display:block; text-decoration:none; color:var(--fg); }
   @media (max-width: 700px) {
     .wrap { flex-direction:column-reverse; }
@@ -64,6 +68,7 @@
 <div class="wrap">
   <aside>
     <h1><span id="title">robrob mapmap</span><span class="wip" id="wip">WIP</span></h1>
+    <div class="switch" id="switch" hidden></div>
     <p class="sub"><span id="sub">Tap a place or pin.</span> <span id="count"></span></p>
     <p class="tip" id="tip" hidden></p>
     <ol id="list"></ol>
@@ -92,7 +97,20 @@ function showHome() {
   }).catch(() => {});
 }
 
+// Maps that share a "group" in maps/index.json get a switch (e.g. sunsets / rooftops).
+function showSwitch() {
+  fetch('maps/index.json').then(r => r.json()).then(all => {
+    const me = all.find(m => m.slug === slug);
+    if (!me || !me.group) return;
+    const sibs = all.filter(m => m.group === me.group);
+    if (sibs.length < 2) return;
+    $('switch').innerHTML = sibs.map(m => `<a href="?m=${esc(m.slug)}"${m.slug === slug ? ' class="on"' : ''}>${esc(m.tab || m.title)}</a>`).join('');
+    $('switch').hidden = false;
+  }).catch(() => {});
+}
+
 function build(data) {
+  showSwitch();
   const places = data.places;
   const area = data.area ? ', ' + data.area : '';
   document.title = data.title + (data.wip === false ? '' : ' (WIP)');
