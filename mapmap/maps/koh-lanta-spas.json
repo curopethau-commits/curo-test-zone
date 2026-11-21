@@ -1,0 +1,64 @@
+{
+  "title": "Koh Lanta spas",
+  "sub": "Proper spa treatments on Lanta, from jungle resort spa to the best-rated local massage. Tick the ones you've done.",
+  "tip": "Lanta has no big standalone day-spa complex like Samui, so the top end is resort spas that take outside guests: ring ahead. Faikham and Taaya get booked up, message them a day before.",
+  "area": "Koh Lanta, Krabi, Thailand",
+  "noteLabel": "Why go",
+  "places": [
+    {
+      "name": "Pimalai Spa",
+      "area": "Ba Kan Tiang, south",
+      "ll": [7.496316, 99.0758139],
+      "notes": [
+        "The big one: spa village in the jungle with a waterfall running through it",
+        "Packages are the move, makes a proper half day",
+        "Resort spa, ring to book as a non-guest (+66 75 607 999)"
+      ],
+      "tags": ["best", "jungle", "splurge"],
+      "url": "https://pimalai.com"
+    },
+    {
+      "name": "Taaya Spa",
+      "area": "Long Beach",
+      "ll": [7.6082847, 99.0334491],
+      "notes": [
+        "Rated 5.0 from 500+ reviews, standalone spa with proper packages",
+        "Scrub + massage + facial combos, great value vs resort spas",
+        "10am–9pm, +66 94 432 8889"
+      ],
+      "tags": ["value", "packages", "book ahead"]
+    },
+    {
+      "name": "Layana Spa",
+      "area": "Long Beach",
+      "ll": [7.610676, 99.033559],
+      "notes": [
+        "Adults-only beachfront resort, spa gets loads of love in reviews",
+        "Right next to Taaya, so easy to compare",
+        "Ring ahead as an outside guest (+66 75 607 100)"
+      ],
+      "tags": ["luxury", "beachfront"]
+    },
+    {
+      "name": "Faikham Lanta Thai Massage",
+      "area": "Klong Khong",
+      "ll": [7.5697992, 99.0360496],
+      "notes": [
+        "Not a spa day, but the best-rated massage on the island (1,200+ reviews)",
+        "Always busy, message to book",
+        "9am–10:30pm"
+      ],
+      "tags": ["massage", "cheap", "book ahead"]
+    },
+    {
+      "name": "Rawi Warin Spa",
+      "area": "Klong Nin",
+      "ll": [7.5507521, 99.0435254],
+      "notes": [
+        "Big resort with its own spa, lush gardens",
+        "Handy if you're down the Klong Nin end, ring first"
+      ],
+      "tags": ["resort spa"]
+    }
+  ]
+}
