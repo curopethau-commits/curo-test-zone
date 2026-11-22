@@ -1,5 +1,13 @@
 # curo-test-zone
 
+## Trip Planner example (WIP)
+
+Demo of the trip calendar planner with two made-up trips (Portugal and Japan). Stretch or shrink stops with − / +, drag place bands, edit days, add trips, and export to a calendar (.ics). Changes save in your browser only.
+
+Try it: https://curopethau-commits.github.io/curo-test-zone/trip-planner-demo/
+
+Status: **WIP**.
+
 ## CHAOS: The Battle of Wizards (WIP)
 
 Family remake of Julian Gollop's 1985 Spectrum game: 2 to 8 wizards online with a room code, or on one device, plus computer wizards and a private room chat. Landscape.
