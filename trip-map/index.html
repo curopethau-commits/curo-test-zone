@@ -65,7 +65,7 @@
 <div class="wrap">
   <aside>
     <h1>robrob trip mapmap <span class="wip">WIP</span></h1>
-    <p class="sub">South Vietnam, up the Mekong, round Cambodia and back. Starts Wed 25 Nov, about 17 nights. Tap a stop for the plan. Tick them off as you go. <span id="count"></span></p>
+    <p class="sub">South Vietnam, up the Mekong, round Cambodia and back. Tap a stop for the plan. Tick them off as you go. <span id="count"></span></p>
     <div class="legend"><span><i></i>Bus</span><span><i class="boat"></i>Boat</span><span><i class="flight"></i>Flight</span></div>
     <ol id="list"></ol>
   </aside>
@@ -77,11 +77,11 @@
 <script>
 // Each stop: when, what to do, and how you get to the next one (mode drives the line style on the map).
 const places = [
-  { name:"Phuket", wiki:"Phuket International Airport", when:"Wed 25 Nov", ll:[8.1132,98.3169],
+  { name:"Phuket", wiki:"Phuket International Airport", when:"Start", ll:[8.1132,98.3169],
     dos:["Evening direct flight to Ho Chi Minh City (about 2h)"],
     next:"Flight, about 2h", mode:"flight" },
   { name:"Ho Chi Minh City", wiki:"Ho Chi Minh City", when:"2 nights", ll:[10.7769,106.7009],
-    dos:["Leave the laptop at the hotel, and book it for your last night too","War Remnants Museum","Street food around Ben Thanh and District 4","Cu Chi tunnels half-day trip"],
+    dos:["War Remnants Museum","Street food around Ben Thanh and District 4","Cu Chi tunnels half-day trip"],
     next:"Bus to Can Tho, about 3.5h", mode:"bus" },
   { name:"Can Tho", wiki:"Cần Thơ", when:"2 nights", ll:[10.0452,105.7469],
     dos:["Cai Rang floating market at dawn","Ninh Kieu riverfront night market","Bike the canal villages"],
@@ -102,7 +102,7 @@ const places = [
     dos:["Angkor Wat sunrise, Bayon, Ta Prohm","Gibbon spotting in the Angkor forest","Prek Toal bird sanctuary by boat"],
     next:"Direct flight to Ho Chi Minh City, about 1h", mode:"flight" },
   { name:"Ho Chi Minh City (home)", wiki:"Tan Son Nhat International Airport", when:"Last night", ll:[10.8188,106.6519],
-    dos:["Collect the laptop from the hotel","Fly home"] },
+    dos:["Fly home"] },
 ];
 const map = L.map('map');
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19, attribution:'&copy; OpenStreetMap contributors' }).addTo(map);
