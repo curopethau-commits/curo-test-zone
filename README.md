@@ -1,12 +1,12 @@
 # curo-test-zone
 
-## Trip Planner example (WIP)
+## Trip Planner (WIP)
 
-Demo of the trip calendar planner with two made-up trips (Portugal and Japan). Stretch or shrink stops with − / +, drag place bands, edit days, add trips, and export to a calendar (.ics). Changes save in your browser only.
+Plan trips on a calendar. Everyone starts with a sample itinerary (a made-up Portugal coast trip dated a few weeks out), then taps "Start my own trip". Each day has a ✦ button with more things to do there, linking to GetYourGuide searches for the place, the day's activity, and categories like food tours and day trips. Stretch or shrink stops, drag place bands, add trips, export to a calendar (.ics). Plans save in the visitor's own browser. Opens in landscape on phones (portrait still works).
 
-Try it: https://curopethau-commits.github.io/curo-test-zone/trip-planner-demo/
+Use it: https://curopethau-commits.github.io/curo-test-zone/trip-planner/
 
-Status: **WIP**.
+Status: **WIP**. To earn from GetYourGuide bookings, set `GYG_PARTNER_ID` in `trip-planner/index.html` once signed up at partner.getyourguide.com. The old `trip-planner-demo/` link redirects here.
 
 ## CHAOS: The Battle of Wizards (WIP)
 
