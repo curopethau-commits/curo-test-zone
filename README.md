@@ -52,7 +52,7 @@ Status: **WIP**.
 
 ## robrob trip mapmap (WIP)
 
-Vietnam and Cambodia loop from 25 Nov 2026: Ho Chi Minh City, the Mekong Delta, the boat to Phnom Penh, Koh Rong, Battambang, Siem Reap and back. Route lines show bus, boat and flight legs. Tick stops off as you go (saved on your device only).
+Vietnam and Cambodia loop: Ho Chi Minh City, the Mekong Delta, the boat to Phnom Penh, Koh Rong, Battambang, Siem Reap and back. Route lines show bus, boat and flight legs. Tick stops off as you go (saved on your device only).
 
 View: https://curopethau-commits.github.io/curo-test-zone/trip-map/
 
