@@ -1,0 +1,33 @@
+{
+  "title": "Phuket airport stays",
+  "sub": "8 places to crash before the HCMC flight, Nov 2026",
+  "tip": "Airport is ~5–10 min by car from all of these. Walking works for the Mai Khao/Soi Naiyang ones but the road has poor pavements — grab a taxi with a big bag. Planes are loud by day, quiet late night.",
+  "area": "Phuket, Thailand",
+  "noteLabel": "Why stay",
+  "places": [
+    { "name": "Sugar Marina Resort – Aviator", "area": "Sa Khu", "ll": [8.0982177, 98.3069079],
+      "notes": ["Best all-rounder: ~5 min drive, aviation-themed, big comfy beds", "Breakfast worth adding; walls can be thin"],
+      "tags": ["mid-range", "pool", "4.4★"] },
+    { "name": "The Luna Hostel", "area": "Soi Naiyang 16", "ll": [8.1007242, 98.3060034],
+      "notes": ["Top-rated cheapie: ~10 min walk to terminal, privates + dorms", "Pool, free coffee, breakfast, bikes to borrow"],
+      "tags": ["budget", "pool", "4.8★"] },
+    { "name": "The Snug Airportel", "area": "Sa Khu", "ll": [8.099463, 98.3059702],
+      "notes": ["~1 km from airport, 24h pool, welcomes 1am check-ins", "Privates and dorms; ask for a bottom bunk"],
+      "tags": ["budget", "pool", "4.7★"] },
+    { "name": "Seapines Villa Liberg", "area": "Nai Yang", "ll": [8.0868592, 98.3000206],
+      "notes": ["Charming Thai-style boutique round a pool, near Nai Yang beach", "Homestay feel, owner very helpful"],
+      "tags": ["boutique", "pool", "4.8★"] },
+    { "name": "Nai Yang Beach Resort & Spa", "area": "Nai Yang", "ll": [8.0882963, 98.297945],
+      "notes": ["Across the road from the beach, food and bars a minute away", "Back rooms are a long walk; thin walls"],
+      "tags": ["beach", "resort"] },
+    { "name": "The Sixteenth Naiyang Beach Hotel", "area": "Sa Khu", "ll": [8.1010892, 98.3058443],
+      "notes": ["Free hourly airport shuttle, rooftop pool with plane views", "Skip their breakfast"],
+      "tags": ["free shuttle", "rooftop pool"] },
+    { "name": "Hop On Phuket", "area": "Mai Khao", "ll": [8.1063906, 98.3087758],
+      "notes": ["5–10 min walk to the terminal, clean, huge bed, quiet", "Plain exterior, ring the video bell"],
+      "tags": ["walkable", "budget"] },
+    { "name": "Phuket Airport Place", "area": "Mai Khao", "ll": [8.1094784, 98.3094918],
+      "notes": ["Closest of the lot, but busy road to cross on foot", "Airport drop is 200 THB, not free"],
+      "tags": ["closest", "pool"] }
+  ]
+}
