@@ -21,13 +21,13 @@
   ol { list-style:none; padding:0; margin:0; }
   li { padding:10px; border:1px solid var(--line); border-radius:8px; margin-bottom:8px; background:var(--card); cursor:pointer; display:flex; gap:10px; }
   li:hover { border-color:var(--accent); }
-  .n { flex:none; width:24px; height:24px; border-radius:50%; background:var(--pc, var(--accent)); color:#fff; font-weight:700; font-size:12px; display:grid; place-items:center; }
+  .n { flex:none; width:24px; height:24px; border-radius:var(--pr, 50%); background:var(--pc, var(--accent)); color:var(--pt, #fff); font-weight:700; font-size:12px; display:grid; place-items:center; }
   .name { font-weight:600; }
   .show { font-style:italic; }
   .tags { display:flex; flex-wrap:wrap; gap:4px; margin-top:4px; }
   .tags span { font-size:11px; border:1px solid var(--line); border-radius:99px; padding:0 7px; color:var(--muted); }
   .addr { color:var(--muted); font-size:12px; }
-  .pin { width:26px; height:26px; border-radius:50%; background:var(--pc, var(--accent)); color:#fff; font-weight:700; font-size:12px; display:grid; place-items:center; border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.4); }
+  .pin { position:relative; width:26px; height:26px; border-radius:var(--pr, 50%); background:var(--pc, var(--accent)); color:var(--pt, #fff); font-weight:700; font-size:12px; display:grid; place-items:center; border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.4); }
   .me { width:16px; height:16px; border-radius:50%; background:#2563eb; border:3px solid #fff; box-shadow:0 0 0 2px rgba(37,99,235,.35), 0 1px 4px rgba(0,0,0,.4); }
   .homepin { width:34px; height:34px; border-radius:10px; background:#1d1b18; color:#fff; font-size:18px; display:grid; place-items:center; border:2px solid #fff; box-shadow:0 1px 6px rgba(0,0,0,.5); }
   .from { color:var(--accent); font-size:12px; font-weight:600; }
@@ -63,12 +63,14 @@
   .switch a.on { background:var(--accent); border-color:var(--accent); color:#fff; }
   .layers { display:flex; gap:6px; margin:0 0 10px; flex-wrap:wrap; }
   .layers[hidden] { display:none; }
-  .layers button { font:600 13px system-ui, sans-serif; padding:5px 10px; border-radius:99px; border:2px solid var(--pc); background:var(--pc); color:#fff; cursor:pointer; }
+  .layers button { font:600 13px system-ui, sans-serif; padding:5px 10px; border-radius:99px; border:2px solid var(--pc); background:var(--pc); color:var(--pt, #fff); cursor:pointer; }
+  .badge { position:absolute; top:-9px; right:-10px; font-size:12px; line-height:1; background:#fff; border-radius:50%; padding:2px; box-shadow:0 1px 2px rgba(0,0,0,.4); }
   .layers button.off { background:none; color:var(--muted); border-color:var(--line); }
-  .ringlbl { font:700 11px system-ui, sans-serif; color:#1d4ed8; background:rgba(255,255,255,.9); border-radius:99px; padding:1px 6px; white-space:nowrap; transform:translate(-50%,-50%); display:inline-block; box-shadow:0 1px 3px rgba(0,0,0,.25); }
-  .ringlbl.gr { color:#047a3a; }
+  .ringlbl { font:700 11px system-ui, sans-serif; color:#fff; background:#0072B2; border-radius:99px; padding:1px 6px; white-space:nowrap; transform:translate(-50%,-50%); display:inline-block; box-shadow:0 1px 3px rgba(0,0,0,.25); }
+  .ringlbl.gr { color:#fff; background:#c24e00; }
   .layers::before { content:'Layers'; width:100%; font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
-  .lyr { font-size:11px; font-weight:700; color:var(--pc); }
+  .lyr { font-size:11px; font-weight:700; color:var(--fg); display:flex; align-items:center; gap:5px; }
+  .lyr::before { content:''; width:10px; height:10px; border-radius:var(--pr, 50%); background:var(--pc); border:1px solid rgba(0,0,0,.35); }
   li[hidden] { display:none; }
   .home a { display:block; text-decoration:none; color:var(--fg); }
   .grab { display:none; }
@@ -188,7 +190,17 @@ function showSwitch() {
 }
 
 // A map with "layers": [{slug, name}] pulls in other maps as colour layers you can switch on and off.
-const LAYER_COLS = ['#c2410c', '#7c3aed', '#0369a1', '#db2777', '#475569', '#b45309', '#0e7490'];
+// High-contrast, colour-blind-safe layer styles (Okabe-Ito colours), each with its own pin shape and emoji badge,
+// so layers can be told apart without relying on colour alone.
+const LAYER_STYLES = [
+  { c:'#D55E00', t:'#fff', r:'50%' },               // vermillion circle
+  { c:'#0072B2', t:'#fff', r:'4px' },               // blue square
+  { c:'#111111', t:'#fff', r:'50% 50% 50% 3px' },   // black teardrop
+  { c:'#F0E442', t:'#111', r:'50%' },               // yellow circle
+  { c:'#AA3377', t:'#fff', r:'4px' },               // purple square
+  { c:'#56B4E9', t:'#111', r:'50% 50% 50% 3px' },   // sky teardrop
+  { c:'#009E73', t:'#fff', r:'4px' },               // green square
+];
 function build(data) {
   if (data.layers && !data._merged) {
     return Promise.all(data.layers.map(l => fetch('maps/' + l.slug + '.json').then(r => r.json()).catch(() => null))).then(subs => {
@@ -196,8 +208,9 @@ function build(data) {
       data._layers = [];
       subs.forEach((m, li) => {
         if (!m) return;
-        const L_ = data.layers[li], col = L_.color || LAYER_COLS[data._layers.length % LAYER_COLS.length];
-        const idx = data._layers.push({ name: L_.name || m.title, col }) - 1;
+        const L_ = data.layers[li], st = LAYER_STYLES[data._layers.length % LAYER_STYLES.length];
+        const name = L_.name || m.title, emo = (name.match(/^\S+/) || [''])[0];
+        const idx = data._layers.push({ name, col: L_.color || st.c, txt: st.t, rad: st.r, emo: /[a-z0-9]/i.test(emo) ? '' : emo }) - 1;
         (m.places || []).forEach(p => data.places.push(Object.assign({}, p, { _layer: idx })));
         if (!data.home && m.home) data.home = m.home;
       });
@@ -208,7 +221,9 @@ function build(data) {
   showSwitch();
   const places = data.places;
   const layers = data._layers || null;
-  const pcol = p => layers && p._layer != null ? ` style="--pc:${layers[p._layer].col}"` : '';
+  const lstyle = l => `--pc:${l.col};--pt:${l.txt};--pr:${l.rad}`;
+  const pcol = p => layers && p._layer != null ? ` style="${lstyle(layers[p._layer])}"` : '';
+  const badge = p => layers && p._layer != null && layers[p._layer].emo ? `<span class="badge">${layers[p._layer].emo}</span>` : '';
   const area = data.area ? ', ' + data.area : '';
   document.title = data.title + (data.wip === false ? '' : ' (WIP)');
   $('title').textContent = data.title;
@@ -301,7 +316,7 @@ function build(data) {
   L.DomEvent.disableClickPropagation(card);
   map.on('click', closeCard);
   places.forEach((p, i) => {
-    const icon = L.divIcon({ className:'', html:`<div class="pin"${pcol(p)}>${i+1}</div>`, iconSize:[26,26], iconAnchor:[13,13] });
+    const icon = L.divIcon({ className:'', html:`<div class="pin"${pcol(p)}>${i+1}${badge(p)}</div>`, iconSize:[26,26], iconAnchor:[13,13] });
     markers[i] = L.marker(p.ll, { icon }).addTo(map).on('click', () => openCard(i));
     const li = document.createElement('li');
     const first = [].concat(p.notes || [])[0];
@@ -329,7 +344,7 @@ function build(data) {
     let off = {};
     try { off = JSON.parse(localStorage.getItem(LKEY)) || {}; } catch (e) {}
     const box = $('layers');
-    box.innerHTML = layers.map((l, li) => `<button type="button" data-l="${li}" style="--pc:${l.col}">${esc(l.name)}</button>`).join('');
+    box.innerHTML = layers.map((l, li) => `<button type="button" data-l="${li}" style="${lstyle(l)}">${esc(l.name)}</button>`).join('');
     box.hidden = false;
     L.DomEvent.disableClickPropagation(box);
     const apply = () => {
@@ -361,15 +376,15 @@ const rings = L.layerGroup().addTo(map);
 // Grab rings: same sum as the "min Grab" on each place (2.6 min per road km + 4 min to get going), turned into a crow-flies radius.
 const GRAB_MIN = [10, 15, 20, 30], grabM = m => (m - 4) / 2.6 / 1.3 * 1000;
 function ring(ll, r, col, label, cls, dash, labelBottom) {
-  L.circle(ll, { radius:r, color:col, weight:1.5, opacity:.75, dashArray:dash, fill:false, interactive:false }).addTo(rings);
+  L.circle(ll, { radius:r, color:col, weight:2.5, opacity:.9, dashArray:dash, fill:false, interactive:false }).addTo(rings);
   // Walk labels sit on top of their ring, Grab labels on the right, so they never overlap.
   const at = labelBottom ? [ll[0], ll[1] + r / (111320 * Math.cos(ll[0] * Math.PI / 180))] : [ll[0] + r / 111320, ll[1]];
   L.marker(at, { interactive:false, keyboard:false, icon:L.divIcon({ className:'', html:`<span class="ringlbl ${cls}">${label}</span>`, iconSize:[0,0] }) }).addTo(rings);
 }
 function drawRings(ll) {
   rings.clearLayers();
-  RING_MIN.forEach(m => ring(ll, m * M_PER_MIN, '#2563eb', `🚶 ${m} min`, '', '4 6', false));
-  GRAB_MIN.forEach(m => ring(ll, grabM(m), '#00b14f', `🛵 ${m} min`, 'gr', '10 6', true));
+  RING_MIN.forEach(m => ring(ll, m * M_PER_MIN, '#0072B2', `🚶 ${m} min`, '', '2 6', false));
+  GRAB_MIN.forEach(m => ring(ll, grabM(m), '#D55E00', `🛵 ${m} min`, 'gr', '14 8', true));
 }
 const btn = $('locate');
 L.DomEvent.disableClickPropagation(btn);
