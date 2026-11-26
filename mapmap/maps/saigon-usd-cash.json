@@ -1,0 +1,22 @@
+{
+  "title": "Getting US dollars in Saigon",
+  "sub": "Where to buy USD cash with dong, near Wink, Nov 2026",
+  "tip": "ATMs here give dong only, so you can't just withdraw dollars. Take out dong, then buy USD at a gold shop by Ben Thanh (quickest, no paperwork) or at a bank (passport, and they may want your onward ticket). Ask for crisp $100s, count them at the counter, and check the buy/sell board first. Swapping money with people on the street is illegal and full of fakes.",
+  "area": "District 1, Ho Chi Minh City, Vietnam",
+  "noteLabel": "Why go",
+  "home": { "name": "Wink Hotel Saigon Centre", "short": "Wink", "ll": [10.791172, 106.700455], "addr": "75 Nguyễn Bỉnh Khiêm, Đa Kao, District 1" },
+  "places": [
+    { "name": "Hà Tâm gold shop", "area": "Bến Thành Market", "ll": [10.77252, 106.69802],
+      "notes": ["Best-known exchange in town, locals and expats both rate it", "Sells USD as well as buying it, rates on the board", "Mai Văn next door (1 Nguyễn An Ninh) is a backup if the queue's long", "Pin is the market; the shop faces it on Nguyễn An Ninh"],
+      "tags": ["best rates", "no paperwork", "8am–7/8:30pm"], "addr": "2 Nguyễn An Ninh, Bến Thành, District 1" },
+    { "name": "Eximbank exchange counter 59", "area": "Đồng Khởi", "ll": [10.77639, 106.70278],
+      "notes": ["Proper licensed bank counter that buys and sells USD", "Long hours (reported 7am–10pm daily); rates a bit worse than the gold shops", "Pin is Đồng Khởi street, not the exact door"],
+      "tags": ["licensed", "late hours"], "addr": "135 Đồng Khởi, Bến Nghé, District 1" },
+    { "name": "Vietcombank HCMC branch", "area": "Mê Linh Square", "ll": [10.77571, 106.70554],
+      "notes": ["Big state bank: safest option for a larger amount", "Bring your passport and onward flight; selling USD to tourists needs paperwork and they may say no", "Weekday office hours only"],
+      "tags": ["bank", "passport", "weekdays"], "addr": "5 Mê Linh Square, District 1", "wiki": "Vietcombank Tower" },
+    { "name": "Kim Mai gold shop", "area": "Cống Quỳnh", "ll": [10.76451, 106.69077],
+      "notes": ["Another gold shop that changes USD, near Bùi Viện", "Worth comparing rates if you're down that end"],
+      "tags": ["gold shop", "backpacker area"], "addr": "84C Cống Quỳnh, District 1" }
+  ]
+}
