@@ -4,6 +4,15 @@
   "tip": "Thursday is quiet: Luu Bar's weekly Luu Session is the one solid pick. Friday has more going on. Also on Friday: Mindaniel presents Open Mind at Halo Saigon Skybar (on RA, line-up TBA). I couldn't find its address, so it has no pin. Pins are approximate, so tap the Google Maps button, which searches the exact address. Check the venue's Instagram before you go, because Saigon line-ups change late.",
   "area": "Ho Chi Minh City, Vietnam",
   "noteLabel": "What's on",
+  "home": {
+    "name": "Wink Hotel Saigon Centre",
+    "short": "Wink",
+    "ll": [
+      10.791172,
+      106.700455
+    ],
+    "addr": "75 Nguyễn Bỉnh Khiêm, Đa Kao, District 1"
+  },
   "places": [
     {
       "name": "Luu Bar",
