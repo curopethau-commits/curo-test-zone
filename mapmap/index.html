@@ -29,6 +29,10 @@
   .addr { color:var(--muted); font-size:12px; }
   .pin { width:26px; height:26px; border-radius:50%; background:var(--accent); color:#fff; font-weight:700; font-size:12px; display:grid; place-items:center; border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.4); }
   .me { width:16px; height:16px; border-radius:50%; background:#2563eb; border:3px solid #fff; box-shadow:0 0 0 2px rgba(37,99,235,.35), 0 1px 4px rgba(0,0,0,.4); }
+  .homepin { width:34px; height:34px; border-radius:10px; background:#1d1b18; color:#fff; font-size:18px; display:grid; place-items:center; border:2px solid #fff; box-shadow:0 1px 6px rgba(0,0,0,.5); }
+  .from { color:var(--accent); font-size:12px; font-weight:600; }
+  .homebar { display:flex; align-items:center; gap:8px; margin:6px 0 2px; font-size:13px; }
+  .homebar b { font-weight:700; }
   .locate { position:absolute; right:10px; bottom:24px; z-index:1000; background:var(--card); color:var(--fg); border:1px solid var(--line); border-radius:8px; padding:8px 12px; font:600 14px system-ui, sans-serif; box-shadow:0 1px 4px rgba(0,0,0,.25); cursor:pointer; }
   .card { position:absolute; left:10px; top:10px; z-index:1001; width:min(340px, calc(100% - 20px)); max-height:calc(100% - 80px); overflow-y:auto; background:var(--card); color:var(--fg); border:1px solid var(--line); border-radius:12px; padding:14px 14px 12px; box-shadow:0 4px 20px rgba(0,0,0,.25); }
   .card[hidden] { display:none; }
@@ -183,6 +187,15 @@ function build(data) {
   $('sub').textContent = data.sub || 'Tap a place or pin. Tick the ones you’ve been to.';
   if (data.tip) { $('tip').innerHTML = '<span>' + esc(data.tip) + '</span>'; $('tip').hidden = false; $('tip').onclick = () => $('tip').classList.toggle('open'); }
   const label = data.noteLabel || 'Why go';
+  // Optional "home": where Rob is staying. Gets its own pin, and every place shows time from it.
+  const home = data.home && data.home.ll ? data.home : null;
+  const km = (a, b) => { const r = Math.PI/180, dl = (b[0]-a[0])*r, dn = (b[1]-a[1])*r; const h = Math.sin(dl/2)**2 + Math.cos(a[0]*r)*Math.cos(b[0]*r)*Math.sin(dn/2)**2; return 12742 * Math.asin(Math.sqrt(h)); };
+  const fromHome = ll => {
+    if (!home) return '';
+    const d = km(home.ll, ll) * 1.3; // streets aren't straight
+    if (d < 2.2) return `🚶 ${Math.max(1, Math.round(d / 0.08))} min walk from ${home.short || home.name}`;
+    return `🛵 ~${Math.round(d * 2.6 + 4)} min Grab from ${home.short || home.name} (${d.toFixed(1)} km)`;
+  };
   const list = $('list'), card = $('card');
   const KEY = 'robrob-mapmap-been-' + slug;
   let been = {};
@@ -212,7 +225,10 @@ function build(data) {
   }
   function openCard(i) {
     const p = places[i];
-    const gmaps = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(p.name + (p.addr ? ', ' + p.addr : '') + area);
+    const dest = encodeURIComponent(p.name + (p.addr ? ', ' + p.addr : '') + area);
+    const gmaps = home
+      ? `https://www.google.com/maps/dir/?api=1&origin=${home.ll[0]},${home.ll[1]}&destination=${dest}&travelmode=${km(home.ll, p.ll) * 1.3 < 2.2 ? 'walking' : 'driving'}`
+      : 'https://www.google.com/maps/search/?api=1&query=' + dest;
     const notes = [].concat(p.notes || []);
     card.querySelector('.card-body').innerHTML =
       `<div class="card-head"><span class="n">${i+1}</span><h2>${esc(p.name)}</h2></div>
@@ -220,6 +236,7 @@ function build(data) {
        ${notes.length ? `<div class="label">${esc(label)}</div><ul class="shows">${notes.map(t => `<li>${esc(t)}</li>`).join('')}</ul>` : ''}
        ${p.tags ? `<div class="tags">${p.tags.map(t => `<span>${esc(t)}</span>`).join('')}</div>` : ''}
        ${p.addr ? `<div class="addr" style="margin-top:8px">${esc(p.addr)}</div>` : ''}
+       ${home ? `<div class="from" style="margin-top:6px">${esc(fromHome(p.ll))}</div>` : ''}
        <button class="been-btn${been[p.name]?' on':''}" type="button">${been[p.name]?'✓ Been here':'Tick: I’ve been here'}</button>
        <div class="btns">${p.url ? `<a class="btn primary" href="${esc(p.url)}" target="_blank" rel="noopener">Website ↗</a>` : ''}<a class="btn${p.url ? '' : ' primary'}" href="${gmaps}" target="_blank" rel="noopener">Directions ↗</a></div>`;
     card.querySelector('.been-btn').onclick = () => setBeen(i, !been[p.name]);
@@ -259,13 +276,23 @@ function build(data) {
     markers[i] = L.marker(p.ll, { icon }).addTo(map).on('click', () => openCard(i));
     const li = document.createElement('li');
     const first = [].concat(p.notes || [])[0];
-    li.innerHTML = `<span class="n">${i+1}</span><div><div class="name">${esc(p.name)}</div>${first ? `<div class="show">${esc(first)}</div>` : ''}${p.area ? `<div class="addr">${esc(p.area)}</div>` : ''}</div><button class="tick" type="button" aria-label="Been here">✓</button>`;
+    li.innerHTML = `<span class="n">${i+1}</span><div><div class="name">${esc(p.name)}</div>${first ? `<div class="show">${esc(first)}</div>` : ''}${p.area ? `<div class="addr">${esc(p.area)}</div>` : ''}${home ? `<div class="from">${esc(fromHome(p.ll))}</div>` : ''}</div><button class="tick" type="button" aria-label="Been here">✓</button>`;
     li.querySelector('.tick').onclick = e => { e.stopPropagation(); setBeen(i, !been[p.name]); };
     li.onclick = () => { map.setView(p.ll, 15, { animate: !mob() }); openCard(i); };
     list.appendChild(li);
     items[i] = li;
   });
-  map.fitBounds(L.latLngBounds(places.map(p => p.ll)), mob() ? { paddingTopLeft:[30,30], paddingBottomRight:[30, sheet.offsetHeight + 30] } : { padding:[30,30] });
+  if (home) {
+    L.marker(home.ll, { icon: L.divIcon({ className:'', html:'<div class="homepin">🏨</div>', iconSize:[34,34], iconAnchor:[17,17] }), zIndexOffset:900 })
+      .addTo(map).bindPopup(`<b>${esc(home.name)}</b><br>Home base${home.addr ? '<br>' + esc(home.addr) : ''}`);
+    const hb = document.createElement('div');
+    hb.className = 'homebar';
+    hb.innerHTML = `<span>🏨</span><span>Home base: <b>${esc(home.name)}</b></span>`;
+    hb.style.cursor = 'pointer';
+    hb.onclick = () => map.setView(home.ll, 16);
+    list.parentNode.insertBefore(hb, list);
+  }
+  map.fitBounds(L.latLngBounds(places.map(p => p.ll).concat(home ? [home.ll] : [])), mob() ? { paddingTopLeft:[30,30], paddingBottomRight:[30, sheet.offsetHeight + 30] } : { padding:[30,30] });
   places.forEach((_, i) => render(i));
   window._places = places;
 }

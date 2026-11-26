@@ -1,24 +1,112 @@
 {
   "title": "Saigon hipster areas",
-  "sub": "5 cool neighbourhoods to wander in Ho Chi Minh City, Nov 2026",
+  "sub": "5 cool neighbourhoods, with times from Wink, Nov 2026",
   "tip": "Grab bikes are the easiest way between them. The old apartment-block cafés are up narrow stairs or a lift that charges ~3–5k VND. Go late afternoon into evening: it's cooler and the bars open.",
   "area": "Ho Chi Minh City, Vietnam",
   "noteLabel": "Why go",
+  "home": {
+    "name": "Wink Hotel Saigon Centre",
+    "short": "Wink",
+    "ll": [
+      10.791172,
+      106.700455
+    ],
+    "addr": "75 Nguyễn Bỉnh Khiêm, Đa Kao, District 1"
+  },
   "places": [
-    { "name": "Nguyễn Thái Bình & 14 Tôn Thất Đạm", "area": "District 1 (near Ben Thanh)", "ll": [10.7711, 106.7028],
-      "notes": ["Time Out's 11th coolest neighbourhood in the world (2025)", "14 Tôn Thất Đạm is a run-down block full of indie fashion, vintage and cafés", "Dense grid of workshops, vintage markets, bars and creative spaces"],
-      "tags": ["vintage", "bars", "Time Out pick"], "addr": "14 Tôn Thất Đạm, District 1" },
-    { "name": "Tân Định", "area": "District 1/3 border", "ll": [10.78842, 106.69069],
-      "notes": ["Time Out's 12th coolest neighbourhood (2026)", "Start at the pink church, then get lost in the low-rise lanes behind it", "Cà Phê Đỗ Phủ (113A Đặng Dung) hides a wartime commando bunker"],
-      "tags": ["food", "local", "Time Out pick"], "wiki": "Tân Định Church" },
-    { "name": "The Café Apartment", "area": "Nguyễn Huệ walking street", "ll": [10.7741, 106.70403],
-      "notes": ["Old 1960s block, every flat now a café, shop or bar", "Touristy but fun: best view of the walking street from the upper balconies"],
-      "tags": ["cafés", "views", "touristy"], "addr": "42 Nguyễn Huệ, District 1" },
-    { "name": "District 3 / Hồ Con Rùa", "area": "District 3", "ll": [10.7826, 106.6959],
-      "notes": ["Leafy French-villa streets, less touristy than D1", "Turtle Lake roundabout fills with students snacking at night", "Villa cafés and good street food on the side streets"],
-      "tags": ["leafy", "street food", "local"], "wiki": "Turtle Lake (Ho Chi Minh City)" },
-    { "name": "Thảo Điền", "area": "Thủ Đức (old District 2)", "ll": [10.8095, 106.7351],
-      "notes": ["Expat-y riverside village: craft beer, brunch, design shops", "The Factory Contemporary Arts Centre (15 Nguyễn Ư Dĩ) is the art highlight, Tue–Sun 10am–7pm", "Pin is the middle of the ward; it's ~20 min from D1"],
-      "tags": ["expat", "art", "craft beer"], "url": "https://factoryartscentre.com/language/en/visit-us/" }
+    {
+      "name": "District 3 / Hồ Con Rùa",
+      "area": "District 3",
+      "ll": [
+        10.7826,
+        106.6959
+      ],
+      "notes": [
+        "Leafy French-villa streets, less touristy than D1",
+        "Turtle Lake roundabout fills with students snacking at night",
+        "Villa cafés and good street food on the side streets"
+      ],
+      "tags": [
+        "leafy",
+        "street food",
+        "local"
+      ],
+      "wiki": "Turtle Lake (Ho Chi Minh City)"
+    },
+    {
+      "name": "Tân Định",
+      "area": "District 1/3 border",
+      "ll": [
+        10.78842,
+        106.69069
+      ],
+      "notes": [
+        "Time Out's 12th coolest neighbourhood (2026)",
+        "Start at the pink church, then get lost in the low-rise lanes behind it",
+        "Cà Phê Đỗ Phủ (113A Đặng Dung) hides a wartime commando bunker"
+      ],
+      "tags": [
+        "food",
+        "local",
+        "Time Out pick"
+      ],
+      "wiki": "Tân Định Church"
+    },
+    {
+      "name": "The Café Apartment",
+      "area": "Nguyễn Huệ walking street",
+      "ll": [
+        10.7741,
+        106.70403
+      ],
+      "notes": [
+        "Old 1960s block, every flat now a café, shop or bar",
+        "Touristy but fun: best view of the walking street from the upper balconies"
+      ],
+      "tags": [
+        "cafés",
+        "views",
+        "touristy"
+      ],
+      "addr": "42 Nguyễn Huệ, District 1"
+    },
+    {
+      "name": "Nguyễn Thái Bình & 14 Tôn Thất Đạm",
+      "area": "District 1 (near Ben Thanh)",
+      "ll": [
+        10.7711,
+        106.7028
+      ],
+      "notes": [
+        "Time Out's 11th coolest neighbourhood in the world (2025)",
+        "14 Tôn Thất Đạm is a run-down block full of indie fashion, vintage and cafés",
+        "Dense grid of workshops, vintage markets, bars and creative spaces"
+      ],
+      "tags": [
+        "vintage",
+        "bars",
+        "Time Out pick"
+      ],
+      "addr": "14 Tôn Thất Đạm, District 1"
+    },
+    {
+      "name": "Thảo Điền",
+      "area": "Thủ Đức (old District 2)",
+      "ll": [
+        10.8095,
+        106.7351
+      ],
+      "notes": [
+        "Expat-y riverside village: craft beer, brunch, design shops",
+        "The Factory Contemporary Arts Centre (15 Nguyễn Ư Dĩ) is the art highlight, Tue–Sun 10am–7pm",
+        "Pin is the middle of the ward; it's ~20 min from D1"
+      ],
+      "tags": [
+        "expat",
+        "art",
+        "craft beer"
+      ],
+      "url": "https://factoryartscentre.com/language/en/visit-us/"
+    }
   ]
 }
