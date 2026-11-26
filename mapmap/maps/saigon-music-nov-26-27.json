@@ -1,0 +1,103 @@
+{
+  "title": "Saigon music: Thu 26 & Fri 27 Nov",
+  "sub": "Club nights, DJs and disco in Ho Chi Minh City tonight and tomorrow, from RA and listings sites",
+  "tip": "Thursday is quiet: Luu Bar's weekly Luu Session is the one solid pick. Friday has more going on. Also on Friday: Mindaniel presents Open Mind at Halo Saigon Skybar (on RA, line-up TBA). I couldn't find its address, so it has no pin. Pins are approximate, so tap the Google Maps button, which searches the exact address. Check the venue's Instagram before you go, because Saigon line-ups change late.",
+  "area": "Ho Chi Minh City, Vietnam",
+  "noteLabel": "What's on",
+  "places": [
+    {
+      "name": "Luu Bar",
+      "area": "Bình Thạnh",
+      "ll": [
+        10.7945,
+        106.711
+      ],
+      "notes": [
+        "THU 26, 6–10pm: Luu Session, hosted by Zojo, the weekly night of upbeat house, disco and indie dance",
+        "FRI 27, from 7pm, free entry: Best Of Open CUE by Dopeamin. Barajas picks the best DJs from the weekly open decks. RA shows Barajas, Fix, Miietta, Pat and Vitronic but still says line-up TBA",
+        "Late-night cocktail bar and underground music spot, ~10 min Grab from Wink"
+      ],
+      "tags": [
+        "Thu",
+        "Fri",
+        "house",
+        "disco"
+      ],
+      "url": "https://ra.co/events/2590798",
+      "addr": "108 Phạm Viết Chánh, Bình Thạnh"
+    },
+    {
+      "name": "Bông Kia Sên",
+      "area": "Phú Nhuận",
+      "ll": [
+        10.79,
+        106.678
+      ],
+      "notes": [
+        "FRI 27: W.A.X Ep.6 with Funk Soul Brothers",
+        "Vinyl funk and soul night by the Nhiêu Lộc canal"
+      ],
+      "tags": [
+        "Fri",
+        "funk",
+        "soul",
+        "vinyl"
+      ],
+      "url": "https://ra.co/clubs/307974",
+      "addr": "680 Trường Sa, Phú Nhuận"
+    },
+    {
+      "name": "Frolic Station",
+      "area": "District 1 (Bến Thành)",
+      "ll": [
+        10.7665,
+        106.6905
+      ],
+      "notes": [
+        "FRI 27, 8pm: CHROME CIRCUIT with Isaac Roldan (Mexican, Hong Kong based), support TBA. One RA page says Sat 28, so check",
+        "New party space that opened in July 2026. Not the same place as Frolic Bar on Đề Thám"
+      ],
+      "tags": [
+        "Fri",
+        "club",
+        "guest DJ"
+      ],
+      "url": "https://ra.co/events/vn/hochiminhcity",
+      "addr": "102 Cống Quỳnh, Bến Thành"
+    },
+    {
+      "name": "Le Café des Stagiaires",
+      "area": "Thảo Điền",
+      "ll": [
+        10.8075,
+        106.736
+      ],
+      "notes": [
+        "FRI 27, 9pm till late: DISCONESE with Wiznick, Paully and Omar playing disco, funk and boogie",
+        "Riverside rooftop bar, open until 2am on Fridays, ~20 min Grab from D1"
+      ],
+      "tags": [
+        "Fri",
+        "disco",
+        "rooftop",
+        "9pm"
+      ],
+      "addr": "8-10 Đường số 54, Thảo Điền"
+    },
+    {
+      "name": "Wink Hotel Saigon Centre",
+      "area": "Đa Kao",
+      "ll": [
+        10.791172,
+        106.700455
+      ],
+      "notes": [
+        "Home base"
+      ],
+      "tags": [
+        "base"
+      ],
+      "addr": "75 Nguyễn Bỉnh Khiêm, Đa Kao, District 1"
+    }
+  ]
+}
