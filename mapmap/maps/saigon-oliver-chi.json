@@ -1,0 +1,28 @@
+{
+  "title": "Oliver & Chi's Saigon picks",
+  "sub": "Oliver's food, drink and coffee tips (sent Apr 2023, rechecked Nov 2026)",
+  "tip": "Oliver's rules: crossing the road, DON'T stop. Walk slow and steady; the bikes have already adjusted for where you'll be. Take it easy, Vietnam is exhausting. His tips are from 2023; all of these still had listings in 2026, but check hours before you go.",
+  "area": "Ho Chi Minh City, Vietnam",
+  "noteLabel": "Oliver says",
+  "home": { "name": "Wink Hotel Saigon Centre", "short": "Wink", "ll": [10.791172, 106.700455], "addr": "75 Nguyễn Bỉnh Khiêm, Đa Kao, District 1" },
+  "places": [
+    { "name": "Quince Saigon", "area": "Nguyễn Thái Bình", "ll": [10.7662, 106.6992],
+      "notes": ["\"Best meal in Saigon. Sooooooo good. Not cheap.\"", "Wood-fired Mediterranean; dinner from 5:30pm daily, last order ~9:45pm", "Book: 028 3821 8661"],
+      "tags": ["best meal", "splurge", "book ahead"], "addr": "37bis Ký Con, District 1", "url": "https://www.quincesaigon.com/" },
+    { "name": "Anan Saigon", "area": "Tôn Thất Đạm (Chợ Cũ)", "ll": [10.771741, 106.70286],
+      "notes": ["Inventive Vietnamese with Aussie touches, overlooking one of Saigon's oldest markets", "Look out for the granny butcher picking her toes at the market opposite", "Dinner from 5pm, closed Mondays"],
+      "tags": ["inventive", "dinner", "closed Mon"], "addr": "89 Tôn Thất Đạm, District 1", "url": "https://anansaigon.com/" },
+    { "name": "Apothecary", "area": "Đa Kao", "ll": [10.7904, 106.6966],
+      "notes": ["\"Hidden away cute local one (not super but special)\"", "Old-clinic-themed cocktail bar behind a half-shut iron door; drinks named after scientists", "5pm–1am daily · 0898 530 447", "Pin is approximate (it's in the lanes by Huỳnh Khương Ninh); Directions finds the address"],
+      "tags": ["hidden bar", "near Wink"], "addr": "12 Phan Liêm, Đa Kao, District 1", "url": "https://maps.app.goo.gl/PgzC99vfcbbDm57M8" },
+    { "name": "The Workshop Coffee", "area": "Ngô Đức Kế", "ll": [10.773476, 106.705604],
+      "notes": ["\"Coffee. You can hang out with the cool hipsters there\"", "Upstairs specialty roastery in an old warehouse, ~8am–8:30pm"],
+      "tags": ["coffee", "hipsters"], "addr": "27 Ngô Đức Kế, District 1", "url": "https://maps.app.goo.gl/3VLtf2uPS2qw79yTA" },
+    { "name": "Social Club Rooftop", "area": "District 3", "ll": [10.782574, 106.69732],
+      "notes": ["Oliver's drinks pick: rooftop pool bar on the 24th floor of Hôtel des Arts", "Go for sunset · 028 3989 8888"],
+      "tags": ["rooftop", "sunset"], "addr": "76–78 Nguyễn Thị Minh Khai, District 3", "url": "https://www.hoteldesartssaigon.com/restaurants-bars/social-club-rooftop-bar/" },
+    { "name": "Spice Bistro & Hum Vegetarian", "area": "Thảo Điền", "ll": [10.8095, 106.7351],
+      "notes": ["\"Awesome Vietnamese\": two restaurants facing each other, Spice (normal) and Hum (vegetarian), sharing a garden", "Spice 0899 189 218 · Hum 0899 189 229; Spice closed Mondays", "Pin is the middle of Thảo Điền, not the door; Directions finds 32 Đường số 11"],
+      "tags": ["Vietnamese", "vegetarian", "garden"], "addr": "32 Đường số 11, Thảo Điền", "url": "https://www.spicebistro.vn/en/book-a-table" }
+  ]
+}

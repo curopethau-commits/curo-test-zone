@@ -4,12 +4,39 @@
   "tip": "Each colour is one of the Saigon maps. Turn layers off to declutter; your choice is remembered on this phone. Times are from Wink.",
   "area": "Ho Chi Minh City, Vietnam",
   "noteLabel": "Why go",
-  "home": { "name": "Wink Hotel Saigon Centre", "short": "Wink", "ll": [10.791172, 106.700455], "addr": "75 Nguyễn Bỉnh Khiêm, Đa Kao, District 1" },
+  "home": {
+    "name": "Wink Hotel Saigon Centre",
+    "short": "Wink",
+    "ll": [
+      10.791172,
+      106.700455
+    ],
+    "addr": "75 Nguyễn Bỉnh Khiêm, Đa Kao, District 1"
+  },
   "layers": [
-    { "slug": "saigon-near-wink", "name": "🏨 Near Wink" },
-    { "slug": "hcmc-hipster-areas", "name": "🕶️ Hipster areas" },
-    { "slug": "saigon-music-nov-26-27", "name": "🎧 Music" },
-    { "slug": "saigon-usd-cash", "name": "💵 USD cash" },
-    { "slug": "saigon-sights", "name": "🏛️ Sights" }
+    {
+      "slug": "saigon-near-wink",
+      "name": "🏨 Near Wink"
+    },
+    {
+      "slug": "saigon-oliver-chi",
+      "name": "💌 Oliver & Chi"
+    },
+    {
+      "slug": "hcmc-hipster-areas",
+      "name": "🕶️ Hipster areas"
+    },
+    {
+      "slug": "saigon-music-nov-26-27",
+      "name": "🎧 Music"
+    },
+    {
+      "slug": "saigon-usd-cash",
+      "name": "💵 USD cash"
+    },
+    {
+      "slug": "saigon-sights",
+      "name": "🏛️ Sights"
+    }
   ]
 }
