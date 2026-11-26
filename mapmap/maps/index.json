@@ -35,6 +35,15 @@
   {
     "slug": "hcmc-hipster-areas",
     "title": "Saigon hipster areas",
-    "sub": "5 cool neighbourhoods, Nov 2026"
+    "sub": "5 cool neighbourhoods, Nov 2026",
+    "group": "saigon",
+    "tab": "🕶️ Hipster areas"
+  },
+  {
+    "slug": "saigon-near-wink",
+    "title": "Cool stuff near Wink Saigon",
+    "sub": "7 spots within ~1 km of Wink, Nov 2026",
+    "group": "saigon",
+    "tab": "🏨 Near Wink"
   }
 ]

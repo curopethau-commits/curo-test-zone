@@ -1,0 +1,30 @@
+{
+  "title": "Cool stuff near Wink Saigon",
+  "sub": "Hipster cafés and wanders within ~1 km of Wink Hotel Saigon Centre (Đa Kao), Nov 2026",
+  "tip": "Everything here is a 5–15 min walk from Wink. Đa Kao and Tân Định are the low-rise, local side of District 1. For the bigger hipster scene (Tôn Thất Đạm, Café Apartment), Grab it ~10 min south.",
+  "area": "District 1, Ho Chi Minh City, Vietnam",
+  "noteLabel": "Why go",
+  "places": [
+    { "name": "Wink Hotel Saigon Centre", "area": "Đa Kao", "ll": [10.791172, 106.700455],
+      "notes": ["Home base", "75 Nguyễn Bỉnh Khiêm"],
+      "tags": ["base"], "addr": "75 Nguyễn Bỉnh Khiêm, Đa Kao, District 1" },
+    { "name": "A Coffee House", "area": "Đa Kao", "ll": [10.790387, 106.696639],
+      "notes": ["Tiny specialty roaster on a quiet Đa Kao side street, ~5 min walk", "One of Saigon's specialty-coffee pioneers, still roasting in-house"],
+      "tags": ["specialty coffee", "5 min walk"], "addr": "15 Huỳnh Khương Ninh, Đa Kao" },
+    { "name": "Jade Emperor Pagoda", "area": "Đa Kao", "ll": [10.791711, 106.697889],
+      "notes": ["Incense-smoky Taoist pagoda, ~4 min walk", "Free; go early morning before the tour groups"],
+      "tags": ["free", "culture", "4 min walk"], "wiki": "Jade Emperor Pagoda", "addr": "73 Mai Thị Lựu, Đa Kao" },
+    { "name": "Grandmum Café", "area": "Tân Định", "ll": [10.788917, 106.691573],
+      "notes": ["Hidden down an alley, done up like grandma's old Saigon house", "Near the pink church, ~12 min walk"],
+      "tags": ["retro", "hidden", "12 min walk"], "addr": "67B Đinh Công Tráng, Tân Định" },
+    { "name": "Tân Định Church", "area": "Tân Định", "ll": [10.78842, 106.69069],
+      "notes": ["The pink church, then the low-rise lanes behind it (Time Out's 12th coolest neighbourhood, 2026)", "Cà Phê Đỗ Phủ at 113A Đặng Dung has a wartime commando bunker"],
+      "tags": ["Time Out pick", "photo", "15 min walk"], "wiki": "Tân Định Church", "addr": "289 Hai Bà Trưng" },
+    { "name": "Tân Định Market", "area": "Tân Định", "ll": [10.79, 106.69],
+      "notes": ["Proper local market: fabric, street food stalls, cheap eats", "Pair with the church next door"],
+      "tags": ["street food", "local", "15 min walk"], "addr": "Hai Bà Trưng × Nguyễn Hữu Cầu" },
+    { "name": "Saigon Zoo & Botanical Gardens", "area": "Bến Nghé", "ll": [10.78806, 106.70472],
+      "notes": ["Big shady park ~7 min walk east, good for a morning stroll", "The zoo part is dated; go for the trees"],
+      "tags": ["green", "7 min walk"], "wiki": "Saigon Zoo and Botanical Gardens" }
+  ]
+}
