@@ -74,37 +74,62 @@
   li[hidden] { display:none; }
   .home a { display:block; text-decoration:none; color:var(--fg); }
   .grab { display:none; }
-  /* Phone portrait: full-screen map, list in a bottom sheet you can drag or tap (peek / half / full). */
-  @media (max-width: 700px) {
+  #strip, #inview, .more { display:none; }
+  .pin.sel { transform:scale(1.35); outline:3px solid var(--fg); outline-offset:1px; }
+  /* Phones, portrait or landscape: full-screen map, compact header on top, and a swipeable strip of
+     the places currently in view along the bottom. Tap a pin to jump to its card; tap a card for details. */
+  @media (max-width: 700px), (max-height: 500px) {
     html,body { height:100dvh; overflow:hidden; }
-    .wrap { display:block; position:relative; height:100dvh; --sheetH:46dvh; }
+    .wrap { display:block; position:relative; height:100dvh; --hdrH:60px; --stripH:110px; }
     #map { position:absolute; inset:0; }
-    aside { position:absolute; left:0; right:0; bottom:0; width:auto; height:var(--sheetH); z-index:1002; border:0; border-radius:16px 16px 0 0; background:var(--bg); box-shadow:0 -4px 20px rgba(0,0,0,.2); padding:0 14px calc(14px + env(safe-area-inset-bottom)); overscroll-behavior:contain; transition:height .22s ease; }
-    aside.dragging { transition:none; }
-    .grab { display:block; position:sticky; top:0; z-index:2; margin:0 -14px 6px; padding:10px 0 8px; background:var(--bg); cursor:grab; touch-action:none; border:0; width:calc(100% + 28px); }
-    .grab::before { content:''; display:block; width:44px; height:5px; border-radius:3px; background:var(--muted); opacity:.5; margin:0 auto; }
-    h1 { font-size:17px; }
-    .switch { flex-wrap:nowrap; overflow-x:auto; }
-    .switch a { flex:none; padding:7px 14px; }
+    aside { position:absolute; left:0; right:0; top:0; width:auto; max-height:75dvh; z-index:1002; border:0; background:var(--bg); box-shadow:0 2px 12px rgba(0,0,0,.2); padding:8px max(10px, env(safe-area-inset-right)) 2px max(10px, env(safe-area-inset-left)); overflow-y:auto; overscroll-behavior:contain; }
+    h1 { font-size:16px; display:flex; align-items:center; gap:6px; margin:0 0 6px; }
+    h1 #title { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    body.mapview .more { display:block; margin-left:auto; flex:none; font:600 13px system-ui, sans-serif; padding:5px 10px; border-radius:99px; border:1px solid var(--line); background:var(--card); color:var(--fg); cursor:pointer; }
+    .switch, .layers { flex-wrap:nowrap; overflow-x:auto; margin:0 0 6px; scrollbar-width:none; }
+    .switch::-webkit-scrollbar, .layers::-webkit-scrollbar { display:none; }
+    .switch a, .layers button { flex:none; padding:6px 12px; }
+    .layers::before { display:none; }
     p.sub { font-size:13px; margin-bottom:8px; }
-    p.tip { cursor:pointer; }
-    p.tip span { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-    p.tip.open span { display:block; }
-    li { padding:12px 10px; }
-    .tick { width:40px; height:40px; }
-    .locate { bottom:calc(var(--sheetH) + 12px); transition:bottom .22s ease; }
-    .card { position:fixed; left:0; right:0; top:auto; bottom:0; width:auto; max-height:72dvh; border-radius:16px 16px 0 0; padding:16px 16px calc(14px + env(safe-area-inset-bottom)); z-index:1003; box-shadow:0 -4px 24px rgba(0,0,0,.3); }
+    body.mapview #list { display:none; }
+    body.mapview:not(.more-open) p.sub, body.mapview:not(.more-open) p.tip, body.mapview:not(.more-open) .homebar,
+    body.mapview.layered:not(.more-open) #switch { display:none; }
+    body.mapview #strip { display:flex; position:absolute; left:0; right:0; bottom:0; z-index:1001; gap:8px; overflow-x:auto; scroll-snap-type:x mandatory; padding:8px max(10px, env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom)); scrollbar-width:none; }
+    #strip::-webkit-scrollbar { display:none; }
+    .sc { flex:none; width:min(250px, 74vw); scroll-snap-align:center; background:var(--card); color:var(--fg); border:2px solid var(--line); border-radius:12px; padding:8px 10px; display:flex; gap:8px; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,.25); text-align:left; font:inherit; }
+    .sc.sel { border-color:var(--fg); box-shadow:0 0 0 2px var(--fg), 0 2px 8px rgba(0,0,0,.3); }
+    .sc .name { font-size:14px; line-height:1.25; }
+    .sc .show { font-size:12px; color:var(--muted); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+    .sc .from { font-size:11px; }
+    .sc.empty { width:auto; cursor:auto; color:var(--muted); align-items:center; }
+    .sc .been { color:#16a34a; font-weight:700; }
+    body.mapview #inview { display:block; position:absolute; left:10px; bottom:calc(var(--stripH) + 4px); z-index:1001; font:700 12px system-ui, sans-serif; background:var(--card); color:var(--fg); border:1px solid var(--line); border-radius:99px; padding:3px 10px; box-shadow:0 1px 4px rgba(0,0,0,.25); }
+    .leaflet-top { top:var(--hdrH); }
+    body.mapview .leaflet-bottom { bottom:var(--stripH); }
+    .leaflet-control-zoom { display:none; }
+    .locate { bottom:calc(var(--stripH) + 8px); }
+    body:not(.mapview) .locate { bottom:12px; }
+    .card { position:fixed; left:0; right:0; top:auto; bottom:0; width:auto; max-height:70dvh; border-radius:16px 16px 0 0; padding:16px 16px calc(14px + env(safe-area-inset-bottom)); z-index:1003; box-shadow:0 -4px 24px rgba(0,0,0,.3); }
     .card .close { top:8px; right:10px; font-size:28px; }
     .btn { padding:12px 10px; }
     .been-btn { padding:12px 10px; }
+    .tick { width:40px; height:40px; }
+  }
+  /* Landscape phones are short: slimmer header buttons and one-line card notes. */
+  @media (max-height: 500px) {
+    h1 { margin-bottom:4px; }
+    .switch a, .layers button { padding:4px 10px; font-size:12px; }
+    .sc { padding:6px 8px; width:min(230px, 40vw); }
+    .sc .show { -webkit-line-clamp:1; }
+    /* Details slide in on the right so the pin stays visible on the left. */
+    .card { left:auto; right:0; top:var(--hdrH); bottom:0; width:min(380px, 50vw); max-height:none; border-radius:16px 0 0 0; padding:14px 14px calc(12px + env(safe-area-inset-bottom)); box-shadow:-4px 0 24px rgba(0,0,0,.3); }
   }
 </style>
 </head>
 <body>
 <div class="wrap">
   <aside id="sheet">
-    <button class="grab" id="grab" type="button" aria-label="Drag or tap to resize list"></button>
-    <h1><span id="title">robrob mapmap</span><span class="wip" id="wip">WIP</span></h1>
+    <h1><span id="title">robrob mapmap</span><span class="wip" id="wip">WIP</span><button class="more" id="more" type="button" aria-expanded="false">More ▾</button></h1>
     <div class="switch" id="switch" hidden></div>
     <div class="layers" id="layers" hidden></div>
     <p class="sub"><span id="sub">Tap a place or pin.</span> <span id="count"></span></p>
@@ -112,6 +137,7 @@
     <ol id="list"></ol>
   </aside>
   <div id="map"><button class="locate" id="locate" type="button">📍 Where am I?</button>
+    <div id="inview"></div><div id="strip"></div>
     <div class="card" id="card" hidden><button class="close" type="button" aria-label="Close">×</button><div class="card-body"></div></div>
   </div>
 </div>
@@ -122,51 +148,32 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':
 const $ = id => document.getElementById(id);
 const slug = (new URLSearchParams(location.search).get('m') || '').replace(/[^a-z0-9-]/gi, '');
 const map = L.map('map');
+window._map = map; // handy for debugging/tests
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19, attribution:'&copy; OpenStreetMap contributors' }).addTo(map);
 
-// Phone bottom sheet: three snap heights, tap the handle to cycle, drag to resize.
-const mob = () => matchMedia('(max-width: 700px)').matches;
-if (mob()) map.attributionControl.setPosition('topright');
+// Phones (portrait or landscape) get a compact header and a strip of in-view places along the bottom.
+const mob = () => matchMedia('(max-width: 700px), (max-height: 500px)').matches;
 const sheet = $('sheet'), wrap = document.querySelector('.wrap');
-const snaps = () => { const H = wrap.clientHeight; return { peek: 132, half: Math.round(H * .46), full: Math.round(H * .86) }; };
-let sheetState = 'half';
-function setSheet(s, px) {
-  if (!mob()) return;
-  sheetState = s;
-  wrap.style.setProperty('--sheetH', (px != null ? px : snaps()[s]) + 'px');
-  if (s === 'peek') sheet.scrollTop = 0;
-}
-setSheet('half');
-addEventListener('resize', () => setSheet(sheetState));
-{
-  const g = $('grab');
-  let y0 = null, h0 = 0, moved = false;
-  g.addEventListener('pointerdown', e => { y0 = e.clientY; h0 = sheet.offsetHeight; moved = false; sheet.classList.add('dragging'); g.setPointerCapture(e.pointerId); });
-  g.addEventListener('pointermove', e => {
-    if (y0 == null) return;
-    const dy = y0 - e.clientY;
-    if (Math.abs(dy) > 4) moved = true;
-    const s = snaps();
-    wrap.style.setProperty('--sheetH', Math.max(s.peek - 40, Math.min(s.full + 20, h0 + dy)) + 'px');
-  });
-  const end = () => {
-    if (y0 == null) return;
-    y0 = null; sheet.classList.remove('dragging');
-    const s = snaps(), h = sheet.offsetHeight;
-    if (!moved) { setSheet(sheetState === 'peek' ? 'half' : sheetState === 'half' ? 'full' : 'peek'); return; }
-    setSheet(Object.keys(s).reduce((a, b) => Math.abs(s[b] - h) < Math.abs(s[a] - h) ? b : a));
-  };
-  g.addEventListener('pointerup', end); g.addEventListener('pointercancel', end);
-}
-// On a phone, keep the pin visible above the bottom card.
+const hdrH = () => mob() ? sheet.offsetHeight : 0;
+const stripH = () => mob() && document.body.classList.contains('mapview') ? $('strip').offsetHeight || 110 : 0;
+function syncSizes() { wrap.style.setProperty('--hdrH', hdrH() + 'px'); wrap.style.setProperty('--stripH', stripH() + 'px'); }
+if ('ResizeObserver' in window) { const ro = new ResizeObserver(syncSizes); ro.observe(sheet); ro.observe($('strip')); }
+addEventListener('resize', syncSizes);
+$('more').onclick = () => { const o = document.body.classList.toggle('more-open'); $('more').textContent = o ? 'Less ▴' : 'More ▾'; $('more').setAttribute('aria-expanded', o); };
+// Phone padding so fitted pins don't hide under the header or strip.
+const fitPad = () => mob() ? { paddingTopLeft:[24, hdrH() + 24], paddingBottomRight:[24, Math.max(stripH(), 120) + 24] } : { padding:[30,30] };
+// On a phone, put the pin in the middle of the clear bit of map (between header and strip/card).
 function framePin(ll) {
   if (!mob()) return;
   const card = $('card'), H = map.getSize().y, W = map.getSize().x;
   const pt = map.latLngToContainerPoint(ll);
-  map.panBy([pt.x - W / 2, pt.y - Math.max(70, (H - card.offsetHeight) / 2)]);
+  const side = !card.hidden && card.offsetWidth < W * 0.7;   // landscape: details panel on the right
+  if (side) return map.panBy([pt.x - (W - card.offsetWidth) / 2, pt.y - (hdrH() + (H - hdrH()) / 2)]);
+  const bottom = card.hidden ? stripH() : card.offsetHeight;
+  map.panBy([pt.x - W / 2, pt.y - (hdrH() + Math.max(60, (H - hdrH() - bottom) / 2))]);
 }
 
-if (!slug) showHome(); else fetch('maps/' + slug + '.json').then(r => { if (!r.ok) throw 0; return r.json(); }).then(build).catch(() => { $('title').textContent = 'Map not found'; showHome(); });
+if (!slug) showHome(); else fetch('maps/' + slug + '.json').then(r => { if (!r.ok) throw 0; return r.json(); }).then(build).catch(err => { console.error(err); $('title').textContent = 'Map not found'; showHome(); });
 
 // No ?m= : list every map from maps/index.json
 function showHome() {
@@ -219,6 +226,8 @@ function build(data) {
     });
   }
   showSwitch();
+  document.body.classList.add('mapview');
+  if (data._layers) document.body.classList.add('layered');
   const places = data.places;
   const layers = data._layers || null;
   const lstyle = l => `--pc:${l.col};--pt:${l.txt};--pr:${l.rad}`;
@@ -257,6 +266,7 @@ function build(data) {
     try { localStorage.setItem(KEY, JSON.stringify(been)); } catch (e) {}
     render(i);
     if (openIdx === i) openCard(i);
+    updateStrip(true);
   }
   function render(i) {
     const on = !!been[places[i].name];
@@ -286,7 +296,7 @@ function build(data) {
     card.querySelector('.been-btn').onclick = () => setBeen(i, !been[p.name]);
     openIdx = i;
     card.hidden = false;
-    if (mob()) { setSheet('peek'); requestAnimationFrame(() => framePin(p.ll)); }
+    if (mob()) { selectPin(i, true); requestAnimationFrame(() => framePin(p.ll)); }
     loadPhoto(i);
   }
   const photoCache = {};
@@ -311,13 +321,71 @@ function build(data) {
     };
     img.src = src;
   }
-  const closeCard = () => { if (card.hidden) return; card.hidden = true; openIdx = -1; setSheet('half'); };
+  const closeCard = () => { if (card.hidden) return; card.hidden = true; openIdx = -1; };
+
+  // Phone strip: cards for the places in view. Pin tap = jump to its card; card tap = details; swipe = highlight pin.
+  const strip = $('strip');
+  // The strip sits inside the map container: keep its taps and swipes from reaching the map.
+  L.DomEvent.disableClickPropagation(strip); L.DomEvent.disableScrollPropagation(strip);
+  L.DomEvent.disableClickPropagation($('inview'));
+  let selIdx = -1, stripKey = '', scrollT = null, quiet = false;
+  const shown = i => !items[i] || !items[i].hidden;
+  function selectPin(i, scroll) {
+    if (selIdx !== i) {
+      if (selIdx >= 0 && markers[selIdx]) { const el = markers[selIdx].getElement(); if (el) el.querySelector('.pin').classList.remove('sel'); markers[selIdx].setZIndexOffset(0); }
+      selIdx = i;
+    }
+    if (i >= 0 && markers[i]) { const el = markers[i].getElement(); if (el) el.querySelector('.pin').classList.add('sel'); markers[i].setZIndexOffset(800); }
+    strip.querySelectorAll('.sc').forEach(c => c.classList.toggle('sel', +c.dataset.i === i));
+    if (scroll) {
+      const c = strip.querySelector(`.sc[data-i="${i}"]`);
+      if (c) { quiet = true; c.scrollIntoView({ behavior:'smooth', inline:'center', block:'nearest' }); setTimeout(() => quiet = false, 600); }
+    }
+  }
+  function updateStrip(force) {
+    if (!mob() || !map._loaded) return;   // map has no view yet (before the first fit)
+    const W = map.getSize().x, H = map.getSize().y;
+    const b = L.latLngBounds(map.containerPointToLatLng([0, hdrH()]), map.containerPointToLatLng([W, H - stripH()]));
+    const vis = places.map((p, i) => i).filter(i => shown(i) && (b.contains(places[i].ll) || i === selIdx));
+    const total = places.filter((_, i) => shown(i)).length;
+    $('inview').textContent = vis.length === total ? `All ${total} places` : `${vis.length} of ${total} in view`;
+    const key = vis.join(',');
+    if (!force && key === stripKey) return;
+    stripKey = key;
+    strip.innerHTML = vis.length ? vis.map(i => {
+      const p = places[i], first = [].concat(p.notes || [])[0];
+      return `<button type="button" class="sc${i === selIdx ? ' sel' : ''}" data-i="${i}"><span class="n"${pcol(p)}>${i+1}</span><div>${layers ? `<div class="lyr"${pcol(p)}>${esc(layers[p._layer].name)}</div>` : ''}<div class="name">${esc(p.name)}${been[p.name] ? ' <span class="been">✓</span>' : ''}</div>${first ? `<div class="show">${esc(first)}</div>` : ''}${home ? `<div class="from">${esc(fromHome(p.ll))}</div>` : ''}</div></button>`;
+    }).join('') : '<div class="sc empty">Nothing here. Zoom out or switch layers on.</div>';
+    syncSizes();
+    if (selIdx >= 0) selectPin(selIdx, false);
+  }
+  strip.onclick = e => {
+    const c = e.target.closest('.sc[data-i]'); if (!c) return;
+    const i = +c.dataset.i;
+    openCard(i);
+  };
+  strip.addEventListener('scroll', () => {
+    if (quiet) return;
+    clearTimeout(scrollT);
+    scrollT = setTimeout(() => {
+      const mid = strip.scrollLeft + strip.clientWidth / 2;
+      let best = null, d = 1e9;
+      strip.querySelectorAll('.sc[data-i]').forEach(c => { const m = c.offsetLeft + c.offsetWidth / 2, dd = Math.abs(m - mid); if (dd < d) { d = dd; best = c; } });
+      if (best) selectPin(+best.dataset.i, false);
+    }, 140);
+  }, { passive:true });
+  map.on('moveend', () => updateStrip(false));
+  addEventListener('resize', () => updateStrip(true));
   card.querySelector('.close').onclick = closeCard;
   L.DomEvent.disableClickPropagation(card);
   map.on('click', closeCard);
   places.forEach((p, i) => {
     const icon = L.divIcon({ className:'', html:`<div class="pin"${pcol(p)}>${i+1}${badge(p)}</div>`, iconSize:[26,26], iconAnchor:[13,13] });
-    markers[i] = L.marker(p.ll, { icon }).addTo(map).on('click', () => openCard(i));
+    markers[i] = L.marker(p.ll, { icon }).addTo(map).on('click', () => {
+      if (!mob()) return openCard(i);
+      if (selIdx === i && card.hidden) return openCard(i);   // second tap on the same pin opens it
+      closeCard(); selectPin(i, false); updateStrip(true); selectPin(i, true);
+    });
     const li = document.createElement('li');
     const first = [].concat(p.notes || [])[0];
     li.innerHTML = `<span class="n"${pcol(p)}>${i+1}</span><div>${layers ? `<div class="lyr"${pcol(p)}>${esc(layers[p._layer].name)}</div>` : ''}<div class="name">${esc(p.name)}</div>${first ? `<div class="show">${esc(first)}</div>` : ''}${p.area ? `<div class="addr">${esc(p.area)}</div>` : ''}${home ? `<div class="from">${esc(fromHome(p.ll))}</div>` : ''}</div><button class="tick" type="button" aria-label="Been here">✓</button>`;
@@ -336,9 +404,9 @@ function build(data) {
     hb.onclick = () => map.setView(home.ll, 16);
     list.parentNode.insertBefore(hb, list);
   }
-  map.fitBounds(L.latLngBounds(places.map(p => p.ll).concat(home ? [home.ll] : [])), mob() ? { paddingTopLeft:[30,30], paddingBottomRight:[30, sheet.offsetHeight + 30] } : { padding:[30,30] });
   places.forEach((_, i) => render(i));
   window._places = places;
+  updateStrip(true);
   if (layers) {
     const LKEY = 'robrob-mapmap-layers-' + slug;
     let off = {};
@@ -356,6 +424,8 @@ function build(data) {
         if (!show && openIdx === i) closeCard();
       });
       places.forEach((_, i) => { if (!items[i].hidden) render(i); });
+      if (selIdx >= 0 && items[selIdx].hidden) selectPin(-1, false);
+      updateStrip(true);
     };
     box.onclick = e => {
       const b = e.target.closest('button'); if (!b) return;
@@ -366,6 +436,10 @@ function build(data) {
     };
     apply();
   }
+  // Fit once the header (incl. layer buttons) and strip are laid out, so nothing starts hidden under them.
+  syncSizes();
+  map.fitBounds(L.latLngBounds(places.map(p => p.ll).concat(home ? [home.ll] : [])), fitPad());
+  updateStrip(true);
 }
 
 // Your location stays on this device: it is only drawn on the map, never sent or saved.
@@ -401,7 +475,7 @@ btn.onclick = () => {
     } else { meMarker.setLatLng(ll); meCircle.setLatLng(ll).setRadius(pos.coords.accuracy); }
     drawRings(ll);
     btn.textContent = '📍 Me';
-    if (firstFix) { firstFix = false; map.fitBounds(L.latLng(ll).toBounds(2 * grabM(10) + 200), { padding:[20,20] }); }
+    if (firstFix) { firstFix = false; map.fitBounds(L.latLng(ll).toBounds(2 * grabM(10) + 200), fitPad()); }
   }, err => {
     watching = false;
     btn.textContent = err.code === 1 ? 'Location blocked' : '📍 Try again';
