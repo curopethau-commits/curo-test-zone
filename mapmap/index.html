@@ -33,7 +33,13 @@
   .from { color:var(--accent); font-size:12px; font-weight:600; }
   .homebar { display:flex; align-items:center; gap:8px; margin:6px 0 2px; font-size:13px; }
   .homebar b { font-weight:700; }
-  .locate { position:absolute; right:10px; bottom:24px; z-index:1000; background:var(--card); color:var(--fg); border:1px solid var(--line); border-radius:8px; padding:8px 12px; font:600 14px system-ui, sans-serif; box-shadow:0 1px 4px rgba(0,0,0,.25); cursor:pointer; }
+  .ctrls { position:absolute; right:10px; bottom:24px; z-index:1000; display:flex; flex-direction:column; align-items:flex-end; gap:8px; }
+  .rbtn { width:44px; height:44px; border-radius:50%; background:var(--card); color:var(--fg); border:1px solid var(--line); box-shadow:0 1px 4px rgba(0,0,0,.3); font:700 18px system-ui, sans-serif; cursor:pointer; display:grid; place-items:center; padding:0; }
+  .rbtn.on { background:#0072B2; color:#fff; border-color:#0072B2; }
+  .rbtn[hidden] { display:none; }
+  #north span { display:block; transition:transform .15s linear; font-size:13px; line-height:1; }
+  #north b { display:block; color:#D55E00; font-size:16px; line-height:.9; }
+  .locate { background:var(--card); color:var(--fg); border:1px solid var(--line); border-radius:8px; padding:8px 12px; font:600 14px system-ui, sans-serif; box-shadow:0 1px 4px rgba(0,0,0,.25); cursor:pointer; }
   .card { position:absolute; left:10px; top:10px; z-index:1001; width:min(340px, calc(100% - 20px)); max-height:calc(100% - 80px); overflow-y:auto; background:var(--card); color:var(--fg); border:1px solid var(--line); border-radius:12px; padding:14px 14px 12px; box-shadow:0 4px 20px rgba(0,0,0,.25); }
   .card[hidden] { display:none; }
   .card .close { position:absolute; top:6px; right:8px; border:0; background:none; color:var(--muted); font-size:24px; line-height:1; cursor:pointer; padding:4px; }
@@ -107,8 +113,8 @@
     .leaflet-top { top:var(--hdrH); }
     body.mapview .leaflet-bottom { bottom:var(--stripH); }
     .leaflet-control-zoom { display:none; }
-    .locate { bottom:calc(var(--stripH) + 8px); }
-    body:not(.mapview) .locate { bottom:12px; }
+    .ctrls { bottom:calc(var(--stripH) + 8px); }
+    body:not(.mapview) .ctrls { bottom:12px; }
     .card { position:fixed; left:0; right:0; top:auto; bottom:0; width:auto; max-height:70dvh; border-radius:16px 16px 0 0; padding:16px 16px calc(14px + env(safe-area-inset-bottom)); z-index:1003; box-shadow:0 -4px 24px rgba(0,0,0,.3); }
     .card .close { top:8px; right:10px; font-size:28px; }
     .btn { padding:12px 10px; }
@@ -136,18 +142,25 @@
     <p class="tip" id="tip" hidden></p>
     <ol id="list"></ol>
   </aside>
-  <div id="map"><button class="locate" id="locate" type="button">📍 Where am I?</button>
+  <div id="map"><div class="ctrls" id="ctrls">
+      <button class="rbtn" id="north" type="button" aria-label="Reset to north up" title="North up (tap) · two fingers or Shift-drag to rotate"><span><b>▲</b>N</span></button>
+      <button class="rbtn" id="compass" type="button" aria-label="Turn map to match the way I'm facing" aria-pressed="false" title="Turn map to match the way you're facing">🧭</button>
+      <button class="locate" id="locate" type="button">📍 Where am I?</button>
+    </div>
     <div id="inview"></div><div id="strip"></div>
     <div class="card" id="card" hidden><button class="close" type="button" aria-label="Close">×</button><div class="card-body"></div></div>
   </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet-rotate@0.2.8/dist/leaflet-rotate.js"></script>
 <script>
 {
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const $ = id => document.getElementById(id);
 const slug = (new URLSearchParams(location.search).get('m') || '').replace(/[^a-z0-9-]/gi, '');
-const map = L.map('map');
+// leaflet-rotate adds two-finger (and Shift-drag) rotation. If it didn't load, the map just stays north-up.
+const map = L.map('map', { rotate:true, touchRotate:true, shiftKeyRotate:true, rotateControl:false, bearing:0 });
+const canRotate = typeof map.setBearing === 'function' && !!map._rotate;
 window._map = map; // handy for debugging/tests
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19, attribution:'&copy; OpenStreetMap contributors' }).addTo(map);
 
@@ -345,8 +358,9 @@ function build(data) {
   function updateStrip(force) {
     if (!mob() || !map._loaded) return;   // map has no view yet (before the first fit)
     const W = map.getSize().x, H = map.getSize().y;
-    const b = L.latLngBounds(map.containerPointToLatLng([0, hdrH()]), map.containerPointToLatLng([W, H - stripH()]));
-    const vis = places.map((p, i) => i).filter(i => shown(i) && (b.contains(places[i].ll) || i === selIdx));
+    // Test in screen pixels so it still works when the map is rotated.
+    const inView = ll => { const pt = map.latLngToContainerPoint(ll); return pt.x >= 0 && pt.x <= W && pt.y >= hdrH() && pt.y <= H - stripH(); };
+    const vis = places.map((p, i) => i).filter(i => shown(i) && (inView(places[i].ll) || i === selIdx));
     const total = places.filter((_, i) => shown(i)).length;
     $('inview').textContent = vis.length === total ? `All ${total} places` : `${vis.length} of ${total} in view`;
     const key = vis.join(',');
@@ -461,7 +475,55 @@ function drawRings(ll) {
   GRAB_MIN.forEach(m => ring(ll, grabM(m), '#D55E00', `🛵 ${m} min`, 'gr', '14 8', true));
 }
 const btn = $('locate');
-L.DomEvent.disableClickPropagation(btn);
+L.DomEvent.disableClickPropagation($('ctrls'));
+
+// ---- Rotation: 🧭 turns the map to match the way the phone is facing; N puts north back up. ----
+const northBtn = $('north'), compBtn = $('compass');
+if (!canRotate) { northBtn.hidden = true; compBtn.hidden = true; }
+const showBearing = () => { if (canRotate) northBtn.querySelector('span').style.transform = `rotate(${map.getBearing()}deg)`; };
+map.on('rotate', showBearing);
+let following = false, smooth = null, gotHeading = false;
+// Heading = which way the top of the screen points (0 = north, clockwise).
+function headingFrom(e) {
+  let h = null;
+  if (typeof e.webkitCompassHeading === 'number') h = e.webkitCompassHeading;           // iPhone
+  else if (e.absolute && typeof e.alpha === 'number') h = 360 - e.alpha;                // Android
+  if (h == null) return null;
+  const scr = (screen.orientation && typeof screen.orientation.angle === 'number') ? screen.orientation.angle : (window.orientation || 0);
+  return (h + scr + 360) % 360;
+}
+function onOrient(e) {
+  const h = headingFrom(e);
+  if (h == null) return;
+  gotHeading = true;
+  // Smooth out compass jitter, taking the short way round 359°→0°.
+  if (smooth == null) smooth = h;
+  else { let d = ((h - smooth + 540) % 360) - 180; smooth = (smooth + d * 0.25 + 360) % 360; }
+  map.setBearing(-smooth);
+}
+const orientEvt = 'ondeviceorientationabsolute' in window ? 'deviceorientationabsolute' : 'deviceorientation';
+function stopFollowing() {
+  if (!following) return;
+  following = false; smooth = null;
+  removeEventListener(orientEvt, onOrient);
+  compBtn.classList.remove('on'); compBtn.setAttribute('aria-pressed', 'false');
+  if (canRotate) map.touchRotate.enable();
+}
+async function startFollowing() {
+  // iPhone asks permission, and only from a tap.
+  if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+    let r = 'unknown';
+    try { r = await DeviceOrientationEvent.requestPermission(); } catch (e) {}
+    if (r === 'denied') { compBtn.title = 'Compass permission denied (allow Motion & Orientation in browser settings)'; compBtn.textContent = '🧭✕'; setTimeout(() => compBtn.textContent = '🧭', 2500); return; }
+  }
+  following = true; gotHeading = false;
+  map.touchRotate.disable();   // fingers would fight the compass
+  addEventListener(orientEvt, onOrient);
+  compBtn.classList.add('on'); compBtn.setAttribute('aria-pressed', 'true');
+  setTimeout(() => { if (following && !gotHeading) { stopFollowing(); compBtn.title = 'No compass on this device'; compBtn.textContent = '🧭✕'; setTimeout(() => compBtn.textContent = '🧭', 2500); } }, 2500);
+}
+compBtn.onclick = () => { if (following) stopFollowing(); else startFollowing(); };
+northBtn.onclick = () => { stopFollowing(); map.setBearing(0); };
 btn.onclick = () => {
   if (!('geolocation' in navigator)) { btn.textContent = 'Location unavailable'; return; }
   if (watching) { if (meMarker) map.setView(meMarker.getLatLng(), 15); return; }
