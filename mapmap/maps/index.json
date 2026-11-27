@@ -80,5 +80,12 @@
     "sub": "6 food, drink & coffee tips from Oliver",
     "group": "saigon",
     "tab": "💌 Oliver & Chi"
+  },
+  {
+    "slug": "saigon-markets",
+    "title": "Saigon markets",
+    "sub": "7 markets: electronics, fabric, tailors, clothes",
+    "group": "saigon",
+    "tab": "🛍️ Markets"
   }
 ]

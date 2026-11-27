@@ -1,0 +1,31 @@
+{
+  "title": "Saigon markets",
+  "sub": "Electronics first, then fabric, tailors and clothes, Nov 2026",
+  "tip": "Bargain everywhere except chain shops; start at about half. Test gadgets in front of the seller and ask for a receipt or warranty (bảo hành). For a new phone or laptop with a proper guarantee, use a chain shop like Thế Giới Di Động or CellphoneS instead. Markets open early and wind down by about 6pm. Mind your phone in the crowds.",
+  "area": "Ho Chi Minh City, Vietnam",
+  "noteLabel": "Why go",
+  "home": { "name": "Wink Hotel Saigon Centre", "short": "Wink", "ll": [10.791172, 106.700455], "addr": "75 Nguyễn Bỉnh Khiêm, Đa Kao, District 1" },
+  "places": [
+    { "name": "Chợ Nhật Tảo (electronics, parts, second-hand gadgets)", "area": "District 10", "ll": [10.76516, 106.66989],
+      "notes": ["Saigon's big electronics market: used phones, cameras and lenses, speakers, chargers, cables, LED strips, repair tools", "Mix of new parts and second-hand kit; quality varies, so test before you pay", "Go in daytime; most stalls are shut by evening"],
+      "tags": ["electronics", "second-hand", "bargain hard"], "addr": "Nhật Tảo × Vĩnh Viễn, District 10" },
+    { "name": "Chợ Dân Sinh (tools, hardware, electrical bits, army surplus)", "area": "Nguyễn Thái Bình", "ll": [10.76654, 106.69817],
+      "notes": ["Old-school market for tools, wire, plugs, adapters and hardware", "Famous for army-surplus stalls: boots, bags, jackets", "Near Ben Thanh, so pair it with Hà Tâm for USD"],
+      "tags": ["hardware", "electrical", "army surplus"], "addr": "104 Yersin, District 1", "wiki": "Dân Sinh Market" },
+    { "name": "Tân Định Market (fabric & tailors)", "area": "Tân Định", "ll": [10.79, 106.69],
+      "notes": ["Closest to Wink: fabric and sewing stalls, with tailors next door to make it up", "Cheaper fabric shops line Hai Bà Trưng opposite", "Local prices, much less touristy than Ben Thanh"],
+      "tags": ["fabric", "tailors", "near Wink"], "addr": "Hai Bà Trưng × Nguyễn Hữu Cầu, Tân Định" },
+    { "name": "Saigon Square (clothes, bags, shoes, accessories)", "area": "Bến Thành", "ll": [10.772774, 106.700249],
+      "notes": ["Air-conditioned arcade of small stalls: cheap clothes, backpacks, shoes, sunglasses, phone cases", "Haggle; prices start high. Roughly 9am–9pm"],
+      "tags": ["clothes", "bags", "air-con"], "addr": "77–89 Nam Kỳ Khởi Nghĩa, District 1" },
+    { "name": "Bến Thành Market (souvenirs, fabric, quick tailors, food)", "area": "Bến Thành", "ll": [10.77252, 106.69802],
+      "notes": ["The famous one: tailors will run up shirts and áo dài fast", "Most expensive of the lot, so bargain hard or just browse and eat"],
+      "tags": ["tailors", "souvenirs", "touristy"], "addr": "Lê Lợi × Phan Bội Châu, District 1", "wiki": "Bến Thành Market" },
+    { "name": "An Đông Market (clothes, fabric & áo dài tailors)", "area": "District 5", "ll": [10.75667, 106.66972],
+      "notes": ["Fashion and fabric hub, cheaper and bigger choice than Ben Thanh", "Some tailors here turn an áo dài round quickly", "Pin is the middle of An Đông ward; Directions finds the market"],
+      "tags": ["clothes", "fabric", "tailors"], "addr": "34–36 An Dương Vương, District 5" },
+    { "name": "Bình Tây Market (wholesale everything, Chợ Lớn)", "area": "Chợ Lớn", "ll": [10.749375, 106.651078],
+      "notes": ["Chinatown's big wholesale market: fabric, clothes, household goods, dried food", "Busy, real and great to wander; the clock-tower building is lovely", "Furthest out, so make it a half-day with Chợ Lớn's temples"],
+      "tags": ["wholesale", "Chinatown", "half-day"], "addr": "57A Tháp Mười, District 6", "wiki": "Bình Tây Market" }
+  ]
+}
