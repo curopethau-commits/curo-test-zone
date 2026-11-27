@@ -1,12 +1,77 @@
 {
-  "title": "Saigon sights",
-  "sub": "Landmarks worth a detour, Nov 2026",
+  "title": "Saigon sights & cool places",
+  "sub": "Landmarks, hidden history and legendary eats, Nov 2026",
   "area": "Ho Chi Minh City, Vietnam",
   "noteLabel": "Why go",
-  "home": { "name": "Wink Hotel Saigon Centre", "short": "Wink", "ll": [10.791172, 106.700455], "addr": "75 Nguyễn Bỉnh Khiêm, Đa Kao, District 1" },
+  "home": {
+    "name": "Wink Hotel Saigon Centre",
+    "short": "Wink",
+    "ll": [
+      10.791172,
+      106.700455
+    ],
+    "addr": "75 Nguyễn Bỉnh Khiêm, Đa Kao, District 1"
+  },
   "places": [
-    { "name": "Thích Quảng Đức Monument", "area": "District 3", "ll": [10.775159, 106.686864],
-      "notes": ["Memorial on the exact corner where the monk burned himself in protest in June 1963", "The 'Burning Monk' photo shocked the world; the statue shows him wreathed in flames", "Free, open-air, on a busy junction: 10 min is plenty"],
-      "tags": ["free", "history", "quick stop"], "addr": "Cách Mạng Tháng Tám × Nguyễn Đình Chiểu, District 3", "wiki": "Thích Quảng Đức" }
+    {
+      "name": "Thích Quảng Đức Monument",
+      "area": "District 3",
+      "ll": [
+        10.775159,
+        106.686864
+      ],
+      "notes": [
+        "Memorial on the exact corner where the monk burned himself in protest in June 1963",
+        "The 'Burning Monk' photo shocked the world; the statue shows him wreathed in flames",
+        "Free, open-air, on a busy junction: 10 min is plenty"
+      ],
+      "tags": [
+        "free",
+        "history",
+        "quick stop"
+      ],
+      "addr": "Cách Mạng Tháng Tám × Nguyễn Đình Chiểu, District 3",
+      "wiki": "Thích Quảng Đức"
+    },
+    {
+      "name": "Cà Phê Đỗ Phủ (war-time commando café)",
+      "area": "Tân Định",
+      "ll": [
+        10.7905,
+        106.6895
+      ],
+      "notes": [
+        "Looks like any shopfront, but was a base for Saigon's commando network in the war against the US",
+        "Hidden letterboxes, a bunker and an escape route are still there; open to visitors since 2017",
+        "Also does cơm tấm (broken rice) downstairs",
+        "Pin is approximate (Tân Định, near the market); Directions finds 113A Đặng Dung"
+      ],
+      "tags": [
+        "hidden history",
+        "coffee",
+        "near Wink"
+      ],
+      "addr": "113A Đặng Dung, Tân Định, District 1"
+    },
+    {
+      "name": "Bánh Xèo 46A (crispy Saigon pancakes since 1945)",
+      "area": "Tân Định",
+      "ll": [
+        10.7895934,
+        106.6913619
+      ],
+      "notes": [
+        "Legendary bánh xèo joint, Michelin-listed: huge crispy turmeric pancakes with prawn and pork",
+        "Wrap pieces in lettuce and herbs, dip in fish sauce",
+        "Round the corner from the pink church; about 15 min walk from Wink"
+      ],
+      "tags": [
+        "Michelin",
+        "street food",
+        "near Wink"
+      ],
+      "addr": "46A Đinh Công Tráng, Tân Định, District 1",
+      "url": "https://guide.michelin.com/vn/en/ho-chi-minh/ho-chi-minh_2978179/restaurant/banh-xeo-46a"
+    }
   ]
 }
